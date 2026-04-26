@@ -1,0 +1,382 @@
+{
+  "overall_evolution": {
+    "converged": false,
+    "convergence_generation": null,
+    "final_distribution": {
+      "competing": 0.18,
+      "collaborating": 0.2161,
+      "compromising": 0.2191,
+      "avoiding": 0.163,
+      "accommodating": 0.2218
+    },
+    "ess": {
+      "is_ess": false,
+      "ess_strategy": null,
+      "invasion_barriers": {},
+      "ne_consistent": false,
+      "ne_strategy": null
+    },
+    "shannon_entropy_initial": 1.609438,
+    "shannon_entropy_final": 1.602731,
+    "history": [
+      {
+        "generation": 0,
+        "distribution": {
+          "competing": 0.2,
+          "collaborating": 0.2,
+          "compromising": 0.2,
+          "avoiding": 0.2,
+          "accommodating": 0.2
+        },
+        "mean_fitness": 0.516776,
+        "shannon_entropy": 1.609438,
+        "social_welfare": 0.516776
+      },
+      {
+        "generation": 1,
+        "distribution": {
+          "competing": 0.19896651,
+          "collaborating": 0.200938895,
+          "compromising": 0.2010673725,
+          "avoiding": 0.1978511475,
+          "accommodating": 0.201176075
+        },
+        "mean_fitness": 0.517383,
+        "shannon_entropy": 1.609415,
+        "social_welfare": 0.517383
+      },
+      {
+        "generation": 2,
+        "distribution": {
+          "competing": 0.1979361979831419,
+          "collaborating": 0.20186343083207908,
+          "compromising": 0.20212253959652723,
+          "avoiding": 0.19573486480137475,
+          "accommodating": 0.20234296678687705
+        },
+        "mean_fitness": 0.51798,
+        "shannon_entropy": 1.609348,
+        "social_welfare": 0.51798
+      },
+      {
+        "generation": 3,
+        "distribution": {
+          "competing": 0.19690912281326536,
+          "collaborating": 0.20277365149106136,
+          "compromising": 0.20316552272035754,
+          "avoiding": 0.19365103244723436,
+          "accommodating": 0.2035006705280814
+        },
+        "mean_fitness": 0.518567,
+        "shannon_entropy": 1.609238,
+        "social_welfare": 0.518567
+      },
+      {
+        "generation": 4,
+        "distribution": {
+          "competing": 0.1958853407702053,
+          "collaborating": 0.20366960575737883,
+          "compromising": 0.20419634773497705,
+          "avoiding": 0.19159952053441115,
+          "accommodating": 0.2046491852030277
+        },
+        "mean_fitness": 0.519144,
+        "shannon_entropy": 1.609086,
+        "social_welfare": 0.519144
+      },
+      {
+        "generation": 5,
+        "distribution": {
+          "competing": 0.1948649056044342,
+          "collaborating": 0.2045513469854289,
+          "compromising": 0.2052150447495076,
+          "avoiding": 0.18958018919656075,
+          "accommodating": 0.20578851346406857
+        },
+        "mean_fitness": 0.519712,
+        "shannon_entropy": 1.608893,
+        "social_welfare": 0.519712
+      },
+      {
+        "generation": 6,
+        "distribution": {
+          "competing": 0.19384786859177858,
+          "collaborating": 0.20541893289558075,
+          "compromising": 0.20622164793458697,
+          "avoiding": 0.18759288907899668,
+          "accommodating": 0.20691866149905702
+        },
+        "mean_fitness": 0.52027,
+        "shannon_entropy": 1.608662,
+        "social_welfare": 0.52027
+      },
+      {
+        "generation": 7,
+        "distribution": {
+          "competing": 0.19283427858813243,
+          "collaborating": 0.20627242536999385,
+          "compromising": 0.20721619534136113,
+          "avoiding": 0.18563746180487928,
+          "accommodating": 0.20803963889563334
+        },
+        "mean_fitness": 0.520819,
+        "shannon_entropy": 1.608394,
+        "social_welfare": 0.520819
+      },
+      {
+        "generation": 8,
+        "distribution": {
+          "competing": 0.19182418208409674,
+          "collaborating": 0.20711189025239352,
+          "compromising": 0.20819872872372844,
+          "avoiding": 0.18371374043241978,
+          "accommodating": 0.20915145850736155
+        },
+        "mean_fitness": 0.521359,
+        "shannon_entropy": 1.60809,
+        "social_welfare": 0.521359
+      },
+      {
+        "generation": 9,
+        "distribution": {
+          "competing": 0.19081762325947813,
+          "collaborating": 0.20793739715193035,
+          "compromising": 0.20916929336396045,
+          "avoiding": 0.18182154990280275,
+          "accommodating": 0.21025413632182832
+        },
+        "mean_fitness": 0.52189,
+        "shannon_entropy": 1.60775,
+        "social_welfare": 0.52189
+      },
+      {
+        "generation": 10,
+        "distribution": {
+          "competing": 0.18981464403758525,
+          "collaborating": 0.2087490192512328,
+          "compromising": 0.21012793790180756,
+          "avoiding": 0.17996070747856757,
+          "accommodating": 0.21134769133080678
+        },
+        "mean_fitness": 0.522412,
+        "shannon_entropy": 1.607378,
+        "social_welfare": 0.522412
+      },
+      {
+        "generation": 11,
+        "distribution": {
+          "competing": 0.1888152841392664,
+          "collaborating": 0.2095468331187469,
+          "compromising": 0.21107471416718426,
+          "avoiding": 0.1781310231722259,
+          "accommodating": 0.2124321454025766
+        },
+        "mean_fitness": 0.522926,
+        "shannon_entropy": 1.606973,
+        "social_welfare": 0.522926
+      },
+      {
+        "generation": 12,
+        "distribution": {
+          "competing": 0.18781958113663522,
+          "collaborating": 0.21033091852544117,
+          "compromising": 0.21200967701651438,
+          "avoiding": 0.17633230016492726,
+          "accommodating": 0.21350752315648203
+        },
+        "mean_fitness": 0.52343,
+        "shannon_entropy": 1.606538,
+        "social_welfare": 0.52343
+      },
+      {
+        "generation": 13,
+        "distribution": {
+          "competing": 0.18682757050643684,
+          "collaborating": 0.21110135826594104,
+          "compromising": 0.21293288417280407,
+          "avoiding": 0.17456433521501744,
+          "accommodating": 0.21457385183980066
+        },
+        "mean_fitness": 0.523927,
+        "shannon_entropy": 1.606073,
+        "social_welfare": 0.523927
+      },
+      {
+        "generation": 14,
+        "distribution": {
+          "competing": 0.18583928568300945,
+          "collaborating": 0.21185823798414266,
+          "compromising": 0.21384439606949796,
+          "avoiding": 0.17282691905636471,
+          "accommodating": 0.21563116120698522
+        },
+        "mean_fitness": 0.524414,
+        "shannon_entropy": 1.60558,
+        "social_welfare": 0.524414
+      },
+      {
+        "generation": 15,
+        "distribution": {
+          "competing": 0.18485475811080093,
+          "collaborating": 0.21260164600334436,
+          "compromising": 0.21474427569816235,
+          "avoiding": 0.17111983678635853,
+          "accommodating": 0.2166794834013339
+        },
+        "mean_fitness": 0.524894,
+        "shannon_entropy": 1.605059,
+        "social_welfare": 0.524894
+      },
+      {
+        "generation": 16,
+        "distribution": {
+          "competing": 0.18387401729640296,
+          "collaborating": 0.21333167316092144,
+          "compromising": 0.21563258846002853,
+          "avoiding": 0.1694428682435118,
+          "accommodating": 0.21771885283913534
+        },
+        "mean_fitness": 0.525366,
+        "shannon_entropy": 1.604513,
+        "social_welfare": 0.525366
+      },
+      {
+        "generation": 17,
+        "distribution": {
+          "competing": 0.1828970908600691,
+          "collaborating": 0.21404841264755936,
+          "compromising": 0.21650940202141955,
+          "avoiding": 0.1677957883746244,
+          "accommodating": 0.21874930609632764
+        },
+        "mean_fitness": 0.525829,
+        "shannon_entropy": 1.603942,
+        "social_welfare": 0.525829
+      },
+      {
+        "generation": 18,
+        "distribution": {
+          "competing": 0.1819240045866855,
+          "collaborating": 0.2147519598510495,
+          "compromising": 0.2173747861730737,
+          "avoiding": 0.16617836759148846,
+          "accommodating": 0.2197708817977029
+        },
+        "mean_fitness": 0.526285,
+        "shannon_entropy": 1.603348,
+        "social_welfare": 0.526285
+      },
+      {
+        "generation": 19,
+        "distribution": {
+          "competing": 0.1809547824761662,
+          "collaborating": 0.21544241220464255,
+          "compromising": 0.21822881269337027,
+          "avoiding": 0.16459037211713828,
+          "accommodating": 0.22078362050868275
+        },
+        "mean_fitness": 0.526733,
+        "shannon_entropy": 1.602731,
+        "social_welfare": 0.526733
+      }
+    ]
+  },
+  "multi_initial_distributions": {
+    "uniform": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.18,
+        "collaborating": 0.2161,
+        "compromising": 0.2191,
+        "avoiding": 0.163,
+        "accommodating": 0.2218
+      }
+    },
+    "cooperative_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.0921,
+        "collaborating": 0.3555,
+        "compromising": 0.2065,
+        "avoiding": 0.0871,
+        "accommodating": 0.2587
+      }
+    },
+    "competitive_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.3894,
+        "collaborating": 0.1105,
+        "compromising": 0.2798,
+        "avoiding": 0.1048,
+        "accommodating": 0.1155
+      }
+    },
+    "compromise_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.0889,
+        "collaborating": 0.1538,
+        "compromising": 0.4679,
+        "avoiding": 0.1317,
+        "accommodating": 0.1577
+      }
+    }
+  },
+  "spne_consistency": false,
+  "by_cause": {
+    "民间借贷": {
+      "n": 4,
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "spne_plaintiff_strategy": "collaborating",
+      "ess_consistent_with_spne": false,
+      "final_distribution": {
+        "competing": 0.0854,
+        "collaborating": 0.2774,
+        "compromising": 0.3021,
+        "avoiding": 0.1418,
+        "accommodating": 0.1933
+      }
+    },
+    "劳动争议": {
+      "n": 4,
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "spne_plaintiff_strategy": "collaborating",
+      "ess_consistent_with_spne": false,
+      "final_distribution": {
+        "competing": 0.093,
+        "collaborating": 0.2991,
+        "compromising": 0.2459,
+        "avoiding": 0.154,
+        "accommodating": 0.208
+      }
+    },
+    "交通事故": {
+      "n": 2,
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "spne_plaintiff_strategy": "collaborating",
+      "ess_consistent_with_spne": false,
+      "final_distribution": {
+        "competing": 0.0805,
+        "collaborating": 0.2664,
+        "compromising": 0.2622,
+        "avoiding": 0.1346,
+        "accommodating": 0.2563
+      }
+    }
+  }
+}

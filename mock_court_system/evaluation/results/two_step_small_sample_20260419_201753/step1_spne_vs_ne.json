@@ -1,0 +1,1202 @@
+{
+  "sample_size": 100,
+  "rounds": 12,
+  "predictions": {
+    "spne_pair": {
+      "plaintiff": "accommodating",
+      "defendant": "competing"
+    },
+    "ne_pair": {
+      "plaintiff": "collaborating",
+      "defendant": "accommodating"
+    }
+  },
+  "overall": {
+    "spne_acc": 0.27,
+    "ne_acc": 0.22,
+    "delta_spne_minus_ne": 0.05,
+    "sr": 0.3129,
+    "ecr": 0.155,
+    "permutation_pvalue": 0.44831,
+    "delta_95ci": [
+      -0.05,
+      0.16
+    ]
+  },
+  "by_cause": {
+    "劳动争议": {
+      "n": 40,
+      "spne_acc": 0.15,
+      "ne_acc": 0.025,
+      "delta": 0.125,
+      "sr": 0.2125,
+      "ecr": 0.025
+    },
+    "交通事故": {
+      "n": 21,
+      "spne_acc": 0.2381,
+      "ne_acc": 0.6667,
+      "delta": -0.4286,
+      "sr": 0.3095,
+      "ecr": 0.2381
+    },
+    "民间借贷": {
+      "n": 39,
+      "spne_acc": 0.4103,
+      "ne_acc": 0.1795,
+      "delta": 0.2308,
+      "sr": 0.359,
+      "ecr": 0.2564
+    }
+  },
+  "analysis": {
+    "spne": {
+      "plaintiff_strategy": "accommodating",
+      "defendant_best_responses": {
+        "competing": "competing",
+        "collaborating": "accommodating",
+        "compromising": "avoiding",
+        "avoiding": "avoiding",
+        "accommodating": "competing"
+      },
+      "spne_payoff": {
+        "plaintiff": 0.6045,
+        "defendant": 0.5057
+      },
+      "game_tree_summary": {
+        "total_terminal_nodes": 25,
+        "plaintiff_spne_action": "accommodating",
+        "defendant_spne_responses": {
+          "competing": "competing",
+          "collaborating": "accommodating",
+          "compromising": "avoiding",
+          "avoiding": "avoiding",
+          "accommodating": "competing"
+        }
+      }
+    },
+    "ne": {
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "payoff": {
+        "plaintiff": 0.5988,
+        "defendant": 0.5037
+      }
+    },
+    "spne_ne_match": false,
+    "prediction_comparison": {
+      "spne_plaintiff": "accommodating",
+      "spne_defendant_on_path": "competing",
+      "ne_plaintiff": "collaborating",
+      "ne_defendant": "accommodating",
+      "match": false,
+      "payoff_diff": {
+        "plaintiff": 0.0058,
+        "defendant": 0.002
+      },
+      "divergence_reason": "原告在预期被告最优响应后选择了不同的全局最优策略。"
+    }
+  },
+  "case_records": [
+    {
+      "round": 12,
+      "case_id": "CASE-0176",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0160",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0147",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "accommodating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0004",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0073",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0095",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0071",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0564",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0324",
+      "cause": "追索劳动报酬纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0194",
+      "cause": "借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0388",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0272",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0455",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0077",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0158",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0155",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0092",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0525",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "collaborating",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0316",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0164",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0090",
+      "cause": "借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0026",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0509",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0146",
+      "cause": "追索劳动报酬纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0553",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0556",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0132",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0108",
+      "cause": "提供劳务者受害责任纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0192",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0002",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "accommodating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0203",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0103",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0105",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0445",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0084",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0287",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0034",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0521",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0030",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0444",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0041",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0280",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "accommodating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0170",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0345",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0240",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0187",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0222",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0067",
+      "cause": "提供劳务者受害责任纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "avoiding",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0169",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0332",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0083",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0159",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0584",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0493",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0117",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0392",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0113",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0088",
+      "cause": "提供劳务者受害责任纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0231",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0061",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0108",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0058",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0537",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0100",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0301",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0254",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0142",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0133",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0390",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0078",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0150",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0380",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0177",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "collaborating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0172",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0186",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0090",
+      "cause": "劳动合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "avoiding",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0182",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0259",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0037",
+      "cause": "提供劳务者受害责任纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0142",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0484",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0467",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0141",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0087",
+      "cause": "劳务合同纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0574",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "accommodating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0193",
+      "cause": "借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0091",
+      "cause": "借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "compromising",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0085",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0178",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0051",
+      "cause": "民间借贷纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0055",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0264",
+      "cause": "借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "accommodating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0382",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "compromising",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "compromising",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0376",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "accommodating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0042",
+      "cause": "追索劳动报酬纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0055",
+      "cause": "机动车交通事故责任纠纷",
+      "sampled_category": "交通事故",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "accommodating",
+      "plaintiff_prior": "collaborating",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0298",
+      "cause": "小额借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0076",
+      "cause": "确认劳动关系纠纷",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "accommodating",
+      "defendant_strategy": "avoiding",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "competing",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0094",
+      "cause": "劳动争议",
+      "sampled_category": "劳动争议",
+      "plaintiff_strategy": "competing",
+      "defendant_strategy": "collaborating",
+      "plaintiff_prior": "compromising",
+      "defendant_prior": "collaborating",
+      "api_score_used": false
+    },
+    {
+      "round": 12,
+      "case_id": "CASE-0167",
+      "cause": "金融借款合同纠纷",
+      "sampled_category": "民间借贷",
+      "plaintiff_strategy": "collaborating",
+      "defendant_strategy": "competing",
+      "plaintiff_prior": "competing",
+      "defendant_prior": "avoiding",
+      "api_score_used": false
+    }
+  ]
+}

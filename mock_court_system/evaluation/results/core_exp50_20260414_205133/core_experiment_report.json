@@ -1,0 +1,317 @@
+{
+  "experiment_name": "核心实验（100条预实验）：SPNE vs NE + 演化动力学",
+  "dataset_split": "test",
+  "sample_size": 100,
+  "cause_bucket_coverage": {
+    "民间借贷类": 4,
+    "交通事故类": 3,
+    "劳动争议类": 8,
+    "其他": 85
+  },
+  "core_metrics": {
+    "sr": 0.055,
+    "ecr": 0.0,
+    "window": 10.0
+  },
+  "requirements_check": {
+    "req_100_cases": {
+      "target": 100,
+      "actual": 100,
+      "pass": true
+    },
+    "req_cover_three_causes": {
+      "target": [
+        "民间借贷类",
+        "交通事故类",
+        "劳动争议类"
+      ],
+      "actual": {
+        "民间借贷类": 4,
+        "交通事故类": 3,
+        "劳动争议类": 8,
+        "其他": 85
+      },
+      "pass": true
+    },
+    "req_core_metrics_sr_ecr": {
+      "target": "包含 SR 与 ECR",
+      "actual": {
+        "has_sr": true,
+        "has_ecr": true
+      },
+      "pass": true
+    },
+    "req_ess_evolution": {
+      "target_generations": 50,
+      "actual_generations": 50,
+      "pass": true
+    }
+  },
+  "spne_vs_ne": {
+    "ne_pred": {
+      "plaintiff": "collaborating",
+      "defendant": "collaborating"
+    },
+    "spne_pred": {
+      "plaintiff": "collaborating",
+      "defendant": "collaborating"
+    },
+    "empirical_top_pair": {
+      "plaintiff": "collaborating",
+      "defendant": "compromising",
+      "count": 42
+    },
+    "ne_hit_empirical": false,
+    "spne_hit_empirical": false,
+    "analysis": {
+      "spne": {
+        "plaintiff_strategy": "collaborating",
+        "defendant_best_responses": {
+          "competing": "compromising",
+          "collaborating": "collaborating",
+          "compromising": "compromising",
+          "avoiding": "collaborating",
+          "accommodating": "compromising"
+        },
+        "spne_payoff": {
+          "plaintiff": 0.8109,
+          "defendant": 0.8109
+        },
+        "game_tree_summary": {
+          "total_terminal_nodes": 25,
+          "plaintiff_spne_action": "collaborating",
+          "defendant_spne_responses": {
+            "competing": "compromising",
+            "collaborating": "collaborating",
+            "compromising": "compromising",
+            "avoiding": "collaborating",
+            "accommodating": "compromising"
+          }
+        }
+      },
+      "ne": {
+        "plaintiff_strategy": "collaborating",
+        "defendant_strategy": "collaborating",
+        "payoff": {
+          "plaintiff": 0.8109,
+          "defendant": 0.8109
+        }
+      },
+      "spne_ne_match": true,
+      "prediction_comparison": {
+        "spne_plaintiff": "collaborating",
+        "spne_defendant_on_path": "collaborating",
+        "ne_plaintiff": "collaborating",
+        "ne_defendant": "collaborating",
+        "match": true,
+        "payoff_diff": {
+          "plaintiff": 0.0,
+          "defendant": 0.0
+        }
+      }
+    }
+  },
+  "evolution": {
+    "generations": 50,
+    "converged": false,
+    "convergence_generation": null,
+    "final_distribution": {
+      "competing": 0.0658,
+      "collaborating": 0.2791,
+      "compromising": 0.2702,
+      "avoiding": 0.1249,
+      "accommodating": 0.2601
+    },
+    "ess_analysis": {
+      "is_ess": false,
+      "ess_strategy": null,
+      "invasion_barriers": {},
+      "ne_consistent": false,
+      "ne_strategy": null
+    },
+    "polarization_index": 0.0687,
+    "history_length": 50,
+    "trajectory_sample": [
+      {
+        "generation": 0,
+        "distribution": {
+          "competing": 0.2,
+          "collaborating": 0.2,
+          "compromising": 0.2,
+          "avoiding": 0.2,
+          "accommodating": 0.2
+        },
+        "mean_fitness": 0.513255,
+        "shannon_entropy": 1.609438,
+        "social_welfare": 0.513255
+      },
+      {
+        "generation": 5,
+        "distribution": {
+          "competing": 0.18068752382531544,
+          "collaborating": 0.20937367380056426,
+          "compromising": 0.20885411608058785,
+          "avoiding": 0.1929577659160916,
+          "accommodating": 0.2081269203774409
+        },
+        "mean_fitness": 0.529647,
+        "shannon_entropy": 1.607776,
+        "social_welfare": 0.529647
+      },
+      {
+        "generation": 10,
+        "distribution": {
+          "competing": 0.16271048374008634,
+          "collaborating": 0.21851864191886589,
+          "compromising": 0.21739919362134014,
+          "avoiding": 0.18550973777712865,
+          "accommodating": 0.21586194294257907
+        },
+        "mean_fitness": 0.545207,
+        "shannon_entropy": 1.603004,
+        "social_welfare": 0.545207
+      },
+      {
+        "generation": 15,
+        "distribution": {
+          "competing": 0.14610985386907896,
+          "collaborating": 0.22737543979094188,
+          "compromising": 0.22557505872109698,
+          "avoiding": 0.17778875885720413,
+          "accommodating": 0.22315088876167807
+        },
+        "mean_fitness": 0.559841,
+        "shannon_entropy": 1.595484,
+        "social_welfare": 0.559841
+      },
+      {
+        "generation": 20,
+        "distribution": {
+          "competing": 0.1308910137424891,
+          "collaborating": 0.23589825458222738,
+          "compromising": 0.23333574884512165,
+          "avoiding": 0.16992017556968228,
+          "accommodating": 0.22995480726047968
+        },
+        "mean_fitness": 0.57349,
+        "shannon_entropy": 1.585617,
+        "social_welfare": 0.57349
+      },
+      {
+        "generation": 25,
+        "distribution": {
+          "competing": 0.11702875743052144,
+          "collaborating": 0.2440550262196669,
+          "compromising": 0.24064939704284,
+          "avoiding": 0.16201736559188254,
+          "accommodating": 0.2362494537150892
+        },
+        "mean_fitness": 0.586123,
+        "shannon_entropy": 1.573813,
+        "social_welfare": 0.586123
+      },
+      {
+        "generation": 30,
+        "distribution": {
+          "competing": 0.1044732499217044,
+          "collaborating": 0.2518266984074193,
+          "compromising": 0.24749727705652136,
+          "avoiding": 0.1541788135572874,
+          "accommodating": 0.24202396105706758
+        },
+        "mean_fitness": 0.597736,
+        "shannon_entropy": 1.560477,
+        "social_welfare": 0.597736
+      },
+      {
+        "generation": 35,
+        "distribution": {
+          "competing": 0.09315623499831743,
+          "collaborating": 0.259205856621458,
+          "compromising": 0.25387226133474067,
+          "avoiding": 0.14648666469700444,
+          "accommodating": 0.24727898234847945
+        },
+        "mean_fitness": 0.608346,
+        "shannon_entropy": 1.545988,
+        "social_welfare": 0.608346
+      },
+      {
+        "generation": 40,
+        "distribution": {
+          "competing": 0.08299694271465072,
+          "collaborating": 0.26619499911836697,
+          "compromising": 0.25977694621000996,
+          "avoiding": 0.13900654145722616,
+          "accommodating": 0.25202457049974614
+        },
+        "mean_fitness": 0.617989,
+        "shannon_entropy": 1.530693,
+        "social_welfare": 0.617989
+      },
+      {
+        "generation": 45,
+        "distribution": {
+          "competing": 0.07390732170493437,
+          "collaborating": 0.2728046609363665,
+          "compromising": 0.2652216664382176,
+          "avoiding": 0.13178833156094943,
+          "accommodating": 0.2562780193595321
+        },
+        "mean_fitness": 0.626714,
+        "shannon_entropy": 1.514894,
+        "social_welfare": 0.626714
+      }
+    ]
+  },
+  "strategy_pairs": {
+    "count_matrix": [
+      [
+        0,
+        0,
+        11,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        42,
+        0,
+        0
+      ],
+      [
+        0,
+        37,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        10,
+        0,
+        0,
+        0
+      ]
+    ],
+    "empirical_top_pair": {
+      "plaintiff": "collaborating",
+      "defendant": "compromising",
+      "count": 42
+    },
+    "pair_counter": {
+      "collaborating__compromising": 42,
+      "accommodating__collaborating": 10,
+      "compromising__collaborating": 37,
+      "competing__compromising": 11
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "input": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\data\\dataset_1000\\small_sample_100_three_causes.jsonl",
+  "sample_size": 10,
+  "rounds": 6,
+  "execution_mode": "api_hybrid",
+  "evolution_method": "best_response",
+  "payoff_weights": {
+    "win": 0.55,
+    "reason": 0.25,
+    "evidence": 0.2
+  },
+  "api_integration": {
+    "mode": "api_hybrid",
+    "base_url": "http://127.0.0.1:8000",
+    "health_ok": true,
+    "api_calls": 24,
+    "api_success": 0,
+    "api_fallback_local": 24
+  },
+  "seed": 20260419,
+  "window": 3,
+  "evo_generations": 20,
+  "step1_overall": {
+    "spne_acc": 0.7,
+    "ne_acc": 0.6,
+    "delta_spne_minus_ne": 0.1,
+    "sr": 0.3917,
+    "ecr": 0.1,
+    "permutation_pvalue": 1.0,
+    "delta_95ci": [
+      0.0,
+      0.3
+    ]
+  },
+  "step2_overall": {
+    "converged": false,
+    "convergence_generation": null,
+    "ess_strategy": null,
+    "spne_consistency": false
+  },
+  "plots": [
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\two_step_small_sample_20260419_214028\\step1_spne_vs_ne_accuracy.png",
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\two_step_small_sample_20260419_214028\\step2_replicator_trajectory.png",
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\two_step_small_sample_20260419_214028\\step2_shannon_entropy.png"
+  ]
+}

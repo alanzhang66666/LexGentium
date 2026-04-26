@@ -1,0 +1,54 @@
+evaluation:
+  # API 配置
+  api:
+    base_url: "https://api.deepseek.com"
+    api_key: "${EVAL_API_KEY}"
+    model: "deepseek-chat"
+
+  # 基础路径配置
+  paths:
+    raw_data:
+      cd_dialog: "../CD-对话"
+      cd_doc: "../CD-起诉状"
+      dd_dialog: "../DD-对话"
+      dd_doc: "../DD-答辩状"
+      ci_dialog: "../CI_对话"
+      ci_doc: "../CI-判决书"
+    
+    ground_truth:
+      cd: "evaluation/data/CD_ground_truth.jsonl"
+      dd: "evaluation/data/DD_ground_truth.jsonl"
+      ci: "evaluation/data/CI_ground_truth.jsonl"
+      
+    output:
+      root: "evaluation/results"
+      reports: "evaluation/reports_output"
+      
+  # 评测参数
+  thresholds:
+    similarity_high: 0.95
+    similarity_medium: 0.70
+    
+  # 场景配置
+  scenarios:
+    CD:
+      name: "Civil Complaint (起诉状)"
+      enabled: true
+      max_turns: 20
+    DD:
+      name: "Defense Statement (答辩状)"
+      enabled: true
+      max_turns: 20
+    CI:
+      name: "Court Judgment (法庭判决)"
+      enabled: true
+      max_turns: 30
+
+  # LLM 配置 (用于评测)
+  llm:
+    model: "gpt-4o"  # 或其他可用模型
+    temperature: 0.0
+
+
+
+

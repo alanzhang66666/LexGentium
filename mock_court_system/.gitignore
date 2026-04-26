@@ -1,0 +1,21 @@
+# Mock Court Multi-Agents
+
+node_modules/
+.next/
+output/
+logs/
+*.pyc
+__pycache__/
+.pytest_cache/
+pytest-cache-files-*/
+tests/runtime_tmp/
+*.log
+.env
+!.env.example
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+*.sqlite3
+*.tsbuildinfo

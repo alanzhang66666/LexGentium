@@ -1,0 +1,63 @@
+{
+  "runs": [
+    {
+      "run": "core_exp50_20260414_205131",
+      "sample_size": 100,
+      "sr": 0.04,
+      "ecr": 0.0,
+      "cover": {
+        "民间借贷类": 10,
+        "交通事故类": 3,
+        "劳动争议类": 7,
+        "其他": 80
+      },
+      "req_all_pass": true,
+      "ne_hit": false,
+      "spne_hit": false,
+      "evo_g": 50,
+      "pol": 0.069
+    },
+    {
+      "run": "core_exp50_20260414_205133",
+      "sample_size": 100,
+      "sr": 0.055,
+      "ecr": 0.0,
+      "cover": {
+        "民间借贷类": 4,
+        "交通事故类": 3,
+        "劳动争议类": 8,
+        "其他": 85
+      },
+      "req_all_pass": true,
+      "ne_hit": false,
+      "spne_hit": false,
+      "evo_g": 50,
+      "pol": 0.0687
+    },
+    {
+      "run": "core_exp50_20260414_205136",
+      "sample_size": 100,
+      "sr": 0.035,
+      "ecr": 0.0,
+      "cover": {
+        "民间借贷类": 6,
+        "交通事故类": 2,
+        "劳动争议类": 10,
+        "其他": 82
+      },
+      "req_all_pass": true,
+      "ne_hit": false,
+      "spne_hit": false,
+      "evo_g": 50,
+      "pol": 0.0694
+    }
+  ],
+  "aggregate": {
+    "n_runs": 3,
+    "sr_mean": 0.0433,
+    "sr_std": 0.0085,
+    "ecr_mean": 0.0,
+    "ecr_std": 0.0,
+    "all_req_pass_runs": 3
+  }
+}

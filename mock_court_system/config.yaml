@@ -1,0 +1,50 @@
+# 模拟法庭多智能体系统配置
+
+# API 配置
+api:
+  base_url: ${COURT_API_BASE_URL}
+  api_key: ${COURT_API_KEY}
+  timeout: 1200
+  scenario_prefix: ${SCENARIO_PREFIX}
+
+# LLM 配置
+llm:
+  provider: deepseek  # deepseek, openai, qwen (via 302.ai)
+  api_key: ${LLM_API_KEY}
+  base_url: ${LLM_BASE_URL}
+  model: ${LLM_MODEL}
+  temperature: 0.1
+  max_tokens: 4096
+  timeout: 60
+
+# 团队信息
+team:
+  team_id: ${TEAM_ID}
+
+# 场景配置
+scenarios:
+  CD:  # 起诉状生成
+    max_turns: 20
+    instruction_mode: template  # template 或 llm
+    verbose: true
+  
+  DD:  # 答辩状生成
+    max_turns: 20
+    instruction_mode: template
+    verbose: true
+  
+  CI:  # 法庭判决
+    max_turns: 50
+    instruction_mode: template
+    verbose: true
+
+# 数据路径配置
+data:
+  test_dir: /home/wudayi/cail2025/agent/模拟法庭-复赛-数据集
+  output_dir: ./output
+
+# 日志配置
+logging:
+  level: ${LOG_LEVEL}
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: ./logs/app.log

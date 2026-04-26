@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+*.egg-info/
+
+# Local runtime state
+.env
+.env.*
+!.env.example
+logs/
+output/
+*.log
+*.sqlite3
+
+# 本地大体积答辩/展示材料（超过 GitHub 单文件 100MB 限制，勿再提交）
+归档/答辩与展示材料/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,28 @@
+{
+  "timestamp": "20260414_195249",
+  "plan_source_doc": "E:/25-26-1/模拟法庭世纪杯/启研计划申请书（申请人信息）.doc",
+  "dataset_split": "test",
+  "sample_size": 100,
+  "seed": 20260414,
+  "evo_generations": 50,
+  "ecr_window": 10,
+  "cause_bucket_coverage": {
+    "民间借贷类": 10,
+    "交通事故类": 3,
+    "劳动争议类": 7,
+    "其他": 80
+  },
+  "prediction_files": {
+    "CD": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\predictions_n\\CD_prediction.jsonl",
+    "DD": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\predictions_n\\DD_prediction.jsonl",
+    "CI": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\predictions_n\\CI_prediction.jsonl"
+  },
+  "evaluation_report": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\evaluation_report_20260414_195249.json",
+  "evaluation_summary": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\evaluation_summary.json",
+  "core_experiment_report": "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\core_experiment_report.json",
+  "plots": [
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\eval_mean_bar.png",
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\strategy_pair_heatmap.png",
+    "E:\\25-26-1\\模拟法庭世纪杯\\mock_court_system\\evaluation\\results\\core_exp50_20260414_195249\\evolution_trajectory.png"
+  ]
+}

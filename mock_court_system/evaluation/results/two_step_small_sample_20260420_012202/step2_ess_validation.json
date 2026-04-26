@@ -1,0 +1,105 @@
+{
+  "overall_evolution": {
+    "converged": false,
+    "convergence_generation": null,
+    "final_distribution": {
+      "competing": 0.1924,
+      "collaborating": 0.2025,
+      "compromising": 0.2039,
+      "avoiding": 0.1976,
+      "accommodating": 0.2037
+    },
+    "ess": {
+      "is_ess": false,
+      "ess_strategy": null,
+      "invasion_barriers": {},
+      "ne_consistent": false,
+      "ne_strategy": null
+    },
+    "shannon_entropy_initial": 1.609438,
+    "shannon_entropy_final": 1.609438,
+    "history": [
+      {
+        "generation": 0,
+        "distribution": {
+          "competing": 0.2,
+          "collaborating": 0.2,
+          "compromising": 0.2,
+          "avoiding": 0.2,
+          "accommodating": 0.2
+        },
+        "mean_fitness": 0.52593,
+        "shannon_entropy": 1.609438,
+        "social_welfare": 0.52593
+      }
+    ]
+  },
+  "multi_initial_distributions": {
+    "uniform": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.1924,
+        "collaborating": 0.2025,
+        "compromising": 0.2039,
+        "avoiding": 0.1976,
+        "accommodating": 0.2037
+      }
+    },
+    "cooperative_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.0951,
+        "collaborating": 0.3507,
+        "compromising": 0.2029,
+        "avoiding": 0.0979,
+        "accommodating": 0.2534
+      }
+    },
+    "competitive_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.3896,
+        "collaborating": 0.1022,
+        "compromising": 0.2562,
+        "avoiding": 0.1496,
+        "accommodating": 0.1024
+      }
+    },
+    "compromise_bias": {
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "final_distribution": {
+        "competing": 0.095,
+        "collaborating": 0.1511,
+        "compromising": 0.4556,
+        "avoiding": 0.1466,
+        "accommodating": 0.1517
+      }
+    }
+  },
+  "spne_consistency": false,
+  "by_cause": {
+    "民间借贷": {
+      "n": 1,
+      "converged": false,
+      "convergence_generation": null,
+      "ess_strategy": null,
+      "spne_plaintiff_strategy": "collaborating",
+      "ess_consistent_with_spne": false,
+      "final_distribution": {
+        "competing": 0.1924,
+        "collaborating": 0.2024,
+        "compromising": 0.2039,
+        "avoiding": 0.1976,
+        "accommodating": 0.2037
+      }
+    }
+  }
+}
