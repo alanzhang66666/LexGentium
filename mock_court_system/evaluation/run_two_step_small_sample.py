@@ -8,7 +8,7 @@ import statistics
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import matplotlib.pyplot as plt
@@ -547,7 +547,7 @@ def run_experiment(
     rows: List[Dict[str, Any]],
     out_dir: Path,
     *,
-    cause_filters: List[str] | None = None,
+    cause_filters: Optional[List[str]] = None,
     input_path: Path,
 ) -> Path:
     project_root = Path(__file__).resolve().parent.parent
