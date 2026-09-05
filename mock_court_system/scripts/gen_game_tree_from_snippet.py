@@ -21,7 +21,7 @@ def main() -> None:
     project_root = Path(__file__).resolve().parent.parent
     os.chdir(project_root)
 
-    out_dir = project_root / "docs" / "figures" / "legalflow_application"
+    out_dir = project_root / "docs" / "figures" / "lexgentium_application"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 设置全局字体，确保中文正常显示（Windows常用SimHei，Mac常用Arial Unicode MS）

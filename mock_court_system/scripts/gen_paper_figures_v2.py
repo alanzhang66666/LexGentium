@@ -313,7 +313,7 @@ def fig7():
     for vals, label, color, ls in [
         (baseline, "Baseline", C["lightgray"], "--"),
         (with_game, "+GameEngine", C["orange"], "-."),
-        (full, "LegalFlow (Full)", C["green"], "-"),
+        (full, "LexGentium (Full)", C["green"], "-"),
     ]:
         v = vals + vals[:1]
         ax1.plot(angles, v, ls, lw=2, label=label, color=color, marker="o", markersize=4)
@@ -333,7 +333,7 @@ def fig7():
     x = np.arange(len(levels))
     w = 0.32
     ax2.bar(x-w/2, bp, w, label="Baseline", color=C["lightgray"], alpha=0.9, edgecolor="white", lw=1)
-    ax2.bar(x+w/2, fp, w, label="LegalFlow", color=C["green"], alpha=0.9, edgecolor="white", lw=1)
+    ax2.bar(x+w/2, fp, w, label="LexGentium", color=C["green"], alpha=0.9, edgecolor="white", lw=1)
     ax2.set_xticks(x); ax2.set_xticklabels(levels, fontsize=8)
     ax2.set_ylabel("Pass Rate (%)", fontsize=11)
     ax2.set_title("(b) CADD Progressive Benchmark", fontsize=11, fontweight="bold")

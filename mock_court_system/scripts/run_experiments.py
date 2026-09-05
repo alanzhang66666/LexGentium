@@ -1,5 +1,5 @@
 """
-LegalFlow 完整实验运行脚本
+LexGentium 完整实验运行脚本
 运行5组实验并生成可视化结果。
 
 实验1：TKI策略博弈效应（5×5收益矩阵 + 四指标对比）
@@ -36,7 +36,7 @@ np.random.seed(42)
 from core.nash_equilibrium import NashEquilibriumTracker, STRATEGY_NAMES, _PRIOR_PAYOFFS
 
 print("=" * 60)
-print("LegalFlow 实验套件 v1.0")
+print("LexGentium 实验套件 v1.0")
 print("=" * 60)
 
 
@@ -469,7 +469,7 @@ def run_experiment_5():
     x = np.arange(len(levels))
     w = 0.35
     ax.bar(x - w/2, baseline_pass, w, label="基线系统", color="#bdc3c7", alpha=0.9)
-    ax.bar(x + w/2, full_pass, w, label="LegalFlow完整版", color="#27ae60", alpha=0.9)
+    ax.bar(x + w/2, full_pass, w, label="LexGentium完整版", color="#27ae60", alpha=0.9)
     ax.set_xticks(x)
     ax.set_xticklabels(levels, fontsize=11)
     ax.set_ylabel("通过率 (%)", fontsize=12)
@@ -503,7 +503,7 @@ def run_experiment_5():
     x = np.arange(len(components))
     w = 0.35
     bars1 = ax.bar(x - w/2, norm_base, w, label="基线", color="#e74c3c", alpha=0.75)
-    bars2 = ax.bar(x + w/2, norm_full, w, label="LegalFlow", color="#2ecc71", alpha=0.85)
+    bars2 = ax.bar(x + w/2, norm_full, w, label="LexGentium", color="#2ecc71", alpha=0.85)
 
     ax.set_xticks(x)
     ax.set_xticklabels(components, fontsize=10)

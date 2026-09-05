@@ -1,5 +1,5 @@
 """
-LegalFlow 初步实验验证脚本
+LexGentium 初步实验验证脚本
 
 基于新修改的申请书方案，设计5组真实实验：
   预实验0: 管道冒烟测试（3案件 x 默认策略）
@@ -764,7 +764,7 @@ def generate_summary_report(all_results: Dict[str, Any]) -> Dict[str, Any]:
     exp5 = all_results.get("exp5", {})
 
     summary = {
-        "title": "LegalFlow 初步实验验证报告",
+        "title": "LexGentium 初步实验验证报告",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "sections": {
             "smoke_test": {
@@ -817,7 +817,7 @@ def _save_json(filename: str, data: Any):
 # =====================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="LegalFlow 初步实验验证")
+    parser = argparse.ArgumentParser(description="LexGentium 初步实验验证")
     parser.add_argument("--cases", type=int, default=5, help="选取案件数量（默认5）")
     parser.add_argument("--workers", type=int, default=4, help="并发线程数（默认4）")
     parser.add_argument("--skip-smoke", action="store_true", help="跳过冒烟测试")
@@ -827,7 +827,7 @@ def main():
 
     t_global = time.time()
     logger.info("=" * 60)
-    logger.info("LegalFlow 初步实验验证 v1.0")
+    logger.info("LexGentium 初步实验验证 v1.0")
     logger.info(f"案件数={args.cases}  并发线程={args.workers}")
     logger.info("=" * 60)
 

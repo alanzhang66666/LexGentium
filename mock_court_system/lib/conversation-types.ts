@@ -26,6 +26,8 @@ export interface ConversationMessageResponse {
   }
   dialog_history: DialogEntry[]
   is_finished: boolean
+  /** True 表示回复由离线兜底模板生成（未调用真实 LLM） */
+  degraded?: boolean
 }
 
 export interface DialogEntry {

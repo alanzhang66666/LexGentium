@@ -18,7 +18,7 @@ from core.schemas import (
 )
 from core.state_machine import StateMachine
 from core.langchain_utils import RobustJsonOutputParser
-from core.law_retriever import LawRetriever, get_dashscope_api_key
+from core.law_retriever import LawRetriever, get_dashscope_api_key, get_shared_law_retriever
 from utils import DialogHistory
 import os
 
@@ -60,18 +60,13 @@ class CIAgent(BaseAgent):
 
         # 初始化法律检索器
         try:
-            # 使用相对路径以避免 Windows 下 Faiss 对中文路径的支持问题
-            # 假设运行目录为 mock_court_multiagents
-            db_dir = "database"
-            self.law_retriever = LawRetriever(
-                db_path=os.path.join(db_dir, "legal_articles.db"),
-                index_path=os.path.join(db_dir, "legal_articles.index"),
-                mapping_path=os.path.join(db_dir, "legal_articles_id_map.npy"),
-                api_key=get_dashscope_api_key()
-            )
+            # 绝对路径锚定；FAISS 非 ASCII 路径问题由 LawRetriever 内部的 chdir workaround 处理
+            # 共享单例：BM25 全量分词只做一次（此前每个 Agent 各建一份）
+            self.law_retriever = get_shared_law_retriever()
             self.log("LawRetriever initialized successfully.")
         except Exception as e:
             self.log(f"Failed to initialize LawRetriever: {e}")
+            print(f"[WARN] LawRetriever 初始化失败，法条增强将不可用: {e}", flush=True)
             self.law_retriever = None
 
         # 初始化 LangChain Chains

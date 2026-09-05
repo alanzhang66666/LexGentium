@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-LegalFlow 申请书配图（北自然基金版）：图1–图5
-输出目录：docs/figures/legalflow_application/
+LexGentium 申请书配图（北自然基金版）：图1–图5
+输出目录：docs/figures/lexgentium_application/
 运行：在 mock_court_system 根目录执行
-  python scripts/gen_legalflow_application_figures.py
+  python scripts/gen_lexgentium_application_figures.py
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ import numpy as np
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 from matplotlib.lines import Line2D
 
-OUT = PROJECT_ROOT / "docs" / "figures" / "legalflow_application"
+OUT = PROJECT_ROOT / "docs" / "figures" / "lexgentium_application"
 OUT.mkdir(parents=True, exist_ok=True)
 
 plt.rcParams.update(
@@ -75,13 +75,13 @@ def _darrow(ax, x1, y1, x2, y2, color=C["gray"], lw=0.9):
 
 
 def fig1_system_architecture():
-    """图1 LegalFlow 系统架构（CD→DD→CI 管道 + 引擎层 + 评测）"""
+    """图1 LexGentium 系统架构（CD→DD→CI 管道 + 引擎层 + 评测）"""
     fig, ax = plt.subplots(figsize=(10.5, 11))
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 12.2)
     ax.axis("off")
 
-    ax.text(5, 11.75, "LegalFlow 系统架构", ha="center", fontsize=14, fontweight="bold", color=C["dark"])
+    ax.text(5, 11.75, "LexGentium 系统架构", ha="center", fontsize=14, fontweight="bold", color=C["dark"])
 
     def rbox(xy, w, h, text, ec, fc, lw=1.2, fs=8.5, bold=False):
         x, y = xy
@@ -112,7 +112,7 @@ def fig1_system_architecture():
         (0.55, 9.85),
         2.35,
         1.55,
-        "数据输入\n案件事实\n\nLegalFlow-1K\n(1000条/29案由)\nClaimGen-CN\n→ 三场景重构",
+        "数据输入\n案件事实\n\nLexGentium-1K\n(1000条/29案由)\nClaimGen-CN\n→ 三场景重构",
         C["blue"],
         C["lightblue"],
         fs=8,
@@ -208,14 +208,14 @@ def fig1_system_architecture():
     _arrow(ax, 5.0, 5.15, 5.0, 4.62, lw=1.6)
 
     cap = (
-        "图1 LegalFlow系统架构。数据输入经三场景重构后进入扩展式博弈驱动的多智能体协同管道（CD→DD→CI），"
+        "图1 LexGentium系统架构。数据输入经三场景重构后进入扩展式博弈驱动的多智能体协同管道（CD→DD→CI），"
         "核心引擎基于SPNE建模序贯策略决策，辅以演化博弈模拟器和P-RAG渐进式法条检索，最终输出多维评测结果。"
     )
     ax.text(5, 0.35, cap, ha="center", va="top", fontsize=8, wrap=True, color=C["dark"])
 
-    fig.savefig(OUT / "图1_LegalFlow系统架构.png", facecolor="white")
+    fig.savefig(OUT / "图1_LexGentium系统架构.png", facecolor="white")
     plt.close()
-    print("[OK]", OUT / "图1_LegalFlow系统架构.png")
+    print("[OK]", OUT / "图1_LexGentium系统架构.png")
 
 
 def fig2_roadmap():
@@ -288,7 +288,7 @@ def fig2_roadmap():
     ax.text(
         6,
         1.1,
-        "底层支撑：LegalFlow系统 (28模块/65端点) + LegalFlow-1K数据集 + P-RAG法条检索 + 双路校验机制",
+        "底层支撑：LexGentium系统 (28模块/65端点) + LexGentium-1K数据集 + P-RAG法条检索 + 双路校验机制",
         ha="center",
         va="center",
         fontsize=8.5,

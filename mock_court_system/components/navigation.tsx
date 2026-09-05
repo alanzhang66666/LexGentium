@@ -16,7 +16,7 @@ export function Navigation() {
             </div>
             <div>
               <h1 className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-balance">
-                LegalFlow｜基于扩展式博弈建模的多智能体协同模拟法庭系统
+                LexGentium｜基于扩展式博弈建模的多智能体协同模拟法庭系统
               </h1>
             </div>
           </Link>

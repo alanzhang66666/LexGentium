@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 import os
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -16,17 +16,20 @@ load_dotenv()
 
 class APIConfig(BaseSettings):
     """API 配置"""
-    base_url: str = Field(default="http://47.116.195.100:43385")
+    # 远程法庭模拟服务地址，仅 main.py 批处理路径使用，Web 服务不依赖。
+    # 通过环境变量 COURT_API_BASE_URL 显式配置，不在代码中硬编码。
+    model_config = SettingsConfigDict(env_prefix="COURT_API_")
+
+    base_url: str = Field(default="")
     api_key: str = Field(default="")
     timeout: int = Field(default=120)
     scenario_prefix: str = Field(default="")
 
-    class Config:
-        env_prefix = "COURT_API_"
-
 
 class LLMConfig(BaseSettings):
     """LLM 配置"""
+    model_config = SettingsConfigDict(env_prefix="LLM_")
+
     provider: str = Field(default="deepseek")
     api_key: str = Field(default="")
     base_url: str = Field(default="https://api.deepseek.com")
@@ -35,16 +38,12 @@ class LLMConfig(BaseSettings):
     max_tokens: int = Field(default=4096)
     timeout: int = Field(default=60)
 
-    class Config:
-        env_prefix = "LLM_"
-
 
 class TeamConfig(BaseSettings):
     """团队配置"""
-    team_id: str = Field(default="")
+    model_config = SettingsConfigDict(env_prefix="")
 
-    class Config:
-        env_prefix = ""
+    team_id: str = Field(default="")
 
 
 class ScenarioConfig(BaseSettings):
@@ -62,12 +61,11 @@ class DataConfig(BaseSettings):
 
 class LoggingConfig(BaseSettings):
     """日志配置"""
+    model_config = SettingsConfigDict(env_prefix="LOG_")
+
     level: str = Field(default="INFO")
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: str = "./logs/app.log"
-
-    class Config:
-        env_prefix = "LOG_"
 
 
 class Settings(BaseSettings):

@@ -248,6 +248,11 @@ class SimAgent:
             return
         if len(dialog_history) < 6:
             return
+        # 降频：策略走势不会逐条消息变化，每 4 轮反思一次即可
+        # （CI 庭审最长 60 轮，此前每次发言都触发一次反思 LLM 调用）
+        self._reflection_turns = getattr(self, "_reflection_turns", 0) + 1
+        if self._reflection_turns % 4 != 0:
+            return
 
         recent = dialog_history[-6:]
         recent_text = "\n".join(

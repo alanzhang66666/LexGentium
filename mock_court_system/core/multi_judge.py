@@ -227,10 +227,16 @@ class MultiJudgeEngine:
         ]
 
         all_llms = [self.primary_llm] + self.additional_llms
-        for i, cfg in enumerate(configs):
+
+        # 各法官判决完全独立，并行生成（LLM 生成占判决总时长的绝对大头）
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _one(i: int) -> JudgeOutput:
             llm = all_llms[i % len(all_llms)]
-            j = self._generate_judgment(llm, cfg, case_facts, claims, trial_summary)
-            judgments.append(j)
+            return self._generate_judgment(llm, configs[i], case_facts, claims, trial_summary)
+
+        with ThreadPoolExecutor(max_workers=len(configs)) as pool:
+            judgments = list(pool.map(_one, range(len(configs))))
 
         return judgments
 

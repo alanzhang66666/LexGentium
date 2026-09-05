@@ -1,4 +1,5 @@
 import os
+import logging
 import sqlite3
 import numpy as np
 import faiss
@@ -9,11 +10,22 @@ from dashscope import TextEmbedding, TextReRank
 from typing import List, Dict, Tuple
 from pathlib import Path
 
+logger = logging.getLogger("law_retriever")
+
+
 def get_dashscope_api_key() -> str:
     """Return the configured DashScope key without hard-coding secrets."""
     return (
         os.getenv("DASHSCOPE_API_KEY", "").strip()
         or os.getenv("LLM_API_KEY", "").strip()
+    )
+
+
+def get_database_dir() -> str:
+    """法条数据库目录，以本文件位置锚定（mock_court_system/database），
+    避免从非项目根目录启动时因 CWD 不同导致检索静默失效。"""
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "database"
     )
 
 
@@ -46,11 +58,12 @@ class LawRetriever:
             finally:
                 os.chdir(cwd)
         except Exception as e:
-            print(f"Warning: Failed to load FAISS index with chdir workaround: {e}")
+            logger.warning("Failed to load FAISS index with chdir workaround: %s", e)
             # Fallback to original method
             self.index = faiss.read_index(self.index_path)
 
-        self.id_mapping = np.load(self.mapping_path, allow_pickle=True)
+        # id 映射为纯 int64 数组，禁止 pickle 协议（.npy 的 pickle 可携带任意代码）
+        self.id_mapping = np.load(self.mapping_path, allow_pickle=False)
         
         if self.api_key:
             dashscope.api_key = self.api_key
@@ -60,7 +73,7 @@ class LawRetriever:
 
     def _init_bm25(self):
         """Initialize BM25 index from database"""
-        print("Initializing BM25 index...")
+        logger.info("Initializing BM25 index...")
         self.bm25_corpus = []
         self.bm25_ids = []
         
@@ -80,9 +93,9 @@ class LawRetriever:
             
             self.bm25 = BM25Okapi(tokenized_corpus)
             conn.close()
-            print(f"BM25 index initialized with {len(self.bm25_ids)} documents.")
+            logger.info("BM25 index initialized with %d documents.", len(self.bm25_ids))
         except Exception as e:
-            print(f"Failed to initialize BM25: {e}")
+            logger.warning("Failed to initialize BM25: %s", e)
             self.bm25 = None
 
     def _get_embedding(self, text: str) -> List[float]:
@@ -104,10 +117,10 @@ class LawRetriever:
             if resp.status_code == 200:
                 return resp.output["embeddings"][0]["embedding"]
             else:
-                print(f"Embedding failed: {resp.message}")
+                logger.warning("Embedding failed: %s", resp.message)
                 return []
         except Exception as e:
-            print(f"Embedding exception: {e}")
+            logger.warning("Embedding exception: %s", e)
             return []
 
     def _vector_search(self, query: str, top_k: int) -> List[Dict]:
@@ -203,7 +216,7 @@ class LawRetriever:
                 }
             conn.close()
         except Exception as e:
-            print(f"DB Error in rerank: {e}")
+            logger.warning("DB error in rerank: %s", e)
             return candidates[:top_k] # Fallback
             
         # 2. Construct input for reranker
@@ -251,14 +264,14 @@ class LawRetriever:
                     reranked_results.append(candidate)
                 return reranked_results
             else:
-                print(f"Rerank failed: {resp.message}")
+                logger.warning("Rerank failed: %s", resp.message)
                 # Fallback: return top_k from RRF with content fetched
                 for i, c in enumerate(valid_candidates[:top_k]):
                     c['content'] = docs[i]
                 return valid_candidates[:top_k]
                 
         except Exception as e:
-            print(f"Rerank exception: {e}")
+            logger.warning("Rerank exception: %s", e)
             # Fallback
             for i, c in enumerate(valid_candidates[:top_k]):
                 c['content'] = docs[i]
@@ -300,3 +313,24 @@ class LawRetriever:
                     pass
                     
         return final_results
+
+
+_shared_law_retriever: "LawRetriever | None" = None
+
+
+def get_shared_law_retriever() -> "LawRetriever":
+    """LawRetriever 模块级单例。
+
+    BM25 全量分词与 FAISS 索引加载代价较高，全部调用方
+    （各 Agent、检索接口）共享同一实例，避免重复初始化。
+    """
+    global _shared_law_retriever
+    if _shared_law_retriever is None:
+        db_dir = get_database_dir()
+        _shared_law_retriever = LawRetriever(
+            db_path=os.path.join(db_dir, "legal_articles.db"),
+            index_path=os.path.join(db_dir, "legal_articles.index"),
+            mapping_path=os.path.join(db_dir, "legal_articles_id_map.npy"),
+            api_key=get_dashscope_api_key(),
+        )
+    return _shared_law_retriever

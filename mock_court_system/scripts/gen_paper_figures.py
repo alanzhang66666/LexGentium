@@ -33,7 +33,7 @@ def fig1_architecture():
     ax.set_xlim(0, 14)
     ax.set_ylim(0, 9)
     ax.axis("off")
-    ax.set_title("图1  LegalFlow系统总体架构", fontsize=16, fontweight="bold", pad=15)
+    ax.set_title("图1  LexGentium系统总体架构", fontsize=16, fontweight="bold", pad=15)
 
     def box(x, y, w, h, text, color, fontsize=10, alpha=0.85):
         rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.15",
@@ -265,7 +265,7 @@ def fig4_evaluation():
     angles += angles[:1]
     for vals, label, color in [
         (baseline, "基线系统", "#e74c3c"),
-        (full, "LegalFlow", "#2ecc71"),
+        (full, "LexGentium", "#2ecc71"),
     ]:
         v = vals + vals[:1]
         ax1.plot(angles, v, "o-", lw=2, label=label, color=color)
@@ -284,7 +284,7 @@ def fig4_evaluation():
     x = np.arange(len(levels))
     w = 0.35
     ax2.bar(x-w/2, base_pass, w, label="基线", color="#bdc3c7", alpha=0.9)
-    ax2.bar(x+w/2, full_pass, w, label="LegalFlow", color="#27ae60", alpha=0.9)
+    ax2.bar(x+w/2, full_pass, w, label="LexGentium", color="#27ae60", alpha=0.9)
     ax2.set_xticks(x)
     ax2.set_xticklabels(levels, fontsize=10)
     ax2.set_ylabel("通过率(%)", fontsize=11)

@@ -24,7 +24,7 @@ class CourtSimulatorClient:
 
     def __init__(
         self,
-        base_url: str = "http://47.116.195.100:43385",
+        base_url: str = "",
         api_key: str = "",
         scenario_prefix: str = "",
         timeout: int = 120,
