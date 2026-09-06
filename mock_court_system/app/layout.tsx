@@ -4,9 +4,9 @@ import { Analytics } from "@vercel/analytics/react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "LegalFlow | 基于扩展式博弈建模的多智能体协同模拟法庭系统",
-  description: "LegalFlow——基于扩展式博弈建模的多智能体协同模拟法庭系统，支持起诉状生成(CD)、答辩状生成(DD)和法庭判决(CI)场景的智能化模拟与分析",
-  keywords: ["LegalFlow", "扩展式博弈", "多智能体系统", "模拟法庭", "法律科技", "AI法庭", "Legal Tech", "Court Simulation", "Game Theory"],
+  title: "LexGentium | 基于扩展式博弈建模的多智能体协同模拟法庭系统",
+  description: "LexGentium——基于扩展式博弈建模的多智能体协同模拟法庭系统，支持起诉状生成(CD)、答辩状生成(DD)和法庭判决(CI)场景的智能化模拟与分析",
+  keywords: ["LexGentium", "扩展式博弈", "多智能体系统", "模拟法庭", "法律科技", "AI法庭", "Legal Tech", "Court Simulation", "Game Theory"],
   generator: "v0.app",
   icons: {
     icon: [

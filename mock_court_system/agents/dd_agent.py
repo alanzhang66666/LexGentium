@@ -15,7 +15,7 @@ from core import CourtSimulatorClient, LLMClient
 from core.schemas import CaseData
 from core.langchain_utils import RobustJsonOutputParser
 from utils import DialogHistory
-from core.law_retriever import LawRetriever, get_dashscope_api_key
+from core.law_retriever import LawRetriever, get_dashscope_api_key, get_shared_law_retriever
 import os
 
 # --- Helper Functions from DD_Agent ---
@@ -79,16 +79,12 @@ class DDAgent(BaseAgent):
 
         # 初始化法律检索器
         try:
-            db_dir = "database"
-            self.law_retriever = LawRetriever(
-                db_path=os.path.join(db_dir, "legal_articles.db"),
-                index_path=os.path.join(db_dir, "legal_articles.index"),
-                mapping_path=os.path.join(db_dir, "legal_articles_id_map.npy"),
-                api_key=get_dashscope_api_key()
-            )
+            # 共享单例：BM25 全量分词只做一次（此前每个 Agent 各建一份）
+            self.law_retriever = get_shared_law_retriever()
             self.log("LawRetriever initialized successfully.")
         except Exception as e:
             self.log(f"Failed to initialize LawRetriever: {e}")
+            print(f"[WARN] LawRetriever 初始化失败，法条增强将不可用: {e}", flush=True)
             self.law_retriever = None
 
         # 初始化 LangChain Chains

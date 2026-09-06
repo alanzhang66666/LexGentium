@@ -155,6 +155,7 @@ export default function ConversationPage() {
   const [advanceRounds, setAdvanceRounds] = useState(3)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [streamingText, setStreamingText] = useState("")
   const sendAbortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -223,28 +224,80 @@ export default function ConversationPage() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading || isFinished) return
 
+    const sent = inputMessage
     setIsLoading(true)
     setError(null)
+    setStreamingText("")
+
+    const controller = new AbortController()
+    sendAbortRef.current = controller
+
+    // 乐观渲染用户消息，流式期间即时可见
+    setMessages((prev) => [
+      ...prev,
+      { turn: prev.length, role: selectedRole || "Client", message: sent },
+    ])
 
     try {
-      const controller = new AbortController()
-      sendAbortRef.current = controller
-      const response = await fetch(`/api/conversation/${sessionId}/message`, {
+      const response = await fetch(`/api/conversation/${sessionId}/message/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: inputMessage,
-          role: selectedRole || undefined,
-        }),
+        body: JSON.stringify({ message: sent, role: selectedRole || undefined }),
         signal: controller.signal,
       })
 
-      if (!response.ok) throw new Error(await getResponseError(response))
+      if (!response.ok || !response.body) throw new Error(await getResponseError(response))
 
-      const data: ConversationMessageResponse = await response.json()
-      setMessages(data.dialog_history)
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder("utf-8")
+      let buffer = ""
+      const finals: ConversationMessageResponse[] = []
+      let gotDelta = false
+
+      const handleEvent = (evt: Record<string, unknown>) => {
+        if (evt.type === "delta" && typeof evt.text === "string") {
+          gotDelta = true
+          setStreamingText((prev) => prev + evt.text)
+        } else if (evt.type === "final") {
+          finals.push(evt as unknown as ConversationMessageResponse)
+        }
+      }
+
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        // SSE 事件以空行分隔
+        const events = buffer.split("\n\n")
+        buffer = events.pop() ?? ""
+        for (const ev of events) {
+          const line = ev.split("\n").find((l) => l.startsWith("data:"))
+          if (!line) continue
+          try {
+            handleEvent(JSON.parse(line.slice(5).trim()))
+          } catch {
+            // 忽略无法解析的残片（心跳等）
+          }
+        }
+      }
+
+      const finalData = finals[finals.length - 1]
+      if (!finalData && gotDelta) {
+        // 后端异常断流：以已收到的流文本兜底收尾
+        setStreamingText((prev) => {
+          if (prev) setMessages((m) => [...m, { turn: m.length, role: "Lawyer", message: prev }])
+          return ""
+        })
+        setError("连接中断，回复可能不完整")
+        return
+      }
+      if (!finalData) throw new Error("后端未返回结果")
+
+      setStreamingText("")
+      setMessages(finalData.dialog_history)
       setInputMessage("")
-      if (data.is_finished) setIsFinished(true)
+      if (finalData.is_finished) setIsFinished(true)
+      if (finalData.degraded) setError("当前未配置 LLM，本条回复由离线模板生成")
 
       await loadConversation()
     } catch (err) {
@@ -254,8 +307,10 @@ export default function ConversationPage() {
       } else {
         setError(msg)
       }
+      setMessages((prev) => prev.slice(0, -1)) // 移除乐观渲染的用户消息
     } finally {
       sendAbortRef.current = null
+      setStreamingText("")
       setIsLoading(false)
     }
   }
@@ -476,6 +531,21 @@ export default function ConversationPage() {
                       </div>
                     </div>
                   ))}
+                  {isLoading && streamingText && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-lg p-3 bg-muted/40 border border-dashed">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                          <span className="text-xs font-semibold opacity-70">律师</span>
+                          <span className="text-xs opacity-40">正在输入…</span>
+                        </div>
+                        <div className="whitespace-pre-wrap text-sm">
+                          {streamingText}
+                          <span className="inline-block w-2 h-4 ml-0.5 align-text-bottom bg-foreground/70 animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               )}

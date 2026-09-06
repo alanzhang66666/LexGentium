@@ -6,11 +6,14 @@ LLM 客户端封装
 from typing import List, Dict, Any, Optional
 import re
 import json
+import threading
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
+from typing import Iterator as _Iterator
 
 def is_retryable_error(e):
     """判断是否需要重试的异常"""
@@ -21,6 +24,46 @@ def is_retryable_error(e):
     if isinstance(e, (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.ChunkedEncodingError)):
         return True
     return False
+
+
+class _HookableChatModel(BaseChatModel):
+    """chat_model 透明代理：当前线程启用流式钩子时，invoke 内部转 stream 并逐 token 回调。
+
+    存在动机：CD/DD 等 Agent 的 LangChain chain（prompt | chat_model | parser）
+    直接持有 chat_model，会绕过 LLMClient.chat_completion 的钩子分支。
+    该代理让 chain 与直接调用统一获得流式旁路，且以线程局部变量隔离并发请求。
+    """
+    inner: Any
+    stream_local: Any
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @property
+    def _llm_type(self) -> str:
+        return "hookable-chat-proxy"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        hook = getattr(self.stream_local, "hook", None)
+        if hook is None:
+            return self.inner._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+        chunks: List[str] = []
+        for chunk in self.inner.stream(messages, stop=stop, run_manager=run_manager, **kwargs):
+            piece = getattr(chunk, "content", "") or ""
+            if not piece:
+                continue
+            chunks.append(piece)
+            try:
+                hook(piece)
+            except Exception:
+                pass
+        if not chunks:
+            return self.inner._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+        return ChatResult(generations=[ChatGeneration(message=AIMessage(content="".join(chunks)))])
+
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        for chunk in self.inner.stream(messages, stop=stop, run_manager=run_manager, **kwargs):
+            yield ChatGeneration(message=chunk)
 
 
 class LLMClient:
@@ -52,6 +95,8 @@ class LLMClient:
         self.provider = provider
         self.mock_mode = False
         self._mock_map = {}
+        # 线程局部流式钩子：请求级隔离（每个请求跑在独立线程），并发互不串流
+        self._stream_local = threading.local()
 
         # 初始化 LangChain ChatModel
         self.chat_model: Optional[BaseChatModel] = None
@@ -62,15 +107,18 @@ class LLMClient:
                 base_url = f"https://{base_url}"
             
             try:
-                self.chat_model = ChatOpenAI(
+                _inner = ChatOpenAI(
                     api_key=api_key,
                     base_url=base_url,
                     model=model,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout=timeout,
-                    max_retries=5,
+                    # LangChain 层重试降为 2：外层 tenacity(5 次) 已兜底，
+                    # 两层叠加时一次网络抖动最坏 25 连击（25×2-10s 退避）
+                    max_retries=2,
                 )
+                self.chat_model = _HookableChatModel(inner=_inner, stream_local=self._stream_local)
             except Exception as e:
                 print(f"[WARN] 初始化 LangChain ChatModel 失败: {e}")
 
@@ -106,12 +154,96 @@ class LLMClient:
         Returns:
             生成的文本
         """
+        hook = getattr(self._stream_local, "hook", None)
+        if hook is not None:
+            return self._chat_with_stream_hook(messages, temperature, hook)
         if self.chat_model:
             # 使用 LangChain
             return self._chat_with_langchain(messages, temperature)
         else:
             # 回退到直接 API 调用
             return self._chat_with_api(messages, temperature)
+
+    # ---------- 流式支持 ----------
+
+    def set_stream_hook(self, hook) -> None:
+        """在当前线程启用流式旁路：此后该线程的 chat_completion 会逐 token
+        回调 hook(delta)，同时返回完整文本。仅影响调用线程。"""
+        self._stream_local.hook = hook
+
+    def clear_stream_hook(self) -> None:
+        self._stream_local.hook = None
+
+    def _chat_with_stream_hook(self, messages, temperature, hook) -> str:
+        chunks: List[str] = []
+        try:
+            for delta in self.chat_completion_stream(messages, temperature):
+                chunks.append(delta)
+                try:
+                    hook(delta)
+                except Exception:
+                    pass
+        except Exception as e:
+            text = "".join(chunks)
+            if text:
+                return text
+            raise
+        return "".join(chunks)
+
+    def chat_completion_stream(self, messages: List[Dict[str, str]], temperature: Optional[float] = None):
+        """流式生成：yield 增量文本片段。离线兜底时整段 yield 一次。"""
+        if self.chat_model:
+            lc_messages = []
+            for msg in messages:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if role == "system":
+                    lc_messages.append(SystemMessage(content=content))
+                elif role == "assistant":
+                    lc_messages.append(AIMessage(content=content))
+                else:
+                    lc_messages.append(HumanMessage(content=content))
+            if temperature is not None:
+                self.chat_model.temperature = temperature
+            for chunk in self.chat_model.stream(lc_messages):
+                piece = getattr(chunk, "content", "") or ""
+                if piece:
+                    yield piece
+            return
+
+        # 直接 API 路径（requests SSE）
+        if not self.api_key:
+            yield self._offline_reply(messages)
+            return
+        url = f"{self.base_url}/chat/completions"
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature or self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": True,
+        }
+        resp = requests.post(url, headers=headers, json=payload, stream=True, timeout=self.timeout)
+        resp.raise_for_status()
+        for raw_line in resp.iter_lines():
+            # 显式 utf-8 解码：decode_unicode=True 在响应无 charset 时按 latin-1 解码，中文变乱码
+            line = raw_line.decode("utf-8", errors="replace") if isinstance(raw_line, bytes) else raw_line
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                piece = json.loads(data)["choices"][0]["delta"].get("content") or ""
+            except Exception:
+                continue
+            if piece:
+                yield piece
+
+    def _offline_reply(self, messages) -> str:
+        """离线兜底文本（与 _chat_with_api 的离线路径保持一致）。"""
+        return self._chat_with_api(messages)
 
     def enable_mock(self, mock_map: dict = None):
         """Enable lightweight mock responses for offline testing."""

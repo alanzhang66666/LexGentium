@@ -84,7 +84,7 @@ def fig1():
                 ha="center", style="italic")
 
     # --- Data Input ---
-    rbox(0.3, 4.2, 2.0, 2.8, "Data Input\n\nLegalFlow-1K\n1000 cases\n29 causes\n\nLaw DB\nFAISS+BM25", PAL["gray"], 7.5)
+    rbox(0.3, 4.2, 2.0, 2.8, "Data Input\n\nLexGentium-1K\n1000 cases\n29 causes\n\nLaw DB\nFAISS+BM25", PAL["gray"], 7.5)
 
     # --- Agent Layer ---
     section_label(6.0, 7.2, "Agent Layer")
@@ -500,7 +500,7 @@ def fig9():
     for vals, label, color, ls, lw in [
         (baseline, "Baseline", PAL["lightgray"], "--", 1.5),
         (with_game, "+GameEngine", PAL["orange"], "-.", 1.8),
-        (full, "LegalFlow (Full)", PAL["green"], "-", 2.2),
+        (full, "LexGentium (Full)", PAL["green"], "-", 2.2),
     ]:
         v = vals + vals[:1]
         ax1.plot(angles, v, ls, lw=lw, label=label, color=color, marker="o", markersize=4)
@@ -519,7 +519,7 @@ def fig9():
     x = np.arange(len(levels))
     w = 0.32
     ax2.bar(x - w / 2, bp, w, label="Baseline", color=PAL["lightgray"], alpha=0.9, edgecolor="white", lw=1)
-    ax2.bar(x + w / 2, fp, w, label="LegalFlow", color=PAL["green"], alpha=0.9, edgecolor="white", lw=1)
+    ax2.bar(x + w / 2, fp, w, label="LexGentium", color=PAL["green"], alpha=0.9, edgecolor="white", lw=1)
     ax2.set_xticks(x); ax2.set_xticklabels(levels, fontsize=8)
     ax2.set_ylabel("Pass Rate (%)", fontsize=10)
     ax2.set_title("(b) CADD Progressive Benchmark", fontsize=10.5, fontweight="bold")

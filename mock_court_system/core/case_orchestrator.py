@@ -60,6 +60,18 @@ class _MockApiClient(CourtSimulatorClient):
         pass
 
 
+def is_cd_final(text: str) -> bool:
+    return _is_cd_final(text)
+
+
+def is_dd_final(text: str) -> bool:
+    return _is_dd_final(text)
+
+
+def is_ci_final(text: str) -> bool:
+    return _is_ci_final(text)
+
+
 def _is_cd_final(text: str) -> bool:
     clean = text.strip().replace("*", "").replace("#", "").replace(" ", "")
     return clean.startswith("民事起诉状")
@@ -71,8 +83,17 @@ def _is_dd_final(text: str) -> bool:
 
 
 def _is_ci_final(text: str) -> bool:
+    """判决书终止检测。
+
+    覆盖两类真实输出：CI Agent 结构化模板（"案号：..."开头）与
+    LLM 按真实判决书格式直出的文本——数据集 200/200 篇判决书
+    均以"民事判决书"开头，此前漏召回导致庭审打满最大轮次。
+    """
     t = text.strip()
-    return t.startswith("案号：") or "【判决结果】" in t
+    if t.startswith("案号：") or "【判决结果】" in t:
+        return True
+    clean = t.replace("*", "").replace("#", "").replace(" ", "")
+    return clean.startswith("民事判决书") or clean.startswith("判决书")
 
 
 # ========== 争议原因注入模板（AgentMediation 五大类） ==========

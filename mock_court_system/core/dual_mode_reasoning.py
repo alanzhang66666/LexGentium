@@ -188,8 +188,12 @@ class DualModeReasoner:
         self, case_info: str, claims: str, use_llm_eval: bool = True,
     ) -> Dict[str, Any]:
         """执行完整的双模式推理流程。"""
-        fast = self.fast_judgment(case_info, claims)
-        slow = self.slow_judgment(case_info, claims)
+        # 快/慢两次判决互相独立，并行生成后再计算信息增益
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            fast = pool.submit(self.fast_judgment, case_info, claims).result()
+            slow = pool.submit(self.slow_judgment, case_info, claims).result()
         info_gain = self.compute_information_gain(fast, slow, use_llm=use_llm_eval)
 
         return {

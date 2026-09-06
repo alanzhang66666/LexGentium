@@ -1,6 +1,9 @@
 """
-主程序入口
-运行模拟法庭多智能体系统
+主程序入口（批处理/实验脚本）
+
+注意：此路径依赖远程法庭模拟服务（COURT_API_BASE_URL，须在 .env 显式配置），
+属于历史实验管道；日常使用与演示请走 Web 服务（api_server.py），
+Web 主路径由 SimAgent 本地模拟当事人，不依赖任何远程服务。
 """
 import argparse
 import sys

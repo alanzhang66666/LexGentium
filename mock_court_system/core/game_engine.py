@@ -383,6 +383,18 @@ class GameEngine:
     # 策略进化（增强版：基于均衡分析）
     # ================================================================
 
+    def evolve_both_strategies(
+        self, last_round: GameRound, method: str = "llm_reflection",
+    ) -> None:
+        """原告/被告双方策略进化并行执行（两侧互相独立，llm_reflection 时各省一次 LLM 往返）。"""
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            list(pool.map(
+                lambda party: self.evolve_strategy(party, last_round, method=method),
+                ["plaintiff", "defendant"],
+            ))
+
     def evolve_strategy(
         self,
         party: str,
@@ -739,8 +751,7 @@ class GameEngine:
 
             # 策略进化（最后一轮不需要进化）
             if i < rounds - 1:
-                self.evolve_strategy("plaintiff", game_round, method=evolution_method)
-                self.evolve_strategy("defendant", game_round, method=evolution_method)
+                self.evolve_both_strategies(game_round, method=evolution_method)
                 logger.info(
                     f"第 {i + 1} 轮策略进化完成 -> "
                     f"原告={self._plaintiff_strategy_type} 被告={self._defendant_strategy_type}"

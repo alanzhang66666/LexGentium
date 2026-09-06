@@ -69,6 +69,8 @@ class ConversationMessageResponse(BaseModel):
     response: Dict[str, str]
     dialog_history: List[Dict[str, Any]]
     is_finished: bool = False
+    # True 表示该回复由离线兜底模板生成（未调用真实 LLM），实验脚本应据此过滤数据
+    degraded: bool = False
 
 
 class ConversationInfo(BaseModel):

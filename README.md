@@ -1,6 +1,6 @@
 ﻿# 模拟法庭多智能体系统项目
 
-本仓库是一个围绕 **LegalFlow 模拟法庭多智能体系统** 建设的项目工作区，包含可运行的前后端系统、评估实验模块、法律数据与法条检索资源，以及申报、答辩、商业计划和参考文献等归档材料。
+本仓库是一个围绕 **LexGentium 模拟法庭多智能体系统** 建设的项目工作区，包含可运行的前后端系统、评估实验模块、法律数据与法条检索资源，以及申报、答辩、商业计划和参考文献等归档材料。
 
 ## 项目定位
 
@@ -200,16 +200,22 @@ mock_court_system/api_server.py
 
 ## 快速启动
 
+环境要求：
+
+- Python **3.9+**（在 3.9 实测通过；建议使用 `requirements.lock` 复现已验证的依赖组合）
+- Node.js **20+**（在 24 实测通过）
+
 进入主工程目录：
 
 ```bash
 cd mock_court_system
 ```
 
-安装 Python 依赖：
+安装 Python 依赖（二选一）：
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt        # 宽松版本（开发）
+pip install -r requirements.lock       # 锁定版本（可复现，实测通过组合）
 ```
 
 安装前端依赖：
@@ -245,6 +251,9 @@ npm run dev
 ```
 
 ## 重要数据与本地状态
+
+> 路径说明：`main.py` 是依赖远程法庭模拟服务（`COURT_API_BASE_URL`）的历史批处理/实验入口，
+> 日常使用请从 `api_server.py`（Web 服务）启动，Web 主路径不依赖任何远程服务。
 
 主工程内已有若干本地数据和状态文件：
 

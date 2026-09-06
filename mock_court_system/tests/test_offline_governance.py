@@ -25,15 +25,22 @@ def _load_api_server(monkeypatch, db_path):
     monkeypatch.setenv("LLM_MODEL", "")
     monkeypatch.setenv("DASHSCOPE_API_KEY", "")
 
-    for module_name in ("api_server", "api_runtime", "config", "settings"):
+    # 丢弃 api 包（含 state 与全部 routers）及相关配置模块，让 stores 按新环境重建
+    stale = [
+        m for m in list(sys.modules)
+        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("api_runtime", "config", "settings")
+    ]
+    for module_name in stale:
         sys.modules.pop(module_name, None)
 
     import api_server
+    from api import state
 
     def fake_run_agent_turn(*, scenario, case_id, dialog_history, input_json):
         return "Lawyer", f"offline reply for {scenario}:{case_id}", False
 
-    api_server.run_agent_turn = fake_run_agent_turn
+    # 路由通过 state.run_agent_turn 属性访问，patch 这里才能生效
+    state.run_agent_turn = fake_run_agent_turn
     return api_server
 
 
