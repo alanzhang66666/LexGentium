@@ -24,7 +24,7 @@ export default function Home() {
         <div className="mx-auto max-w-[1120px] px-4 pt-16 pb-24 md:pt-24 md:pb-32">
           <div className="grid items-end gap-16 lg:grid-cols-12">
             <div className="space-y-7 lg:col-span-6">
-              <p className="text-[13px] text-muted-foreground">LexGentium</p>
+              <p className="text-[13px] text-muted-foreground">LexGentium 0.8</p>
               <h1 className="text-[48px] font-medium leading-[1.05] tracking-[-0.045em] md:text-[56px] lg:text-[64px]">
                 国际商事仲裁听证仿真
               </h1>

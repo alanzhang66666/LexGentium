@@ -1,16 +1,15 @@
-# 主工程全链路梳理（mock_court_system）
+# 主工程全链路梳理（LexGentium 0.8）
 
-本文件面向**本机/离线演示**场景。一场庭只有一个对外 ID：`session_id`（SQLite）。浏览器只打 Next `/api/*`；FastAPI 经 `api/services/` 处理业务。`main.py` 仅离线批跑，不是 Web 主入口。
+本文件面向**本机/离线演示**场景。一场庭只有一个对外 ID：`session_id`（SQLite）。浏览器只打 Next `/api/*`；FastAPI 经 `api/services/` 处理业务。`main.py` 仅离线批跑，不是 Web 主入口。当前版本 **0.8.0**。
 
 ## 1. 目录与职责
 
 - **前端（Next.js App Router）**：`mock_court_system/app/`
   - 开庭：`/conversation`、`/conversation/[id]`、`/full-simulation`、`/mediation`
   - 观庭：`/court3d`、`/court3d/[id]`、`/court3d/replay`
-  - 复盘：`/evaluation`、`/evaluation/reports/[id]`
-  - 系统枢纽：`/system`（健康 + 映射表 + 实验面板；快捷入口指向数据库 / 设置 / API 历史 / 调试模拟器，那些是独立页）
-  - 调试单轮：`/simulate`（在「系统」菜单，不是四页之一）
-  - 共享：优先 `lib/api/`；SSE 与个别调试页仍可直接 `fetch`。`lib/session/SessionProvider.tsx`、`lib/labels.ts`
+  - 复盘：`/evaluation`（对照 / 策略 / 合规）、`/evaluation/reports/[id]`
+  - 系统：`/login` `/register`（LLM 软解锁）、`/system`（健康 + 映射表 + 实验面板）、`/settings` `/database` `/api-history` `/simulate`
+  - 共享：优先 `lib/api/`；SSE 与个别调试页仍可直接 `fetch`。`lib/session/`、`lib/labels.ts`。配色 `html[data-scheme]`。
 - **后端（FastAPI）**：`mock_court_system/api_server.py`
   - 薄路由：`api/routers/`
   - 业务：`api/services/`（conversation / simulation / game / evaluation / sse / cases / links）
@@ -37,9 +36,9 @@ flowchart LR
 
 | 档 | 能力 | 页面 |
 |---|---|---|
-| 官方 | 会话 CRUD + stream + auto-advance + import；全案启动/状态/stream；health/config/database/api-history；评测；`GET /reference/cases` | 开庭、观庭、复盘、系统 |
-| 半官方 | compliance；game create/list/get | 按钮即可 |
-| 实验 | 无状态 `POST /`、独立调解、`/case/*` 创新、game 细评测 | `/simulate` 在系统菜单「调试单轮」；调解 `/mediation`；创新在 `/system` 底部；博弈评测在复盘策略 pane |
+| 官方 | 会话 CRUD + stream + auto-advance + import；全案启动/状态/stream；health/config/database/api-history；`POST /evaluate`；`GET /reference/cases`；`/login` `/register` 的 LLM 配置 | 开庭、观庭、复盘、系统 |
+| 半官方 | compliance；game create/list/get/round/SSE/策略/均衡/评测；独立调解（SQLite） | `/evaluation?pane=strategy`、`/mediation`、观庭绑定 |
+| 实验 | 无状态 `POST /`、`/case/*` 创新（与 `game.py` 会话版并存） | `/simulate`；`/system` 底部实验面板 |
 
 SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation_complete` | `error`。发言带 `role`、`degraded?`、`sub_stage?`。3D 只在客户端译为 `PerformanceEvent`。
 
@@ -73,6 +72,7 @@ SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation
 - `BACKEND_URL`：Next 代理目标（默认 `http://localhost:8000`）
 - `CONVERSATION_STORE=sqlite|memory`
 - `CONVERSATION_DB_PATH`（默认 `./data/conversations.sqlite3`）
+- `CI_USE_GRAPH` / `PLEAD_USE_RUNTIME` / `LLM_CACHE` / `API_TOKEN`（见 `.env.example`）
 
 ## 6. 启动
 

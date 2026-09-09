@@ -1,6 +1,6 @@
 # Design System: LexGentium Hearing
 
-Adapted from Linear’s dark-first workbench density and Stripe’s institutional restraint on marketing pages. Not a pixel clone. Do not use Linear’s brand indigo (`#5e6ad2`) or proprietary fonts (CursorGothic, Berkeley Mono).
+Version **0.8.0**. Adapted from Linear’s dark-first workbench density and Stripe’s institutional restraint on marketing pages. Not a pixel clone. Do not use Linear’s brand indigo (`#5e6ad2`) or proprietary fonts (CursorGothic, Berkeley Mono).
 
 ## 1. Visual Theme & Atmosphere
 

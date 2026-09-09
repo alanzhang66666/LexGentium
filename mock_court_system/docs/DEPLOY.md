@@ -1,6 +1,8 @@
-# LexGentium 部署指南
+# LexGentium 0.8 部署指南
 
-部署目录是 **`mock_court_system/`**。Web 主路径：`api_server.py`（FastAPI）+ Next.js。`main.py` 只用于离线批跑，不要当生产入口。
+部署目录是 **`mock_court_system/`**（版本 **0.8.0**）。Web 主路径：`api_server.py`（FastAPI）+ Next.js。`main.py` 只用于离线批跑，不要当生产入口。
+
+首次使用走 `/register` 写入 LLM，或 `/login` 测通已有配置。这是软解锁，不是用户账号系统。生产环境建议再设 `API_TOKEN`。
 
 ## 1. 服务器准备
 
@@ -89,7 +91,7 @@ Next 服务端代理读 `BACKEND_URL`（默认 `http://localhost:8000`）。浏�
 
 ```bash
 curl http://localhost:8000/health
-# 工作台：http://localhost:3000/conversation
+# 工作台：http://localhost:3000/register 然后 /conversation
 # 无状态调试（不经 Next）：
 curl -X POST http://localhost:8000/ \
   -H "Content-Type: application/json" \

@@ -5,7 +5,7 @@ export function Footer({ compact = false }: { compact?: boolean }) {
     return (
       <footer className="border-t border-border">
         <div className="mx-auto flex h-10 max-w-none items-center justify-between px-4 text-xs text-muted-foreground">
-          <span>LexGentium｜国际商事仲裁听证仿真</span>
+          <span>LexGentium 0.8｜国际商事仲裁听证仿真</span>
           <span>© 2026</span>
         </div>
       </footer>
@@ -17,7 +17,7 @@ export function Footer({ compact = false }: { compact?: boolean }) {
       <div className="mx-auto max-w-[1120px] px-4 py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="space-y-2">
-            <p className="text-sm font-medium">LexGentium</p>
+            <p className="text-sm font-medium">LexGentium 0.8</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               国际商事仲裁听证仿真。开庭、观庭、复盘同一会话。
             </p>

@@ -1,6 +1,6 @@
-# LexGentium 安装与运行（Web 主路径）
+# LexGentium 0.8 安装与运行（Web 主路径）
 
-本指南对应目录 **`mock_court_system/`**。日常开发与演示走 **FastAPI + Next.js**，不走远程批跑。
+本指南对应目录 **`mock_court_system/`**（`package.json` 版本 **0.8.0**）。日常开发与演示走 **FastAPI + Next.js**，不走远程批跑。
 
 环境要求：Python **3.9+**，Node.js **20+**。
 
@@ -60,14 +60,16 @@ npm run dev                   # http://localhost:3000
 
 浏览器只打 Next（默认 3000）。后端路由在 `api/routers/`，`api_server.py` 只做装配。
 
-推荐入口：`/conversation`（开庭）→ `/court3d/{session_id}`（观庭）→ `/evaluation`（复盘）。一场听证一个 `session_id`。
+推荐入口：`/register` 或 `/login`（写入/测通 LLM，软解锁）→ `/conversation`（开庭）→ `/court3d/{session_id}`（观庭）→ `/evaluation`（复盘）。一场听证一个 `session_id`。
+
+可选环境旗见 `.env.example`：`CI_USE_GRAPH`、`PLEAD_USE_RUNTIME`、`LLM_CACHE`、`API_TOKEN`。配色三套（ink / parchment / seal）在工作台顶栏切换。
 
 ## 4. 常见问题
 
 1. **无法连接后端**：先起 `python api_server.py`，确认 `.env` 里 `BACKEND_URL` 与监听地址一致。
 2. **LLM 失败**：检查 `LLM_API_KEY` / `LLM_BASE_URL`；庭审可继续走离线兜底（回复带 `degraded`）。
 3. **法条检索未就绪**：`GET /health` 看 `law_retriever_ready`。缺索引时按上面 `reindex` 重建。
-4. **找不到测试集目录**：那是附录批跑用的；Web 主路径用 `data/dataset_1000/` 与 `/reference/cases`。
+4. **找不到 train/val/test jsonl**：仓库里的 `data/dataset_1000/` 只有元数据与 100 条摘要。Web 选案走 `/reference/cases`；完整 1000 条需按 `scripts/build_dataset.py` 重建。附录批跑另有自己的测试集路径。
 
 ---
 
