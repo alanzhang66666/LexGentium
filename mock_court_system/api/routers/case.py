@@ -4,12 +4,11 @@ import asyncio
 from datetime import datetime
 import uuid
 import json
-import queue
-import threading
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
+from api.services.sse import sse_event
 from api_schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
@@ -31,29 +30,29 @@ async def start_full_simulation(
     request: FullSimulationRequest,
     background_tasks: BackgroundTasks,
 ):
-    task_id = f"sim_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
-    state.simulation_tasks[task_id] = {
-        "status": "pending",
-        "message": "task created",
-        "current_stage": None,
-        "result": None,
-        "created_at": state._utcnow_iso(),
-        "mode": request.mode,
-    }
+    from api.services.simulation import create_simulation_task
+
+    task_id = create_simulation_task(request.mode, request.session_id)
     if request.mode == "tournament":
         background_tasks.add_task(state._run_tournament_task, task_id, request.case_info, request.tournament_rounds)
     else:
         background_tasks.add_task(state._run_full_simulation_task, task_id, request.case_info)
     label = "tournament" if request.mode == "tournament" else "full simulation"
-    return {"task_id": task_id, "status": "pending", "message": f"{label} task started", "mode": request.mode}
+    return {
+        "task_id": task_id,
+        "status": "pending",
+        "message": f"{label} task started",
+        "mode": request.mode,
+        "session_id": request.session_id,
+    }
 
 
 
 @router.get("/case/full-simulation/{task_id}")
 async def get_full_simulation_status(task_id: str):
-    if task_id not in state.simulation_tasks:
+    task = state.load_simulation_task(task_id)
+    if not task:
         raise HTTPException(status_code=404, detail="task not found")
-    task = state.simulation_tasks[task_id]
     return FullSimulationStatusResponse(
         task_id=task_id,
         status=task["status"],
@@ -66,37 +65,64 @@ async def get_full_simulation_status(task_id: str):
 
 @router.post("/case/full-simulation/stream")
 async def stream_full_simulation(request: FullSimulationRequest):
-    event_queue: queue.Queue = queue.Queue()
+    from api.services.simulation import create_simulation_task
 
-    def on_progress(stage, round_idx, role, finished):
-        event_queue.put(state._sse_event("stage_transition", {"stage": stage, "round": round_idx, "role": role, "finished": finished}))
+    task_id = create_simulation_task(request.mode, request.session_id)
+    loop = asyncio.get_running_loop()
+    event_queue: asyncio.Queue = asyncio.Queue()
 
-    def run_simulation():
+    def on_progress(stage, round_idx, role, finished, sub_stage=None):
+        loop.call_soon_threadsafe(event_queue.put_nowait, sse_event("stage_transition", {
+            "stage": stage,
+            "round": round_idx,
+            "role": role,
+            "finished": finished,
+            "sub_stage": sub_stage,
+        }))
+
+    async def run_simulation():
         try:
-            event_queue.put(state._sse_event("simulation_start", {"mode": request.mode, "case_info_keys": list(request.case_info.keys())}))
+            await event_queue.put(sse_event("simulation_start", {
+                "mode": request.mode,
+                "task_id": task_id,
+                "session_id": request.session_id,
+                "case_info_keys": list(request.case_info.keys()),
+            }))
             if request.mode == "tournament":
-                result = state._game_engine.run_tournament(request.case_info, rounds=request.tournament_rounds, on_progress=on_progress)
+                result = await asyncio.to_thread(
+                    state._game_engine.run_tournament,
+                    request.case_info,
+                    request.tournament_rounds,
+                    on_progress=on_progress,
+                )
             else:
-                result = state._orchestrator.run_full_case(request.case_info, on_progress=on_progress)
-            event_queue.put(state._sse_event("simulation_complete", {"result": result.to_dict()}))
+                result = await asyncio.to_thread(
+                    state._orchestrator.run_full_case,
+                    request.case_info,
+                    on_progress=on_progress,
+                )
+            await event_queue.put(sse_event("simulation_complete", {"result": result.to_dict(), "task_id": task_id}))
         except Exception as e:
-            event_queue.put(state._sse_event("error", {"message": str(e)}))
+            await event_queue.put(sse_event("error", {"message": str(e)}))
         finally:
-            event_queue.put(None)
+            await event_queue.put(None)
 
-    thread = threading.Thread(target=run_simulation, daemon=True)
-    thread.start()
+    worker = asyncio.create_task(run_simulation())
 
     async def event_generator():
-        while True:
-            try:
-                event = await asyncio.to_thread(event_queue.get, timeout=300)
-            except Exception:
-                yield state._sse_event("error", {"message": "timeout"})
-                break
-            if event is None:
-                break
-            yield event
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=300)
+                except asyncio.TimeoutError:
+                    yield sse_event("error", {"message": "timeout"})
+                    break
+                if event is None:
+                    break
+                yield event
+        finally:
+            if not worker.done():
+                worker.cancel()
 
     return StreamingResponse(
         event_generator(),

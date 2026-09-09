@@ -18,16 +18,14 @@ export function MetricCard({ icon: Icon, label, value, trend = "neutral", classN
   }
 
   return (
-    <Card className={cn("border-2 hover:shadow-lg transition-all group", className)}>
+    <Card className={cn(className)}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <p className={cn("text-2xl font-bold tracking-tight", trendColors[trend])}>{value}</p>
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className={cn("text-xl font-medium tracking-tight", trendColors[trend])}>{value}</p>
           </div>
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 group-hover:from-primary/20 group-hover:to-primary/10 transition-colors">
-            <Icon className="w-6 h-6 text-primary" />
-          </div>
+          <Icon className="size-4 text-muted-foreground" />
         </div>
       </CardContent>
     </Card>

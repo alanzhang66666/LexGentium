@@ -10,6 +10,42 @@ interface BackendProxyOptions {
   timeoutMs?: number
   label?: string
   timeoutMessage?: string
+  request?: Request
+}
+
+const BEARER_RE = /^Bearer\s+\S+/i
+
+function envBackendToken(): string {
+  return (process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || "").trim()
+}
+
+function bearerFromHeader(value: string | null | undefined): string | undefined {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  return BEARER_RE.test(trimmed) ? trimmed : undefined
+}
+
+/** Forward incoming Bearer or server-side API_TOKEN / BACKEND_API_TOKEN. Never log the token. */
+export async function backendAuthHeaders(incoming?: Request): Promise<Record<string, string>> {
+  const fromIncoming = bearerFromHeader(incoming?.headers.get("authorization"))
+  if (fromIncoming) {
+    return { Authorization: fromIncoming }
+  }
+  try {
+    const { headers } = await import("next/headers")
+    const requestHeaders = await headers()
+    const fromRequest = bearerFromHeader(requestHeaders.get("authorization"))
+    if (fromRequest) {
+      return { Authorization: fromRequest }
+    }
+  } catch {
+    // Not in a Next.js request context (scripts / unit tests).
+  }
+  const envToken = envBackendToken()
+  if (envToken) {
+    return { Authorization: `Bearer ${envToken}` }
+  }
+  return {}
 }
 
 const DEFAULT_TIMEOUT_MS = 30000
@@ -56,6 +92,23 @@ async function relayBackendResponse(response: Response) {
   }
 }
 
+export async function parseJsonBody(request: Request) {
+  try {
+    return { ok: true as const, body: await request.json() }
+  } catch (error) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        {
+          error: "请求体必须是合法 JSON",
+          detail: error instanceof Error ? error.message : String(error),
+        },
+        { status: 400 },
+      ),
+    }
+  }
+}
+
 export async function backendFetch(path: string, options: BackendProxyOptions = {}) {
   const {
     method = "GET",
@@ -63,14 +116,19 @@ export async function backendFetch(path: string, options: BackendProxyOptions = 
     timeoutMs = DEFAULT_TIMEOUT_MS,
     label = path,
     timeoutMessage,
+    request,
   } = options
 
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    const headers: Record<string, string> = { ...(await backendAuthHeaders(request)) }
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json"
+    }
     const response = await fetch(`${BACKEND_URL}${path}`, {
       method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      headers: Object.keys(headers).length ? headers : undefined,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
       cache: "no-store",

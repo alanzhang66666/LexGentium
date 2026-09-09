@@ -1,0 +1,25 @@
+{
+  "id": "demo_ci",
+  "title": "涉外商事开庭回放（离线）",
+  "scenario": "CI",
+  "stage": "opening",
+  "subStage": "opening_identity",
+  "turns": [
+    {
+      "role": "Clerk",
+      "message": "现在开庭。请双方当事人及其代理人核实身份。"
+    },
+    {
+      "role": "Judge",
+      "message": "本案由本院依法组成合议庭公开开庭审理。原告是否申请回避？"
+    },
+    {
+      "role": "Plaintiff",
+      "message": "审判长，原告不申请回避。现陈述诉讼请求：判令被告支付逾期货款及违约金。"
+    },
+    {
+      "role": "Defendant",
+      "message": "被告对管辖与身份没有异议。关于货款数额，我方认为原告主张不能成立，需要质证合同文本。"
+    }
+  ]
+}

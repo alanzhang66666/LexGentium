@@ -19,3 +19,9 @@ dist/
 build/
 *.sqlite3
 *.tsbuildinfo
+
+# 3D runtime assets (keep gitkeep; large models via LFS/CDN)
+public/court3d/models/*.glb
+public/court3d/models/*.gltf
+public/court3d/models/*.vrm
+public/court3d/models/*.bin

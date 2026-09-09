@@ -38,6 +38,7 @@ def create_llm_client(settings: Any) -> LLMClient:
         max_tokens=settings.llm.max_tokens,
         timeout=settings.llm.timeout,
         provider=settings.llm.provider,
+        fast_model=getattr(settings.llm, "fast_model", None) or None,
     )
 
 
@@ -153,4 +154,18 @@ def rebind_runtime_llm(
     )
     runtime.game_engine = GameEngine(runtime.orchestrator, new_llm)
     runtime.mediation_engine = MediationEngine(new_llm, runtime.sim_agent)
+    try:
+        from core.graphs.hearing_runtime import get_hearing_runtime
+        get_hearing_runtime(ci_agent=runtime.ci_agent, llm=new_llm).bind(
+            ci_agent=runtime.ci_agent, llm=new_llm
+        )
+    except Exception:
+        pass
+    try:
+        from core.graphs.plead_runtime import get_plead_runtime
+        get_plead_runtime(
+            cd_agent=runtime.cd_agent, dd_agent=runtime.dd_agent, llm=new_llm,
+        ).bind(cd_agent=runtime.cd_agent, dd_agent=runtime.dd_agent, llm=new_llm)
+    except Exception:
+        pass
     return runtime

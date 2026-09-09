@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
+import { WorkbenchShell } from "@/components/shell"
+import { SCENARIO_LABELS } from "@/lib/labels"
+import { ApiError, getEvaluationReport, getEvaluationStatus } from "@/lib/api"
 import {
   FileJson,
   AlertCircle,
@@ -17,9 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Sparkles,
 } from "lucide-react"
-import type { EvaluationResponse } from "@/lib/evaluation-types"
 
 export default function EvaluationReportPage() {
   const params = useParams()
@@ -39,27 +38,19 @@ export default function EvaluationReportPage() {
     setError(null)
 
     try {
-      // 尝试从状态查询
-      const statusResponse = await fetch(`/api/evaluate?report_id=${reportId}`)
-      if (statusResponse.ok) {
-        const statusData: EvaluationResponse = await statusResponse.json()
-        if (statusData.results) {
-          setReportData(statusData.results)
-          setLoading(false)
-          return
-        }
+      const statusData = await getEvaluationStatus(reportId)
+      if (statusData.results) {
+        setReportData(statusData.results)
+        return
       }
-
-      // 如果状态查询没有结果，尝试直接获取报告
-      const response = await fetch(`/api/evaluate/reports/${reportId}`)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: 无法加载评测报告`)
-      }
-
-      const data = await response.json()
+      const data = await getEvaluationReport(reportId)
       setReportData(data.results || data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载评测报告失败")
+      if (err instanceof ApiError) {
+        setError(err.detail || err.message || "无法加载评测报告")
+      } else {
+        setError(err instanceof Error ? err.message : "加载评测报告失败")
+      }
     } finally {
       setLoading(false)
     }
@@ -119,56 +110,45 @@ export default function EvaluationReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="container mx-auto px-4 md:px-8 py-12">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-muted-foreground">加载评测报告中...</p>
-            </div>
-          </div>
+      <WorkbenchShell>
+        <div className="flex flex-1 items-center justify-center py-16">
+          <p className="text-sm text-muted-foreground">加载报告…</p>
         </div>
-        <Footer />
-      </div>
+      </WorkbenchShell>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="container mx-auto px-4 md:px-8 py-12">
+      <WorkbenchShell>
+        <div className="px-4 py-8">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <Button onClick={() => router.push("/evaluation")} className="mt-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回评测中心
+          <Button onClick={() => router.push("/evaluation")} className="mt-4" variant="outline">
+            <ArrowLeft className="size-3.5" />
+            返回复盘
           </Button>
         </div>
-        <Footer />
-      </div>
+      </WorkbenchShell>
     )
   }
 
   if (!reportData) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="container mx-auto px-4 md:px-8 py-12">
+      <WorkbenchShell>
+        <div className="px-4 py-8">
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>评测报告数据为空</AlertDescription>
+            <AlertDescription>报告数据为空</AlertDescription>
           </Alert>
-          <Button onClick={() => router.push("/evaluation")} className="mt-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            返回评测中心
+          <Button onClick={() => router.push("/evaluation")} className="mt-4" variant="outline">
+            <ArrowLeft className="size-3.5" />
+            返回复盘
           </Button>
         </div>
-        <Footer />
-      </div>
+      </WorkbenchShell>
     )
   }
 
@@ -179,48 +159,31 @@ export default function EvaluationReportPage() {
   }, {} as Record<string, any>)
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <section className="border-b bg-gradient-to-br from-background via-muted/30 to-background">
-        <div className="container mx-auto px-4 md:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/evaluation")}
-                className="mb-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                返回评测中心
-              </Button>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">评测报告详情</h1>
-              <p className="text-muted-foreground">
-                报告ID: <code className="bg-muted px-2 py-1 rounded">{reportId}</code>
-              </p>
-            </div>
-            <Button variant="outline" size="lg">
-              <Download className="w-4 h-4 mr-2" />
-              导出报告
+    <WorkbenchShell>
+      <main className="flex-1 px-4 py-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/evaluation")} className="mb-2">
+              <ArrowLeft className="size-3.5" />
+              返回复盘
             </Button>
+            <h1 className="text-[22px] font-medium tracking-tight">报告</h1>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">{reportId}</p>
           </div>
+          <Button variant="outline" size="sm">
+            <Download className="size-3.5" />
+            导出
+          </Button>
         </div>
-      </section>
-
-      <section className="container mx-auto px-4 md:px-8 py-8">
         {/* 总体统计 */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {scenarios.map((scenario) => {
             const metrics = scenarioMetrics[scenario]
-            const scenarioNames: Record<string, string> = {
-              CD: "起诉状生成",
-              DD: "答辩状生成",
-              CI: "法庭判决",
-            }
+            const scenarioNames = SCENARIO_LABELS
             const trend = getScoreTrend(metrics.average)
 
             return (
-              <Card key={scenario} className="border-2">
+              <Card key={scenario}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{scenarioNames[scenario] || scenario}</span>
@@ -268,16 +231,11 @@ export default function EvaluationReportPage() {
             }
 
             return (
-              <Card key={scenario} className="border-2">
+              <Card key={scenario}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5" />
-                    {scenario === "CD"
-                      ? "起诉状生成"
-                      : scenario === "DD"
-                        ? "答辩状生成"
-                        : "法庭判决"}{" "}
-                    详细结果
+                    {SCENARIO_LABELS[scenario] || scenario} 明细
                   </CardTitle>
                   <CardDescription>共 {scenarioData.length} 条评测记录</CardDescription>
                 </CardHeader>
@@ -319,11 +277,10 @@ export default function EvaluationReportPage() {
 
         {/* 多层评测汇总 */}
         {reportData.multi_layer_evaluation && (
-          <Card className="mt-8 border-2 border-purple-200 dark:border-purple-800">
+          <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-500" />
-                多维评测（结果 + 过程 + 合法性）
+              <CardTitle className="flex items-center gap-2 text-base">
+                多维对照（结果 + 过程 + 合法性）
               </CardTitle>
               <CardDescription>
                 综合得分：{Math.round((reportData.multi_layer_evaluation.composite_score ?? 0) * 100)} 分
@@ -420,24 +377,21 @@ export default function EvaluationReportPage() {
         )}
 
         {/* 原始数据 */}
-        <Card className="mt-8 border-2">
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileJson className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileJson className="size-4" />
               原始数据
             </CardTitle>
-            <CardDescription>完整的评测报告JSON数据</CardDescription>
           </CardHeader>
           <CardContent>
-            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs font-mono max-h-[600px] overflow-y-auto">
+            <pre className="max-h-[600px] overflow-auto rounded-lg bg-muted p-4 font-mono text-xs">
               {JSON.stringify(reportData, null, 2)}
             </pre>
           </CardContent>
         </Card>
-      </section>
-
-      <Footer />
-    </div>
+      </main>
+    </WorkbenchShell>
   )
 }
 

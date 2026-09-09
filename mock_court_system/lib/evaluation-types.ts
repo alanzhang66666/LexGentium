@@ -2,6 +2,7 @@ export interface EvaluationRequest {
   scenarios: string[] // ["CD", "DD", "CI"]
   prediction_files?: Record<string, string>
   use_default_predictions?: boolean
+  session_id?: string
 }
 
 export interface EvaluationResponse {

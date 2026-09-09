@@ -7,9 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { ScrollIndicator } from "@/components/scroll-indicator"
+import { WorkbenchShell } from "@/components/shell"
 import {
   Settings,
   Key,
@@ -20,44 +18,12 @@ import {
   Loader2,
   Save,
   FlaskConical,
-  Sparkles,
   Eye,
   EyeOff,
   RefreshCcw,
 } from "lucide-react"
-
-const PROVIDER_PRESETS: Record<string, { base_url: string; model: string; label: string }> = {
-  deepseek: {
-    base_url: "https://api.deepseek.com/v1",
-    model: "deepseek-chat",
-    label: "DeepSeek",
-  },
-  openai: {
-    base_url: "https://api.openai.com/v1",
-    model: "gpt-4o",
-    label: "OpenAI",
-  },
-  kimi: {
-    base_url: "https://api.moonshot.cn/v1",
-    model: "moonshot-v1-8k",
-    label: "Kimi (Moonshot)",
-  },
-  qwen: {
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    model: "qwen-plus",
-    label: "通义千问 (Qwen)",
-  },
-  siliconflow: {
-    base_url: "https://api.siliconflow.cn/v1",
-    model: "Pro/moonshotai/Kimi-K2-Instruct-0905",
-    label: "SiliconFlow",
-  },
-  custom: {
-    base_url: "",
-    model: "",
-    label: "自定义",
-  },
-}
+import { PROVIDER_PRESETS } from "@/lib/llm-presets"
+import { clientAuthHeaders } from "@/lib/session/unlock"
 
 interface LLMConfig {
   provider: string
@@ -108,7 +74,7 @@ export default function SettingsPage() {
   const fetchCurrentConfig = async () => {
     setLoadingCurrent(true)
     try {
-      const res = await fetch("/api/config/llm")
+      const res = await fetch("/api/config/llm", { headers: { ...clientAuthHeaders() } })
       if (res.ok) {
         const data: CurrentConfig = await res.json()
         setCurrentConfig(data)
@@ -158,7 +124,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/config/llm/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
         body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
@@ -189,7 +155,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/config/llm", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
         body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
@@ -208,34 +174,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <section className="relative border-b bg-gradient-to-br from-background via-muted/30 to-background overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_40%,rgba(120,119,198,0.1),transparent_50%)]" />
-        <div className="container mx-auto px-4 md:px-8 py-12 md:py-16 relative">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">LLM 配置中心</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-              大模型 API 设置
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              配置大模型的 API Key 和调用地址，支持 DeepSeek、OpenAI、Kimi、通义千问等兼容 OpenAI 协议的服务
-            </p>
-          </div>
+    <WorkbenchShell>
+      <main className="flex-1 px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-[22px] font-medium tracking-tight">设置</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            配置兼容 OpenAI 协议的模型地址与密钥。
+          </p>
         </div>
-      </section>
-
-      <ScrollIndicator />
-
-      <section className="container mx-auto px-4 md:px-8 py-8 md:py-12">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="mx-auto max-w-2xl space-y-6">
 
           {/* 当前状态卡片 */}
-          <Card className="border-2">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Settings className="w-5 h-5" />
@@ -277,7 +227,7 @@ export default function SettingsPage() {
           </Card>
 
           {/* 配置表单 */}
-          <Card className="border-2">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="w-5 h-5" />
@@ -495,9 +445,7 @@ export default function SettingsPage() {
           </Card>
 
         </div>
-      </section>
-
-      <Footer />
-    </div>
+      </main>
+    </WorkbenchShell>
   )
 }

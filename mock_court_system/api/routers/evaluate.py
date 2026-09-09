@@ -30,25 +30,15 @@ async def start_evaluation(
     background_tasks: BackgroundTasks,
 ):
     try:
-        report_id = f"eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        created_at = datetime.now().isoformat()
-        state.evaluation_tasks[report_id] = {
-            "status": "running",
-            "message": "evaluation task started",
-            "results": None,
-            "report_path": None,
-            "created_at": created_at,
-        }
-        state.evaluation_task_store.upsert(
-            state.EvaluationTaskRecord(
-                report_id=report_id,
-                status="running",
-                message="evaluation task started",
-                created_at=created_at,
-                updated_at=created_at,
-            )
+        from api.services.evaluation import start_evaluation_task
+
+        report_id, files = start_evaluation_task(
+            request.scenarios,
+            request.prediction_files,
+            request.session_id,
+            request.use_default_predictions,
         )
-        background_tasks.add_task(state.run_evaluation_task, report_id, request.scenarios, request.prediction_files)
+        background_tasks.add_task(state.run_evaluation_task, report_id, request.scenarios, files)
         return EvaluationResponse(
             report_id=report_id,
             status="running",
@@ -56,6 +46,8 @@ async def start_evaluation(
             results=None,
             report_path=None,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         state.eval_logger.error(f"failed to start evaluation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"failed to start evaluation: {str(e)}")

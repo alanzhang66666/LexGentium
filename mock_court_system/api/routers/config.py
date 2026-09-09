@@ -117,3 +117,10 @@ async def get_big_five_traits():
 async def get_progressive_benchmark_info():
     return {"levels": state.PROGRESSIVE_BENCHMARK_LEVELS}
 
+
+@router.get("/reference/cases")
+async def list_reference_cases(limit: int = 40, split: str = "test"):
+    from api.services.cases import list_case_index
+    cases = list_case_index(limit=limit, split=split)
+    return {"cases": cases, "total": len(cases), "split": split}
+

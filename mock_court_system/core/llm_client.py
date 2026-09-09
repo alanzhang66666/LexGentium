@@ -4,9 +4,14 @@ LLM 客户端封装
 基于 LangChain 的统一接口
 """
 from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, asdict
+import hashlib
+import os
 import re
 import json
+import sqlite3
 import threading
+import time
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 from langchain_core.language_models import BaseChatModel
@@ -14,6 +19,31 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from typing import Iterator as _Iterator
+
+CACHEABLE_PURPOSES = frozenset({"clerk", "extract", "score"})
+DEGRADED_JSON_KEY = "_degraded"
+
+
+def degraded_json(reason: str = "llm_unavailable") -> Dict[str, Any]:
+    """Marker payload when JSON chat cannot produce a real model result."""
+    return {DEGRADED_JSON_KEY: True, "reason": reason}
+
+
+def is_degraded_json(result: Any) -> bool:
+    if not isinstance(result, dict) or not result:
+        return True
+    return result.get(DEGRADED_JSON_KEY) is True
+
+
+@dataclass
+class LLMCallRecord:
+    purpose: str
+    model: str
+    latency_ms: float
+    tokens: Optional[int]
+    tier: str
+    cached: bool = False
+
 
 def is_retryable_error(e):
     """判断是否需要重试的异常"""
@@ -78,9 +108,12 @@ class LLMClient:
         max_tokens: int = 4096,
         timeout: int = 60,
         provider: str = "deepseek",
+        fast_model: Optional[str] = None,
+        cache_path: Optional[str] = None,
     ):
         self.api_key = api_key
         self.model = model or "deepseek-chat"
+        self.fast_model = fast_model or self.model
         self.base_url = base_url or "https://api.deepseek.com/v1"
         
         # 确保 base_url 包含协议头
@@ -95,8 +128,16 @@ class LLMClient:
         self.provider = provider
         self.mock_mode = False
         self._mock_map = {}
+        self.mock_delay_s = 0.0
         # 线程局部流式钩子：请求级隔离（每个请求跑在独立线程），并发互不串流
         self._stream_local = threading.local()
+        self._metrics: List[LLMCallRecord] = []
+        self._metrics_lock = threading.Lock()
+        self._cache_enabled = os.getenv("LLM_CACHE", "1") != "0"
+        self._cache_path = cache_path or os.path.join("data", "llm_cache.sqlite3")
+        self._cache_lock = threading.Lock()
+        if self._cache_enabled:
+            self._init_cache()
 
         # 初始化 LangChain ChatModel
         self.chat_model: Optional[BaseChatModel] = None
@@ -135,12 +176,112 @@ class LLMClient:
             max_tokens=config.get("max_tokens", 4096),
             timeout=config.get("timeout", 60),
             provider=config.get("provider", "deepseek"),
+            fast_model=config.get("fast_model") or None,
         )
+
+    def _init_cache(self) -> None:
+        path = self._cache_path
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with self._cache_lock:
+            conn = sqlite3.connect(path)
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS llm_cache (key TEXT PRIMARY KEY, value TEXT, created_at REAL)"
+            )
+            conn.commit()
+            conn.close()
+
+    def model_for_tier(self, tier: str) -> str:
+        if tier == "fast":
+            return self.fast_model or self.model
+        return self.model
+
+    def reset_metrics(self) -> None:
+        with self._metrics_lock:
+            self._metrics.clear()
+
+    def get_metrics(self) -> List[LLMCallRecord]:
+        with self._metrics_lock:
+            return list(self._metrics)
+
+    def metrics_summary(self) -> Dict[str, Any]:
+        rows = self.get_metrics()
+        if not rows:
+            return {"calls": 0, "p50_ms": 0, "p95_ms": 0, "cached": 0}
+        lat = sorted(r.latency_ms for r in rows)
+        n = len(lat)
+        return {
+            "calls": n,
+            "p50_ms": lat[n // 2],
+            "p95_ms": lat[min(n - 1, int(n * 0.95))],
+            "cached": sum(1 for r in rows if r.cached),
+            "by_purpose": {p: sum(1 for r in rows if r.purpose == p) for p in {r.purpose for r in rows}},
+        }
+
+    def _record_call(self, purpose: str, tier: str, model: str, latency_ms: float, tokens=None, cached=False) -> None:
+        rec = LLMCallRecord(purpose=purpose, model=model, latency_ms=latency_ms, tokens=tokens, tier=tier, cached=cached)
+        with self._metrics_lock:
+            self._metrics.append(rec)
+
+    def _cache_key(self, model: str, messages: List[Dict[str, str]], temperature: float) -> str:
+        blob = json.dumps({"m": model, "msg": messages, "t": temperature}, ensure_ascii=False, sort_keys=True)
+        return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+    def _cache_get(self, key: str) -> Optional[str]:
+        if not self._cache_enabled:
+            return None
+        try:
+            with self._cache_lock:
+                conn = sqlite3.connect(self._cache_path)
+                row = conn.execute("SELECT value FROM llm_cache WHERE key=?", (key,)).fetchone()
+                conn.close()
+            return row[0] if row else None
+        except Exception:
+            return None
+
+    def _cache_set(self, key: str, value: str) -> None:
+        if not self._cache_enabled:
+            return
+        try:
+            with self._cache_lock:
+                conn = sqlite3.connect(self._cache_path)
+                conn.execute(
+                    "INSERT OR REPLACE INTO llm_cache(key, value, created_at) VALUES (?,?,?)",
+                    (key, value, time.time()),
+                )
+                conn.commit()
+                conn.close()
+        except Exception:
+            pass
+
+    def _maybe_cache(self, purpose: str, temperature: Optional[float]) -> bool:
+        temp = self.temperature if temperature is None else temperature
+        return purpose in CACHEABLE_PURPOSES and temp <= 0.1
+
+    def _chat_model_for(self, temperature: Optional[float] = None):
+        """按调用绑定温度，不改写共享 chat_model。"""
+        model = self.chat_model
+        if model is None or temperature is None:
+            return model
+        inner = getattr(model, "inner", None)
+        target = inner if inner is not None else model
+        if not hasattr(target, "bind"):
+            return model
+        try:
+            bound = target.bind(temperature=temperature)
+            if inner is not None:
+                return type(model)(inner=bound, stream_local=model.stream_local)
+            return bound
+        except Exception:
+            return model
 
     def chat_completion(
         self,
         messages: List[Dict[str, str]],
         temperature: Optional[float] = None,
+        purpose: str = "chat",
+        tier: str = "strong",
         **kwargs
     ) -> str:
         """
@@ -154,15 +295,30 @@ class LLMClient:
         Returns:
             生成的文本
         """
-        hook = getattr(self._stream_local, "hook", None)
-        if hook is not None:
-            return self._chat_with_stream_hook(messages, temperature, hook)
-        if self.chat_model:
-            # 使用 LangChain
-            return self._chat_with_langchain(messages, temperature)
+        model_name = self.model_for_tier(tier)
+        t0 = time.perf_counter()
+        cached = False
+        if self._maybe_cache(purpose, temperature):
+            hit = self._cache_get(self._cache_key(model_name, messages, temperature or self.temperature))
+            if hit is not None:
+                cached = True
+                text = hit
+            else:
+                text = None
         else:
-            # 回退到直接 API 调用
-            return self._chat_with_api(messages, temperature)
+            text = None
+        if text is None:
+            hook = getattr(self._stream_local, "hook", None)
+            if hook is not None:
+                text = self._chat_with_stream_hook(messages, temperature, hook)
+            elif self.chat_model:
+                text = self._chat_with_langchain(messages, temperature)
+            else:
+                text = self._chat_with_api(messages, temperature)
+            if self._maybe_cache(purpose, temperature) and text:
+                self._cache_set(self._cache_key(model_name, messages, temperature or self.temperature), text)
+        self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=cached)
+        return text
 
     # ---------- 流式支持 ----------
 
@@ -203,9 +359,8 @@ class LLMClient:
                     lc_messages.append(AIMessage(content=content))
                 else:
                     lc_messages.append(HumanMessage(content=content))
-            if temperature is not None:
-                self.chat_model.temperature = temperature
-            for chunk in self.chat_model.stream(lc_messages):
+            model = self._chat_model_for(temperature)
+            for chunk in model.stream(lc_messages):
                 piece = getattr(chunk, "content", "") or ""
                 if piece:
                     yield piece
@@ -254,6 +409,8 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         temperature: Optional[float] = None,
+        purpose: str = "json",
+        tier: str = "fast",
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -261,49 +418,117 @@ class LLMClient:
         
         包含自动降级机制：如果 JSON 模式失败，回退到普通模式并解析
         """
+        model_name = self.model_for_tier(tier)
+        t0 = time.perf_counter()
+        cached = False
+        if self._maybe_cache(purpose, temperature):
+            hit = self._cache_get(self._cache_key(model_name, messages, temperature or self.temperature))
+            if hit is not None:
+                cached = True
+                try:
+                    parsed = json.loads(hit)
+                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=True)
+                    return parsed
+                except Exception:
+                    cached = False
+        if self.mock_delay_s:
+            time.sleep(self.mock_delay_s)
         # Mock mode: return simple heuristic JSON based on prompt keywords
         if self.mock_mode:
+            def _mock_done(obj: Dict[str, Any]) -> Dict[str, Any]:
+                self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                return obj
+
             content = messages[-1].get("content", "") if messages else ""
             lc = content.lower()
+            if "书记员综合分析" in content or "TurnAnalysis" in content:
+                return _mock_done({
+                    "identity_confirmed": any(k in content for k in ["到庭", "确认", "是", "本人"]),
+                    "rights_acknowledged": any(k in content for k in ["听清", "明白", "知晓"]),
+                    "recusal_response": any(k in content for k in ["不申请", "回避", "没有"]),
+                    "absence_acknowledged": any(k in content for k in ["听清", "明白", "缺席"]),
+                    "stated_or_responded": len(content) > 20 and any(k in content for k in ["请求", "答辩", "事实"]),
+                    "no_more_evidence": any(k in content for k in ["无新证据", "举证完毕", "没有证据"]),
+                    "fact_supplement_response": "补充" in content,
+                    "cross_exam_intent": "none",
+                    "key_point": "",
+                    "burden_holder": None,
+                    "debated": "辩论" in content or "认为" in content,
+                    "final_statement": any(k in content for k in ["陈述完毕", "没有补充"]),
+                    "debate_intent": "none",
+                    "mediation_response": "refuse" if any(k in content for k in ["拒绝", "不同意", "依法判决"]) else "unknown",
+                    "plaintiff_name": None,
+                    "defendant_name": None,
+                    "claim": {"claim_type": "一般民事", "main_request": "支持原告诉求"} if "诉讼请求" in content else None,
+                    "defense": {"defense_reason": "被告不同意"} if "答辩" in content else None,
+                    "evidence": None,
+                    "next_instruction": "对原告说：请继续配合法庭指令。",
+                })
             # Opening stage identity / rights
             if "开庭准备" in content or "开庭" in content and "发言人" in content:
-                return {
+                return _mock_done({
                     "identity_confirmed": True,
                     "rights_acknowledged": True,
                     "recusal_response": False,
                     "absence_acknowledged": True,
-                }
+                })
             if "法庭调查" in content or "原告陈述" in content or "陈述诉讼请求" in content:
-                return {
+                return _mock_done({
                     "stated_or_responded": True,
                     "no_more_evidence": False,
                     "fact_supplement_response": False,
                     "cross_exam_intent": "none",
                     "key_point": "",
                     "burden_holder": None,
-                }
+                })
             if "法庭辩论" in content or "辩论" in content:
-                return {
+                return _mock_done({
                     "debated": True,
                     "final_statement": False,
                     "debate_intent": "none",
                     "key_point": "",
                     "burden_holder": None,
-                }
+                })
             if "法庭调解" in content or "调解" in content:
-                return {"mediation_response": "refuse"}
+                return _mock_done({"mediation_response": "refuse"})
             # Extraction prompts
             if "提取诉讼请求" in content or "原告陈述：" in content:
-                return {"claim_type": "一般民事", "claim_amount": None, "main_request": "支持原告诉求", "facts": []}
+                return _mock_done({"claim_type": "一般民事", "claim_amount": None, "main_request": "支持原告诉求", "facts": []})
             if "被告答辩" in content:
-                return {"admit": [], "deny": [], "defense_reason": "被告不同意", "counterclaim": None}
+                return _mock_done({"admit": [], "deny": [], "defense_reason": "被告不同意", "counterclaim": None})
             # Name extraction fallback
             if "提取关键案件信息" in content or "判断发言中是否明确提及" in content:
-                return {"plaintiff_name": None, "defendant_name": None}
-            # Default mock: return empty dict
-            return {}
+                return _mock_done({"plaintiff_name": None, "defendant_name": None})
+            # Combined clerk analysis
+            if "书记员综合分析" in content or "TurnAnalysis" in content:
+                return _mock_done({
+                    "identity_confirmed": True,
+                    "rights_acknowledged": True,
+                    "recusal_response": True,
+                    "absence_acknowledged": True,
+                    "stated_or_responded": True,
+                    "no_more_evidence": False,
+                    "fact_supplement_response": False,
+                    "cross_exam_intent": "none",
+                    "key_point": "",
+                    "burden_holder": None,
+                    "debated": True,
+                    "final_statement": False,
+                    "debate_intent": "none",
+                    "mediation_response": "refuse",
+                    "plaintiff_name": None,
+                    "defendant_name": None,
+                    "claim": None,
+                    "defense": None,
+                    "evidence": None,
+                    "next_instruction": None,
+                })
+            # Default mock: no keyword match — caller must treat as degraded, not real scores
+            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            return degraded_json("mock_empty")
         if not self.api_key:
-            return {}
+            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            return degraded_json("missing_api_key")
 
         url = f"{self.base_url}/chat/completions"
         headers = {
@@ -312,7 +537,7 @@ class LLMClient:
         }
 
         payload = {
-            "model": self.model,
+            "model": model_name,
             "messages": messages,
             "temperature": temperature or self.temperature,
             "response_format": {"type": "json_object"},
@@ -320,23 +545,32 @@ class LLMClient:
         }
 
         try:
-            return self._send_json_request(url, headers, payload)
+            parsed = self._send_json_request(url, headers, payload)
+            if self._maybe_cache(purpose, temperature):
+                self._cache_set(self._cache_key(model_name, messages, temperature or self.temperature), json.dumps(parsed, ensure_ascii=False))
+            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=cached)
+            return parsed
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 400:
                 print("[WARN] JSON 模式请求失败，尝试普通模式...")
                 if "response_format" in payload:
                     del payload["response_format"]
                 try:
-                    return self._send_json_request(url, headers, payload)
+                    parsed = self._send_json_request(url, headers, payload)
+                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                    return parsed
                 except Exception as retry_e:
                     print(f"[ERROR] 重试也失败: {retry_e}")
-                    return {}
+                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                    return degraded_json("json_mode_retry_failed")
             else:
                 print(f"[ERROR] HTTP 错误: {e.response.status_code}, {e.response.text}")
-                return {}
+                self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                return degraded_json("http_error")
         except Exception as e:
             print(f"[ERROR] 未知错误: {e}")
-            return {}
+            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            return degraded_json("request_error")
 
     @retry(
         retry=retry_if_exception(is_retryable_error),
@@ -374,10 +608,8 @@ class LLMClient:
                 else:
                     lc_messages.append(HumanMessage(content=content))
 
-            # 调用模型
-            if temperature is not None:
-                self.chat_model.temperature = temperature
-            response = self.chat_model.invoke(lc_messages)
+            model = self._chat_model_for(temperature)
+            response = model.invoke(lc_messages)
             return response.content
         except Exception as e:
             print(f"[WARN] LangChain 调用失败: {e}，回退到 API 调用")

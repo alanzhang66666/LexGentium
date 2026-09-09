@@ -22,10 +22,17 @@ class ApiResponse(BaseModel):
     response: Dict[str, str]
 
 
+class SessionLinks(BaseModel):
+    task_id: Optional[str] = None
+    game_id: Optional[str] = None
+    report_id: Optional[str] = None
+
+
 class EvaluationRequest(BaseModel):
     scenarios: List[str] = ["CD", "DD", "CI"]
     prediction_files: Optional[Dict[str, str]] = None
     use_default_predictions: bool = True
+    session_id: Optional[str] = None
 
 
 class EvaluationResponse(BaseModel):
@@ -81,6 +88,7 @@ class ConversationInfo(BaseModel):
     updated_at: str
     message_count: int
     dialog_history: List[Dict[str, Any]]
+    links: Optional[SessionLinks] = None
 
 
 class ConversationImportRequest(BaseModel):
@@ -118,6 +126,7 @@ class FullSimulationRequest(BaseModel):
     case_info: Dict[str, Any]
     mode: str = "single"
     tournament_rounds: int = 3
+    session_id: Optional[str] = None
 
 
 class FullSimulationStatusResponse(BaseModel):
@@ -140,6 +149,7 @@ class LLMConfigRequest(BaseModel):
 
 class GameCreateRequest(BaseModel):
     case_info: Dict[str, Any]
+    session_id: Optional[str] = None
     plaintiff_strategy: str = "compromising"
     defendant_strategy: str = "compromising"
     max_rounds: int = 5

@@ -1,4 +1,4 @@
-﻿# 模拟法庭多智能体系统项目
+# 模拟法庭多智能体系统项目
 
 本仓库是一个围绕 **LexGentium 模拟法庭多智能体系统** 建设的项目工作区，包含可运行的前后端系统、评估实验模块、法律数据与法条检索资源，以及申报、答辩、商业计划和参考文献等归档材料。
 
@@ -12,13 +12,10 @@
 .
 ├── mock_court_system/          # 主工程：Next.js 前端 + FastAPI 后端
 ├── evaluation/                 # 顶层评估结果目录
-├── 归档/                       # 项目材料归档
-│   ├── 申报材料/               # 基金/启研申请书、推荐意见、正文材料等
-│   ├── 答辩与展示材料/         # 答辩稿、PPT、展示材料、技术问题回答等
-│   ├── 参考文献/               # 项目相关论文 PDF
-│   ├── 商业计划与市场材料/     # 商业计划书、市场分析、执行摘要等
-│   ├── 图片与附件/             # 图片、截图和附件材料
-│   └── 临时脚本与提取文本/     # 文档处理脚本和临时提取文本
+├── 归档/                       # 项目材料归档（详见 归档/README.md）
+│   ├── 申报材料/               # 启研申请书终稿、推荐意见、正文与附图
+│   ├── 商业计划与市场材料/     # 商业计划书、市场分析、分章扩写
+│   └── 参考文献/               # 项目相关论文 PDF
 ├── .venv/                      # Python 虚拟环境
 ├── .vscode/                    # VS Code 配置
 ├── .cursor/                    # Cursor 配置
@@ -42,17 +39,18 @@ mock_court_system/
 ├── app/                        # Next.js 前端页面
 ├── components/                 # 前端组件
 ├── agents/                     # 多智能体模块
-├── core/                       # 核心推理、博弈、检索与流程引擎
-├── evaluation/                 # 评估框架与实验脚本
-├── data/                       # 数据集、SQLite 状态库、法条索引等
-├── database/                   # 数据库相关资源
-├── docs/                       # 工程文档和项目文档
-├── scripts/                    # 数据处理、测试和辅助脚本
-├── tests/                      # 测试目录
-├── api_server.py               # FastAPI 后端主入口
-├── main.py                     # 批处理/场景运行入口
-├── package.json                # 前端依赖与脚本
-└── requirements.txt            # Python 依赖
+├── api/routers/                # FastAPI 薄路由（业务在 api/services/）
+├── core/                       # 博弈、检索、调解与流程引擎
+├── evaluation/                 # 评测任务与 evaluation/lib/ 指标
+├── data/                       # 会话/博弈 SQLite、数据集（非法条库）
+├── database/                   # 法条 SQLite + FAISS 索引
+├── docs/                       # 工程文档
+├── scripts/                    # 辅助脚本
+├── tests/                      # 测试
+├── api_server.py               # FastAPI 薄壳入口
+├── main.py                     # 离线批跑（非 Web 主入口）
+├── package.json
+└── requirements.txt
 ```
 
 ## 技术栈
@@ -127,12 +125,12 @@ mock_court_system/core/
 
 项目内置法律数据库和索引文件，支持基于法条数据库的检索增强。
 
-相关资源：
+相关资源（法条库在 `database/`，不在 `data/`）：
 
 ```text
-mock_court_system/data/legal_articles.db
-mock_court_system/data/legal_articles.index
-mock_court_system/data/legal_articles_id_map.npy
+mock_court_system/database/legal_articles.db
+mock_court_system/database/legal_articles.index
+mock_court_system/database/legal_articles_id_map.npy
 ```
 
 代表性模块：
@@ -148,55 +146,47 @@ mock_court_system/data/legal_articles_id_map.npy
 相关目录：
 
 ```text
-mock_court_system/evaluation/
+mock_court_system/evaluation/lib/
 ```
 
 代表性模块：
 
-- `lexeval_cognitive.py`
-- `j1eval_metrics.py`
-- `outcome_evaluator.py`
-- `solution_evaluator.py`
-- `multi_layer_evaluator.py`
-- `cadd_framework.py`
-- `game_eval.py`
+- `evaluation/lib/lexeval_cognitive.py`
+- `evaluation/lib/j1eval_metrics.py`
+- `evaluation/lib/outcome_evaluator.py`
+- `evaluation/lib/solution_evaluator.py`
+- `evaluation/lib/multi_layer_evaluator.py`
+- `evaluation/lib/cadd_framework.py`
+- `evaluation/lib/game_eval.py`
 
 ## 前端页面
 
 主工程前端包含以下页面路由：
 
-- `/`：首页。
-- `/about`：项目介绍。
-- `/conversation`：会话式模拟入口。
-- `/simulate`：快速模拟入口。
-- `/full-simulation`：完整案件流程模拟。
-- `/evaluation`：评估任务与结果页面。
-- `/database`：法律数据库/法条检索页面。
-- `/api-history`：API 调用历史页面。
-- `/settings`：系统与 LLM 配置页面。
-- `/system`：系统状态页面。
-- `/docs`：项目文档页面。
+- `/` `/about` `/docs`：营销页。
+- `/conversation`：开庭（申请/答辩/听证）。
+- `/mediation`：独立五阶段调解工作台。
+- `/full-simulation`：全案。
+- `/court3d`：3D 观庭（R3F，占位人物 + 导演层）。
+- `/evaluation`：复盘（对照 / 策略推演 / 程序合规；有 `game_id` 时可打博弈评测）。
+- `/system`：系统枢纽（健康、映射表、实验面板），不是四页合一。
+- `/simulate`：无状态调试单轮（在「系统」菜单）。
+- `/database` `/settings` `/api-history`：法条、LLM、调用记录。
 
 ## 后端 API 能力
 
-后端主入口：
+后端入口 `api_server.py` 是薄壳；路由在 `api/routers/`，业务在 `api/services/`。
 
-```text
-mock_court_system/api_server.py
-```
+已接线（有 Next 代理 + 页面）：
 
-主要 API 类型包括：
+- `/health`、`/config/llm`、`/conversation/*`、`/case/full-simulation`
+- `/game` 创建/列表/详情/SSE 轮次/反事实
+- `/mediation/*`（独立调解工作台）
+- `/evaluate`、`/game/{id}/evaluate/*`（复盘策略页按钮）
+- `/case/progressive-rag`、`/dual-mode-reasoning`、`/multi-judge`（系统页实验面板）
+- `/database/search`、`/reference/cases`
 
-- 健康检查：`/health`
-- LLM 配置：`/config/llm`
-- 会话管理：`/conversation/*`
-- 完整案件模拟：`/case/full-simulation`
-- 博弈会话：`/game/*`
-- 调解流程：`/mediation/*`
-- 法条检索：`/database/search`
-- 评估任务：`/evaluate`、`/game/{game_id}/evaluate/*`
-- 责任链与反事实推理：`/game/{game_id}/liability-chain`
-- 渐进式 RAG、双模式推理、多法官推理等扩展能力。
+`game.py` 里仍有一份与 `/case/*` 重复的创新接口，实验面板走 `/case/*`。未做页面的管理接口（如 `DELETE /game`、非 SSE `round`、equilibrium）仍以 Swagger 为准。
 
 ## 快速启动
 
@@ -261,28 +251,24 @@ npm run dev
 mock_court_system/data/app_state.sqlite3
 mock_court_system/data/conversations.sqlite3
 mock_court_system/data/game_sessions.sqlite3
-mock_court_system/data/legal_articles.db
-mock_court_system/data/legal_articles.index
+mock_court_system/data/checkpoints.sqlite3
+mock_court_system/data/llm_cache.sqlite3
+mock_court_system/database/legal_articles.db
+mock_court_system/database/legal_articles.index
 ```
 
-这些文件用于保存应用状态、会话记录、博弈记录和法条检索索引。迁移、清理或提交仓库前需要确认是否包含敏感数据或临时实验数据。
+`data/` 存会话与运行时状态；法条索引在 `database/`。迁移或提交前确认是否含密钥或实验数据。
 
 ## 项目材料归档
 
-顶层散落的申报书、答辩材料、论文和商业计划书已经整理到：
-
-```text
-归档/
-```
-
-归档目录只用于保存项目支撑材料，不作为系统运行入口。
+申报书、商业计划和参考文献已整理到 `归档/`，清单见 `归档/README.md`。该目录只保存项目支撑材料，不是系统运行入口。答辩/展示大文件因超过 GitHub 单文件限制，未纳入仓库。
 
 ## 注意事项
 
 - 当前主工程是 `mock_court_system/`，优先从该目录启动和维护。
 - `.env` 可能包含 LLM 服务地址和密钥，提交或共享前应检查敏感信息。
 - `node_modules/`、`.next/`、`.venv/` 属于本地环境或构建产物，不建议作为正式交付内容。
-- `api_server.py` 当前承担大量后端路由和业务逻辑，后续维护时可以考虑拆分为独立 router 模块。
+- `api_server.py` 已拆为薄壳，路由在 `api/routers/`。
 - 项目包含工程实现和申报/答辩材料两类内容，后续若开源或交付，建议进一步拆分代码仓库与材料归档。
 
 ## 推荐使用入口
@@ -297,9 +283,11 @@ mock_court_system/
 
 ```text
 /conversation
-/simulate
+/mediation
 /full-simulation
+/court3d
 /evaluation
+/system
 /database
 /settings
 ```

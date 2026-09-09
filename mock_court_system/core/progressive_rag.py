@@ -88,6 +88,37 @@ class EvidencePool:
         }
 
 
+class _SafeFormatMap(dict):
+    """str.format_map 缺键时用空串，避免实验面板少填字段直接 500。"""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def _prompt_context(context: Dict[str, str]) -> Dict[str, str]:
+    filled = {str(k): str(v)[:500] for k, v in (context or {}).items()}
+    query = (
+        filled.get("query")
+        or filled.get("raw_query")
+        or filled.get("context")
+        or filled.get("plaintiff_claims")
+        or filled.get("dispute_focus")
+        or filled.get("facts")
+        or "法律条文"
+    )
+    filled.setdefault("query", query)
+    filled.setdefault("raw_query", query)
+    filled.setdefault("context", query)
+    filled.setdefault("plaintiff_claims", query)
+    filled.setdefault("defendant_defense", filled.get("defense", ""))
+    filled.setdefault("dispute_focus", query)
+    filled.setdefault("gaps", "")
+    filled.setdefault("facts", query)
+    filled.setdefault("draft_judgment", "")
+    filled.setdefault("existing_laws", "")
+    return filled
+
+
 # 每个阶段的检索 query 生成 prompt
 _STAGE_QUERY_PROMPTS = {
     "opening": "基于以下案件信息，生成用于检索相关法律条文的关键词查询（1-2个查询）：\n{context}",
@@ -119,11 +150,17 @@ class ProgressiveRAG:
 
     def _generate_queries(self, stage: str, context: Dict[str, str]) -> List[str]:
         """用 LLM 生成当前阶段的检索 query。"""
+        filled = _prompt_context(context)
+        fallback = filled.get("raw_query") or "法律条文"
         if not self.llm:
-            return [context.get("raw_query", "")]
+            return [fallback]
 
         template = _STAGE_QUERY_PROMPTS.get(stage, _STAGE_QUERY_PROMPTS["opening"])
-        prompt = template.format(**{k: str(v)[:500] for k, v in context.items()})
+        try:
+            prompt = template.format_map(_SafeFormatMap(filled))
+        except Exception as e:
+            logger.warning(f"P-RAG prompt format failed for stage={stage}: {e}")
+            prompt = f"基于以下案件信息，生成用于检索相关法律条文的关键词查询（1-2个查询）：\n{fallback}"
         prompt += "\n\n请输出 1-3 个简洁的检索查询，每行一个："
 
         try:
@@ -132,10 +169,10 @@ class ProgressiveRAG:
                 temperature=0.1,
             )
             queries = [q.strip() for q in response.strip().split("\n") if q.strip() and len(q.strip()) > 2]
-            return queries[:3] if queries else [context.get("raw_query", "法律条文")]
+            return queries[:3] if queries else [fallback]
         except Exception as e:
             logger.warning(f"P-RAG query generation failed: {e}")
-            return [context.get("raw_query", "法律条文")]
+            return [fallback]
 
     def retrieve_for_stage(
         self,

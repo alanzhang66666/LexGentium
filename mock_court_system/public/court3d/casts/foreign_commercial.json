@@ -1,0 +1,207 @@
+{
+  "id": "foreign_commercial",
+  "title": "涉外商事剧组",
+  "room": "courtroom",
+  "seats": {
+    "bench_center": "judge",
+    "clerk": "clerk",
+    "plaintiff_counsel": "plaintiff_counsel",
+    "plaintiff_party": "plaintiff_party",
+    "defendant_counsel": "defendant_counsel",
+    "defendant_party": "defendant_party",
+    "interpreter": "interpreter"
+  },
+  "roles": {
+    "judge": {
+      "actor": "judge",
+      "seat": "bench_center",
+      "agent": "CIAgent",
+      "speech": "agent",
+      "intensityCap": 0.4,
+      "category": "judicial",
+      "props": ["case_file_zh", "pen_silver", "monitor"],
+      "skins": {
+        "original": {
+          "name": "周岚",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["短发", "深红领襟", "法徽", "冷静直视"]
+        },
+        "swap": {
+          "name": "周屹",
+          "gender": "m",
+          "model": "/court3d/models/judge_presiding_m.vrm",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["整齐短黑发", "椭圆偏方脸", "深红领襟", "银灰签字笔", "冷静直视"]
+        }
+      }
+    },
+    "clerk": {
+      "actor": "clerk",
+      "seat": "clerk",
+      "agent": null,
+      "speech": "scripted",
+      "intensityCap": 0.35,
+      "category": "judicial",
+      "props": ["keyboard", "mic_slim", "case_file_bilingual"],
+      "skins": {
+        "original": {
+          "name": "林泽",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["工作证", "键盘", "细长话筒"]
+        },
+        "swap": {
+          "name": "林澄",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["低马尾", "窄长脸", "蓝灰细领带", "键盘与细长话筒", "快速记录姿态"]
+        }
+      }
+    },
+    "plaintiff_counsel": {
+      "actor": "plaintiff_counsel",
+      "seat": "plaintiff_counsel",
+      "agent": "CDAgent",
+      "speech": "agent",
+      "intensityCap": 0.6,
+      "category": "counsel",
+      "props": ["case_file_bilingual", "evidence_index"],
+      "skins": {
+        "original": {
+          "name": "顾清妍",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["黑色律师袍", "白色领饰", "双语卷宗"]
+        },
+        "swap": {
+          "name": "顾清衡",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["短发侧分", "白色领饰", "双语卷宗", "右手克制陈述手势"]
+        }
+      }
+    },
+    "plaintiff_party": {
+      "actor": "plaintiff_party",
+      "seat": "plaintiff_party",
+      "agent": "SimAgent",
+      "speech": "agent",
+      "intensityCap": 0.8,
+      "category": "party",
+      "props": ["folder_tabs"],
+      "skins": {
+        "original": {
+          "name": "陆玮",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["分页文件夹", "克制职业装"]
+        },
+        "swap": {
+          "name": "陆玮宁",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["短发", "金属框眼镜", "暗红窄丝巾", "分页文件夹", "双手交叠"]
+        }
+      }
+    },
+    "defendant_counsel": {
+      "actor": "defendant_counsel",
+      "seat": "defendant_counsel",
+      "agent": "DDAgent",
+      "speech": "agent",
+      "intensityCap": 0.6,
+      "category": "counsel",
+      "props": ["contract_en", "pen_dark", "watch"],
+      "skins": {
+        "original": {
+          "name": "沈嘉树",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["黑色律师袍", "白色领饰", "中英文合同"]
+        },
+        "swap": {
+          "name": "沈嘉宁",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["齐肩直发夹灰丝", "深色钢笔", "中英文合同对照", "沉静侧视"]
+        }
+      }
+    },
+    "defendant_party": {
+      "actor": "defendant_party",
+      "seat": "defendant_party",
+      "agent": "SimAgent",
+      "speech": "agent",
+      "intensityCap": 0.8,
+      "category": "party",
+      "props": ["passport", "contract_en", "earpiece_single"],
+      "skins": {
+        "original": {
+          "name": "Elena Rossi",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "en-US",
+          "voiceHint": "female",
+          "checklist": ["同传耳机", "英文合同"]
+        },
+        "swap": {
+          "name": "Marco Rossi",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "en-US",
+          "voiceHint": "male",
+          "checklist": ["深棕短卷发", "橄榄肤色", "极短胡须", "海军蓝西装", "单侧同传耳机"]
+        }
+      }
+    },
+    "interpreter": {
+      "actor": "interpreter",
+      "seat": "interpreter",
+      "agent": null,
+      "speech": "relay",
+      "relayLang": "en",
+      "relayFor": ["defendant_party"],
+      "intensityCap": 0.3,
+      "category": "interpreter",
+      "props": ["earpiece_single", "glossary", "notepad"],
+      "skins": {
+        "original": {
+          "name": "唐雯",
+          "gender": "f",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "female",
+          "checklist": ["单耳耳机", "速记本"]
+        },
+        "swap": {
+          "name": "唐闻",
+          "gender": "m",
+          "model": "",
+          "voiceLang": "zh-CN",
+          "voiceHint": "male",
+          "checklist": ["清爽短发", "灰蓝西装", "单耳耳机", "双语速记本", "前倾倾听"]
+        }
+      }
+    }
+  }
+}

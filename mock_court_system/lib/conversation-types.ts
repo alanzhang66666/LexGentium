@@ -1,5 +1,11 @@
 export type Scenario = "CD" | "DD" | "CI"
 
+export interface SessionLinks {
+  task_id?: string
+  game_id?: string
+  report_id?: string
+}
+
 export interface ConversationStartRequest {
   scenario: Scenario
   case_id: string
@@ -28,10 +34,14 @@ export interface ConversationMessageResponse {
   is_finished: boolean
   /** True 表示回复由离线兜底模板生成（未调用真实 LLM） */
   degraded?: boolean
+  current_stage?: CourtStage | null
+  current_sub_stage?: CourtSubStage | null
+  next_speaker?: string | null
+  available_actions?: string[]
 }
 
 export interface DialogEntry {
-  turn: number
+  turn?: number | null
   role: string
   message: string
 }
@@ -147,6 +157,7 @@ export interface ConversationInfo {
   available_actions?: string[]
   is_finished?: boolean
   turn_count?: number
+  links?: SessionLinks
 }
 
 export interface ConversationSummary {
@@ -157,6 +168,7 @@ export interface ConversationSummary {
   updated_at: string
   message_count: number
   is_finished?: boolean
+  links?: SessionLinks
 }
 
 export interface ConversationListResponse {

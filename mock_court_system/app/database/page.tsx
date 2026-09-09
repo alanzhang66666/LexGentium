@@ -6,9 +6,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { ScrollIndicator } from "@/components/scroll-indicator"
+import { WorkbenchShell } from "@/components/shell"
+import { clientAuthHeaders } from "@/lib/session/unlock"
 import {
   Database,
   Search,
@@ -16,7 +15,6 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
   BarChart3,
 } from "lucide-react"
 
@@ -52,7 +50,7 @@ export default function DatabasePage() {
   const loadStats = async () => {
     setLoadingStats(true)
     try {
-      const response = await fetch("/api/database/stats")
+      const response = await fetch("/api/database/stats", { headers: { ...clientAuthHeaders() } })
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -79,6 +77,7 @@ export default function DatabasePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...clientAuthHeaders(),
         },
         body: JSON.stringify({
           query: searchQuery,
@@ -101,32 +100,13 @@ export default function DatabasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <section className="relative border-b bg-gradient-to-br from-background via-muted/30 to-background overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]" />
-        <div className="container mx-auto px-4 md:px-8 py-12 md:py-16 relative">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">法条数据库管理</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-              数据库管理
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-pretty">
-              管理法条数据库，支持向量检索和关键词搜索
-            </p>
-          </div>
+    <WorkbenchShell>
+      <main className="flex-1 px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-[22px] font-medium tracking-tight">数据库</h1>
+          <p className="mt-1 text-sm text-muted-foreground">法条检索与索引状态。</p>
         </div>
-      </section>
-
-      <ScrollIndicator />
-
-      <section className="container mx-auto px-4 md:px-8 py-8 md:py-12">
-        {/* 数据库统计 */}
-        <Card className="mb-8 border-2">
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -223,7 +203,7 @@ export default function DatabasePage() {
         </Card>
 
         {/* 法条搜索 */}
-        <Card className="border-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
@@ -304,10 +284,8 @@ export default function DatabasePage() {
             )}
           </CardContent>
         </Card>
-      </section>
-
-      <Footer />
-    </div>
+      </main>
+    </WorkbenchShell>
   )
 }
 

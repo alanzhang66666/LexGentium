@@ -5,6 +5,11 @@
 增强版：支持子阶段追踪、程序合规检查和统一状态导出，
 消除 API 层与状态机之间的语义偏差。
 """
+from __future__ import annotations
+
+import copy
+from typing import Any, Dict, Optional
+
 from .schemas import CourtState, CourtSubStage
 
 
@@ -465,3 +470,38 @@ class StateMachine:
             CourtState.CLOSED: "finished",
         }
         return mapping.get(self.current_state, "unknown")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "current_state": self.current_state.value,
+            "current_sub_stage": self.current_sub_stage.value,
+            "state_history": [s.value for s in self.state_history],
+            "sub_stage_history": [s.value for s in self.sub_stage_history],
+            "opening_completed": self._opening_completed,
+            "compliance_log": list(self.compliance_log),
+            "opening_phase": copy.deepcopy(self.opening_phase),
+            "investigation_phase": copy.deepcopy(self.investigation_phase),
+            "debate_phase": copy.deepcopy(self.debate_phase),
+            "mediation_phase": copy.deepcopy(self.mediation_phase),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "StateMachine":
+        sm = cls()
+        if not data:
+            return sm
+        sm.current_state = CourtState(data.get("current_state", CourtState.OPENING.value))
+        sm.current_sub_stage = CourtSubStage(data.get("current_sub_stage", CourtSubStage.OPENING_IDENTITY.value))
+        sm.state_history = [CourtState(s) for s in data.get("state_history") or [sm.current_state.value]]
+        sm.sub_stage_history = [CourtSubStage(s) for s in data.get("sub_stage_history") or [sm.current_sub_stage.value]]
+        sm._opening_completed = bool(data.get("opening_completed", False))
+        sm.compliance_log = list(data.get("compliance_log") or [])
+        if data.get("opening_phase"):
+            sm.opening_phase = copy.deepcopy(data["opening_phase"])
+        if data.get("investigation_phase"):
+            sm.investigation_phase = copy.deepcopy(data["investigation_phase"])
+        if data.get("debate_phase"):
+            sm.debate_phase = copy.deepcopy(data["debate_phase"])
+        if data.get("mediation_phase"):
+            sm.mediation_phase = copy.deepcopy(data["mediation_phase"])
+        return sm

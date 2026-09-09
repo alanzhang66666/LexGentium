@@ -1,10 +1,6 @@
-export type Scenario = "CD" | "DD" | "CI"
+import type { DialogEntry, Scenario } from "@/lib/conversation-types"
 
-export interface DialogEntry {
-  turn?: number | null
-  role: string
-  message: string
-}
+export type { DialogEntry, Scenario }
 
 export interface SimulateRequest {
   scenario: Scenario

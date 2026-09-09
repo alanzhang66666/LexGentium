@@ -1,13 +1,23 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { GeistSans } from "geist/font/sans"
 import { Analytics } from "@vercel/analytics/react"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "LexGentium | 基于扩展式博弈建模的多智能体协同模拟法庭系统",
-  description: "LexGentium——基于扩展式博弈建模的多智能体协同模拟法庭系统，支持起诉状生成(CD)、答辩状生成(DD)和法庭判决(CI)场景的智能化模拟与分析",
-  keywords: ["LexGentium", "扩展式博弈", "多智能体系统", "模拟法庭", "法律科技", "AI法庭", "Legal Tech", "Court Simulation", "Game Theory"],
-  generator: "v0.app",
+  title: "LexGentium｜国际商事仲裁听证仿真",
+  description:
+    "LexGentium 国际商事仲裁听证仿真：开庭、观庭、复盘。支持申请准备、答辩准备与仲裁听证。",
+  keywords: [
+    "LexGentium",
+    "国际商事仲裁",
+    "听证仿真",
+    "申请准备",
+    "答辩准备",
+    "仲裁听证",
+    "法律科技",
+  ],
   icons: {
     icon: [
       {
@@ -33,9 +43,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" className={GeistSans.variable} data-scheme="ink" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        {children}
+        <a
+          href="#content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-[100] focus:rounded-md focus:border focus:border-border focus:bg-card focus:px-3 focus:py-2 focus:text-[13px] focus:shadow-sm"
+        >
+          跳到正文
+        </a>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

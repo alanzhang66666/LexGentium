@@ -347,6 +347,24 @@ class FullCaseOrchestrator:
             enable_dynamic=bool(defendant_strategy_type),
         )
 
+        from core.graphs.hearing_runtime import get_hearing_runtime, use_hearing_graph
+
+        if use_hearing_graph():
+            return self._run_stage_ci_graph(
+                case_info=case_info,
+                case_id=case_id,
+                input_json=input_json,
+                complaint_text=complaint_text,
+                defense_text=defense_text,
+                cd_extracted=cd_extracted,
+                dd_extracted=dd_extracted,
+                plaintiff_strategy_type=plaintiff_strategy_type,
+                defendant_strategy_type=defendant_strategy_type,
+                plaintiff_sim=plaintiff_sim,
+                defendant_sim=defendant_sim,
+                on_progress=on_progress,
+            )
+
         dialog_history: List[Dict[str, Any]] = []
         final_doc = ""
         max_ci_turns = min(self.max_turns * 3, 60)
@@ -361,7 +379,12 @@ class FullCaseOrchestrator:
                 "message": text,
             })
             if on_progress:
-                on_progress("CI", round_idx, role, finished)
+                sub_stage = None
+                try:
+                    sub_stage = self.ci_agent.state_machine.current_sub_stage.value
+                except Exception:
+                    pass
+                on_progress("CI", round_idx, role, finished, sub_stage)
             if finished:
                 final_doc = text
                 break
@@ -403,6 +426,113 @@ class FullCaseOrchestrator:
                 "defendant_strategy_type": defendant_strategy_type,
                 "strategy_injected": (plaintiff_strategy_type is not None
                                      or defendant_strategy_type is not None),
+            },
+        )
+
+    def _run_stage_ci_graph(
+        self,
+        *,
+        case_info: Dict[str, Any],
+        case_id: str,
+        input_json: Dict[str, Any],
+        complaint_text: str,
+        defense_text: str,
+        cd_extracted,
+        dd_extracted,
+        plaintiff_strategy_type,
+        defendant_strategy_type,
+        plaintiff_sim,
+        defendant_sim,
+        on_progress,
+    ) -> StageResult:
+        """HearingRuntime 增量庭审（auto / fast_path）。"""
+        from core.graphs.hearing_runtime import get_hearing_runtime
+
+        session_id = f"case_{case_id}"
+        runtime = get_hearing_runtime(ci_agent=self.ci_agent, llm=self.llm)
+        runtime.init_session(
+            session_id,
+            case_id=case_id,
+            input_json=input_json,
+            mode="auto",
+            strategy={"plaintiff": plaintiff_strategy_type, "defendant": defendant_strategy_type},
+        )
+        prev_fast = getattr(self.ci_agent, "fast_path", False)
+        self.ci_agent.fast_path = True
+        dialog_history: List[Dict[str, Any]] = []
+        final_doc = ""
+        max_ci_turns = min(self.max_turns * 3, 60)
+        try:
+            text, finished = runtime.start_court(session_id, case_id, input_json)
+            dialog_history.append({"turn": 0, "role": "Judge", "message": text})
+            if on_progress:
+                sub = None
+                try:
+                    sub = self.ci_agent.state_machine.current_sub_stage.value
+                except Exception:
+                    pass
+                on_progress("CI", 0, "Judge", finished, sub)
+            if finished:
+                final_doc = text
+            else:
+                for round_idx in range(max_ci_turns):
+                    next_role = self._ci_next_role(dialog_history)
+                    if next_role == "Plaintiff":
+                        sim_text = plaintiff_sim.simulate_plaintiff_with_strategy(
+                            dialog_history,
+                            complaint_text=complaint_text,
+                            cd_extracted_info=cd_extracted,
+                        )
+                    elif next_role == "Defendant":
+                        sim_text = defendant_sim.simulate_defendant_with_strategy(
+                            dialog_history,
+                            defense_text=defense_text,
+                            dd_extracted_info=dd_extracted,
+                        )
+                    else:
+                        break
+                    dialog_history.append({
+                        "turn": len(dialog_history),
+                        "role": next_role,
+                        "message": sim_text,
+                    })
+                    text, finished = runtime.live_turn(
+                        session_id, next_role, sim_text, case_id, input_json, fast_path=True,
+                    )
+                    role = "Final" if finished else "Judge"
+                    dialog_history.append({
+                        "turn": len(dialog_history),
+                        "role": role,
+                        "message": text,
+                    })
+                    if on_progress:
+                        sub = None
+                        try:
+                            sub = self.ci_agent.state_machine.current_sub_stage.value
+                        except Exception:
+                            pass
+                        on_progress("CI", round_idx + 1, role, finished, sub)
+                    if finished:
+                        final_doc = text
+                        break
+        finally:
+            self.ci_agent.fast_path = prev_fast
+
+        if not final_doc:
+            final_doc = dialog_history[-1]["message"] if dialog_history else ""
+        return StageResult(
+            scenario="CI",
+            dialog_history=dialog_history,
+            final_document=final_doc,
+            extracted_info={},
+            metadata={
+                "turns": len(dialog_history),
+                "plaintiff_strategy_type": plaintiff_strategy_type,
+                "defendant_strategy_type": defendant_strategy_type,
+                "strategy_injected": (
+                    plaintiff_strategy_type is not None or defendant_strategy_type is not None
+                ),
+                "hearing_graph": True,
             },
         )
 

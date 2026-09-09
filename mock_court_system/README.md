@@ -42,6 +42,9 @@ mock_court_system/
 ├── core/                       # 核心引擎
 │   ├── game_engine.py          # 博弈引擎（纳什均衡+策略进化+反事实推演）
 │   ├── nash_equilibrium.py     # 纳什均衡追踪器（5×5收益矩阵）
+│   ├── nash_bargaining.py      # 纳什讨价还价（NBS 参考点）
+│   ├── extensive_form.py       # 扩展式博弈树 / SPNE
+│   ├── evolutionary_dynamics.py # 复制者动态 / ESS
 │   ├── case_orchestrator.py    # 全流程编排器（CD→DD→CI, per-party策略注入）
 │   ├── mediation_engine.py     # 五阶段调解引擎（Harvard HDR框架）
 │   ├── liability_chain.py      # Behavior-Liability-Statute推理链
@@ -51,6 +54,9 @@ mock_court_system/
 │   ├── game_session_store.py   # 博弈会话SQLite持久化
 │   ├── conversation_store.py   # 对话会话存储
 │   └── law_retriever.py        # 法条检索（FAISS+BM25）
+├── api/                        # FastAPI 薄路由 + services
+│   ├── routers/                # health/conversation/game/mediation/evaluate/…
+│   └── services/               # 会话、博弈、评测、SSE、links
 ├── evaluation/                 # 评测系统
 │   ├── lib/
 │   │   ├── lexeval_cognitive.py    # LexEval六层认知能力评测
@@ -75,7 +81,7 @@ mock_court_system/
 ├── tests/                      # 单元测试
 ├── docs/                       # 项目文档
 ├── app/                        # Next.js前端
-├── api_server.py               # FastAPI后端入口（~50+端点）
+├── api_server.py               # FastAPI 薄壳（路由在 api/routers/）
 ├── settings.py                 # 配置管理
 ├── requirements.txt            # Python依赖
 └── package.json                # Node.js依赖
@@ -100,18 +106,23 @@ python api_server.py          # http://localhost:8000
 npm run dev                   # http://localhost:3000
 ```
 
+3D 法庭仿真：浏览器打开 `http://localhost:3000/court3d`。离线回放见 `/court3d/replay`。角色资产规范见 `docs/COURT3D_ASSET_SPEC.md`。
+
 ## 核心API
 
 ### 博弈管理
 | 端点 | 说明 |
 |------|------|
 | `POST /game/create` | 创建博弈会话（配置策略、争议原因） |
-| `POST /game/{id}/round` | 推进一轮博弈 |
+| `POST /game/{id}/round` | 非流式推进一轮（策略推演调试按钮；正式走 SSE） |
 | `POST /game/{id}/stream-round` | SSE流式推进 |
 | `GET /game/{id}/equilibrium` | 纳什均衡分析 |
+| `POST /game/{id}/strategy/set` | 设定一方 TKI 策略 |
+| `POST /game/{id}/strategy/reflect` | 按上一轮反思/进化策略 |
 | `POST /game/{id}/strategy/counterfactual` | 反事实推演 |
+| `DELETE /game/{id}` | 删除内存局（策略推演需二次确认） |
 
-### 调解
+### 调解（`/mediation` 工作台；庭内 CI 和解阶段仍走会话流）
 | 端点 | 说明 |
 |------|------|
 | `POST /mediation/create` | 创建调解会话 |
@@ -121,14 +132,44 @@ npm run dev                   # http://localhost:3000
 | `POST /mediation/{id}/bargain` | 阶段IV: 多轮协商 |
 | `POST /mediation/{id}/close` | 阶段V: 结案 |
 
-### 评测
+### 博弈评测（复盘「策略推演」在有 `links.game_id` 时出按钮）
 | 端点 | 说明 |
 |------|------|
 | `POST /game/{id}/evaluate/outcome` | AgentMediation四指标 |
 | `POST /game/{id}/evaluate/composite` | 综合评测 |
 | `POST /game/{id}/evaluate/lexeval` | LexEval六层认知 |
-| `GET /game/{id}/liability-chain` | CADD推理链 |
-| `GET /game/{id}/compliance/realtime` | J1-EVAL PFS |
+| `POST /game/{id}/evaluate/j1eval` | J1-EVAL 细粒度 |
+| `GET /game/{id}/liability-chain` | CADD 推理链（策略推演「CADD 责任链」） |
+| `POST /game/{id}/liability-chain/counterfactual` | 责任链行为反事实 |
+| `POST /game/{id}/evaluate/behavior-symmetry` | 对称行为 |
+| `POST /game/{id}/evaluate/explainable` | 可解释裁决 |
+| `POST /game/{id}/evaluate/progressive-benchmark` | 渐进基准 |
+| `GET /game/{id}/evaluate/polarization` | 极化（需 ≥2 轮） |
+| `GET /game/{id}/compliance/realtime` | 博弈实时合规（策略推演按钮；非会话合规页） |
+| `GET /game/{id}/strategy/payoff-matrix` | 收益矩阵（策略推演按钮；有 `links.game_id` 时） |
+| `GET /game/{id}/equilibrium` | 纳什均衡分析（策略推演按钮；有 `links.game_id` 时） |
+| `GET /game/{id}/equilibrium/convergence` | 均衡收敛轨迹（策略推演按钮；有 `links.game_id` 时） |
+| `POST /game/{id}/progressive-rag` | 会话版渐进检索（策略推演「会话版」按钮；需 `stage`+`context`） |
+| `POST /game/{id}/dual-mode-reasoning` | 会话版双模式推理（无 body 时用本局 `case_info`） |
+| `POST /game/{id}/multi-judge` | 会话版多法官（无 body 时用本局案情） |
+
+系统页实验面板仍走 **`POST /case/progressive-rag|dual-mode-reasoning|multi-judge`**，不改。`game.py` 会话版与 `/case/*` 并存。
+
+非流式 `POST /conversation/{id}/message` 仅调试（页面走 SSE）。
+
+### Next.js 1:1 代理别名（MAPPINGS）
+
+浏览器只打 `/api/*`。下列别名与 FastAPI 路径一一对应；工作台 UI 仍走既有 remap，不要改页面。
+
+| Next | FastAPI | 既有 remap（勿改 UI） |
+|------|---------|----------------------|
+| `GET /api/evaluation/status/{id}` | `GET /evaluation/status/{id}` | `GET /api/evaluate?report_id=` |
+| `GET /api/evaluation/results` | `GET /evaluation/results` | `GET /api/evaluate` |
+| `GET /api/evaluation/reports/{id}` | `GET /evaluation/reports/{id}` | `GET /api/evaluate/reports/{id}` |
+| `GET /api/reference/big-five-traits` | `GET /reference/big-five-traits` | `GET /api/reference/big-five` |
+| `POST /api/legacy` | `POST /` | `POST /api/simulate` |
+
+其余 FastAPI 路径已是 `/api` + 同路径（如 `/api/health` → `/health`）。
 
 ## 数据集
 
