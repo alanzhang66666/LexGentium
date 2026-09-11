@@ -192,8 +192,10 @@ class DualModeReasoner:
         from concurrent.futures import ThreadPoolExecutor
 
         with ThreadPoolExecutor(max_workers=2) as pool:
-            fast = pool.submit(self.fast_judgment, case_info, claims).result()
-            slow = pool.submit(self.slow_judgment, case_info, claims).result()
+            fast_future = pool.submit(self.fast_judgment, case_info, claims)
+            slow_future = pool.submit(self.slow_judgment, case_info, claims)
+            fast = fast_future.result()
+            slow = slow_future.result()
         info_gain = self.compute_information_gain(fast, slow, use_llm=use_llm_eval)
 
         return {

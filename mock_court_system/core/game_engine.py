@@ -386,14 +386,10 @@ class GameEngine:
     def evolve_both_strategies(
         self, last_round: GameRound, method: str = "llm_reflection",
     ) -> None:
-        """原告/被告双方策略进化并行执行（两侧互相独立，llm_reflection 时各省一次 LLM 往返）。"""
-        from concurrent.futures import ThreadPoolExecutor
-
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            list(pool.map(
-                lambda party: self.evolve_strategy(party, last_round, method=method),
-                ["plaintiff", "defendant"],
-            ))
+        """按原告、被告顺序更新策略，保留交替更新的博弈语义。"""
+        # 对方策略和进化历史会在更新期间改变，不能把两侧当作独立任务并行。
+        for party in ("plaintiff", "defendant"):
+            self.evolve_strategy(party, last_round, method=method)
 
     def evolve_strategy(
         self,

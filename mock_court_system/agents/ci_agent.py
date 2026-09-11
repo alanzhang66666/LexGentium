@@ -19,6 +19,8 @@ from core.schemas import (
 from core.state_machine import StateMachine
 from core.langchain_utils import RobustJsonOutputParser
 from core.law_retriever import LawRetriever, get_dashscope_api_key, get_shared_law_retriever
+from core.case_bundle import normalize_case_payload
+from core.judgment_validator import validate_judgment, verify_citations
 from utils import DialogHistory
 import os
 
@@ -48,6 +50,9 @@ class CIAgent(BaseAgent):
             "summary": "",
         }
         self.judgment_json: Optional[Dict] = None
+        self.judgment_status: str = "failed"   # ok | degraded | failed（语义有效性）
+        self.citation_report: Optional[Dict] = None  # 法条回查结果
+        self.case_warnings: List[str] = []     # 案件数据契约告警（规范化时收集）
         self.finished: bool = False
         self.max_cross_exam_rounds: int = 4
         self.max_cross_exam_retries: int = 2
@@ -112,8 +117,14 @@ class CIAgent(BaseAgent):
             self.extraction_chain = None
             self.summary_chain = None
 
-    def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None) -> str:
-        """处理单轮对话 (API 模式)"""
+    def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None,
+                     reasoning_state: Dict = None) -> str:
+        """处理单轮对话 (API 模式)。
+
+        reasoning_state: 上次保存的 ReasoningState（含 state_machine 序列化与
+        dialogue/evidences）。提供时直接恢复，避免用启发式规则重放自然语言
+        导致的状态漂移；不提供时保持旧的回放路径（向后兼容）。
+        """
         # 0. 初始化 CaseInfo
         if input_json:
             self.case_info = self._build_case_info(input_json)
@@ -121,17 +132,34 @@ class CIAgent(BaseAgent):
             # 尝试构建一个空的 CaseInfo 防止报错
             self.case_info = CaseInfo(case_id=case_id)
 
-        # 1. 重置状态
-        self.state_machine = StateMachine()
-        self.dialogue = []
-        self.evidences = []
-        self.extracted = {
-            "plaintiff_claim": {},
-            "defendant_defense": {},
-            "summary": "",
-        }
-        self.finished = False
-        
+        # 1. 恢复持久化状态（优先）
+        if reasoning_state:
+            try:
+                self.state_machine = StateMachine.from_dict(reasoning_state["state_machine"])
+                self.dialogue = [
+                    Message(role=PartyRole(m["role"]), content=m["content"])
+                    for m in reasoning_state.get("dialogue", [])
+                ]
+                self.evidences = list(reasoning_state.get("evidences", []))
+                self.extracted = dict(reasoning_state.get("extracted") or {
+                    "plaintiff_claim": {}, "defendant_defense": {}, "summary": "",
+                })
+                self.judgment_json = reasoning_state.get("judgment_json")
+                self.judgment_status = reasoning_state.get("judgment_status", "failed")
+                nc = reasoning_state.get("name_confirmed_by_dialogue")
+                if isinstance(nc, dict):
+                    self.name_confirmed_by_dialogue = {
+                        "plaintiff": bool(nc.get("plaintiff", False)),
+                        "defendant": bool(nc.get("defendant", False)),
+                    }
+                self.finished = bool(reasoning_state.get("finished", False))
+            except Exception as e:
+                self.log(f"Failed to restore reasoning_state, falling back to replay: {e}")
+                reasoning_state = None
+
+        if reasoning_state is None:
+            self._reset_replay_state()
+
         # 2. 快速回放历史 (除了最后一条)
         if not dialog_history:
             return self._start_court()
@@ -167,23 +195,46 @@ class CIAgent(BaseAgent):
             return PartyRole.DEFENDANT
         return PartyRole.PLAINTIFF
 
+    def _reset_replay_state(self):
+        """重置回放所需的全部状态（旧行为路径）。"""
+        self.state_machine = StateMachine()
+        self.dialogue = []
+        self.evidences = []
+        self.extracted = {
+            "plaintiff_claim": {},
+            "defendant_defense": {},
+            "summary": "",
+        }
+        self.judgment_json = None
+        self.judgment_status = "failed"
+        self.finished = False
+        self.name_confirmed_by_dialogue = {"plaintiff": False, "defendant": False}
+
     def _fast_update_state(self, role: PartyRole, content: str):
         """使用规则快速更新状态 (用于回放)"""
         state = self.state_machine.current_state
         content = content.strip()
-        
+
         if state == CourtState.OPENING:
             p = self.state_machine.opening_phase
+            # 法官消息回放：恢复开庭阶段由生成时写入的程序性标志
+            if role == PartyRole.JUDGE:
+                if "独任" in content or "组成" in content or "本庭构成" in content:
+                    p["court_composition_announced"] = True
+                if "简易程序" in content or "普通程序" in content:
+                    p["procedure_announced"] = True
             if role == PartyRole.PLAINTIFF:
                 if any(w in content for w in ["确认", "是", "到庭", "本人"]): p["plaintiff_verified"] = True
                 if any(w in content for w in ["听清", "明白", "清楚", "知晓"]): p["rights_informed_mask"]["plaintiff"] = True
                 if any(w in content for w in ["不申请", "没有", "无"]): p["recusal_asked_mask"]["plaintiff"] = True
-                if any(w in content for w in ["听清", "明白", "清楚", "知晓"]): p["absence_acknowledged"] = True
+                # 修复：StateMachine 要求的是 absence_asked_mask（此前误写不存在的 absence_acknowledged 字段）
+                if any(w in content for w in ["听清", "明白", "清楚", "知晓"]): p["absence_asked_mask"]["plaintiff"] = True
             elif role == PartyRole.DEFENDANT:
                 if any(w in content for w in ["确认", "是", "到庭", "本人"]): p["defendant_verified"] = True
                 if any(w in content for w in ["听清", "明白", "清楚", "知晓"]): p["rights_informed_mask"]["defendant"] = True
                 if any(w in content for w in ["不申请", "没有", "无"]): p["recusal_asked_mask"]["defendant"] = True
-                
+                if any(w in content for w in ["听清", "明白", "清楚", "知晓"]): p["absence_asked_mask"]["defendant"] = True
+
         elif state == CourtState.INVESTIGATION:
             p = self.state_machine.investigation_phase
             if role == PartyRole.PLAINTIFF:
@@ -312,21 +363,31 @@ class CIAgent(BaseAgent):
         }
 
     def _build_case_info(self, case_item: Dict) -> CaseInfo:
-        """构造 CaseInfo"""
-        plaintiff = case_item.get("plaintiff_info", {}) or {}
-        defendant = case_item.get("defendant_info", {}) or {}
-        claim_desc = case_item.get("claim_description") or case_item.get("claim", "") or ""
+        """构造 CaseInfo（经 CanonicalCaseBundle 规范化，兼容新旧字段契约）。
+
+        修复：此前直接读取 id/claim_description/plaintiff_info 等旧字段，
+        而实验与编排器传入 case_id/case_description/plaintiff_name/plaintiff_claims，
+        导致案号、案由、诉请、当事人姓名与客观事实被静默丢弃。
+        """
+        bundle = normalize_case_payload(case_item)
+        self.case_warnings = list(bundle.warnings) + [
+            f"data-contract: {e}" for e in bundle.validation_errors()
+        ]
+        if self.case_warnings:
+            self.log(f"Case data warnings: {self.case_warnings}")
+
+        claims_text = bundle.claims_text
+        facts = bundle.third_party_findings or bundle.case_facts
 
         return CaseInfo(
-            case_number=str(case_item.get("id", "")),
-            plaintiff_name=plaintiff.get("name", "原告"),
-            defendant_name=defendant.get("name", "被告"),
-            case_type=case_item.get("case_type", "民事纠纷"),
-            claim_amount=case_item.get("claim_amount"),
-            claim_description=claim_desc,
-            third_party_findings=case_item.get("third_party_findings", ""),
-            plaintiff_info=plaintiff,
-            defendant_info=defendant,
+            case_number=bundle.case_id,
+            plaintiff_name=bundle.plaintiff.name,
+            defendant_name=bundle.defendant.name,
+            case_type=bundle.cause,
+            claim_description=claims_text,
+            third_party_findings=facts,
+            plaintiff_info=bundle.plaintiff.attributes,
+            defendant_info=bundle.defendant.attributes,
         )
 
     def _infer_target_role(self, instruction: str) -> PartyRole:
@@ -418,6 +479,22 @@ class CIAgent(BaseAgent):
                 self.judgment_json = self.llm.chat_json([{"role": "user", "content": prompt}])
         else:
             self.judgment_json = self.llm.chat_json([{"role": "user", "content": prompt}])
+
+        self.judgment_status, _missing = validate_judgment(self.judgment_json)
+        if self.judgment_status != "ok":
+            self.log(f"Judgment validation: status={self.judgment_status}, missing={_missing}")
+
+        # 法条回查：引用必须在法条库中真实存在，未命中标记 unverified
+        self.citation_report = None
+        if self.law_retriever and isinstance(self.judgment_json, dict) and self.judgment_json.get("applicable_laws"):
+            try:
+                self.citation_report = verify_citations(
+                    self.judgment_json, self.law_retriever.db_path,
+                )
+                if self.citation_report.get("unverified"):
+                    self.log(f"Unverified citations: {self.citation_report['unverified']}")
+            except Exception as e:
+                self.log(f"Citation verification failed: {e}")
 
         self.finished = True
         self.state_machine.try_transition()
@@ -1528,6 +1605,9 @@ class CIAgent(BaseAgent):
     def _report(self) -> Dict:
         return {
             "case_info": asdict(self.case_info),
+            "case_warnings": list(getattr(self, "case_warnings", [])),
+            "judgment_status": getattr(self, "judgment_status", "failed"),
+            "citation_report": getattr(self, "citation_report", None),
             "dialogue_count": len(self.dialogue),
             "evidence_count": len(self.evidences),
             "extracted": self.extracted,

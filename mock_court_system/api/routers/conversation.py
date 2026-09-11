@@ -135,12 +135,24 @@ async def send_message(session_id: str, req: ConversationMessageRequest):
         }
         dialog_history.append(user_message)
 
+        reasoning_state = state.ci_reasoning_state_from_record(record)
+        session_ci = state.new_session_ci_agent() if scenario == "CI" else None
         response_role, response_text, is_finished = state.run_agent_turn(
             scenario=scenario,
             case_id=case_id,
             dialog_history=dialog_history,
             input_json=input_json,
+            reasoning_state=reasoning_state,
+            ci_agent=session_ci,
         )
+        reasoning_meta = None
+        if scenario == "CI":
+            state.save_ci_reasoning_state(record, session_ci)
+            reasoning_meta = {
+                "judgment_status": getattr(session_ci, "judgment_status", "failed"),
+                "citation_report": getattr(session_ci, "citation_report", None),
+                "case_warnings": list(getattr(session_ci, "case_warnings", [])),
+            }
 
         # 构造响应消息
         turn += 1
@@ -164,6 +176,7 @@ async def send_message(session_id: str, req: ConversationMessageRequest):
             dialog_history=list(dialog_history),
             is_finished=is_finished,
             degraded=degraded,
+            reasoning_meta=reasoning_meta,
         )
     except HTTPException:
         raise
@@ -389,13 +402,19 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
         def _run():
             try:
                 state.llm_client.set_stream_hook(_hook)
+                session_ci = state.new_session_ci_agent() if scenario == "CI" else None
                 try:
+                    rs = state.ci_reasoning_state_from_record(record)
                     role, text, finished = state.run_agent_turn(
                         scenario=scenario,
                         case_id=case_id,
                         dialog_history=dialog_history,
                         input_json=input_json,
+                        reasoning_state=rs,
+                        ci_agent=session_ci,
                     )
+                    if scenario == "CI":
+                        state.save_ci_reasoning_state(record, session_ci)
                 finally:
                     state.llm_client.clear_stream_hook()
             except Exception as e:  # 生成失败也要推给前端，不能静默断流
@@ -446,6 +465,11 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                         "dialog_history": list(dialog_history),
                         "is_finished": finished,
                         "degraded": degraded,
+                        "reasoning_meta": ({
+                            "judgment_status": getattr(session_ci, "judgment_status", "failed"),
+                            "citation_report": getattr(session_ci, "citation_report", None),
+                            "case_warnings": list(getattr(session_ci, "case_warnings", [])),
+                        } if scenario == "CI" else None),
                     }
                     yield f"data: {json.dumps(final, ensure_ascii=False)}\n\n"
                     return

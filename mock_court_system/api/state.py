@@ -35,6 +35,7 @@ from api_schemas import (
 )
 from api_runtime import create_runtime, rebind_runtime_llm
 from core.case_orchestrator import _is_ci_final as _ci_final
+from core.reasoning_state import extract_ci_reasoning_state
 from core.llm_client import LLMClient
 from core.conversation_store import build_conversation_store, ConversationRecord
 from core.evaluation_task_store import build_evaluation_task_store, EvaluationTaskRecord
@@ -69,7 +70,48 @@ def cleanup_old_sessions(max_age_hours: int = 24) -> int:
         return 0
 
 
-def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]], input_json: Optional[Dict[str, Any]]):
+def ci_reasoning_state_from_record(record) -> Optional[Dict[str, Any]]:
+    """从会话记录中取出上一轮保存的 CI ReasoningState（无则 None）。"""
+    if record is None:
+        return None
+    state = (record.input_json or {}).get("_reasoning_state")
+    return state if isinstance(state, dict) else None
+
+
+def new_session_ci_agent():
+    """为单个会话请求创建独立 CIAgent 实例（并发隔离）。
+
+    成本分析：chains 是 LangChain 管道轻对象（内部引用共享的 chat_model），
+    law_retriever 走模块级单例（BM25/FAISS 只加载一次），
+    因此按请求构造不会带来重资源开销，却彻底消除共享实例在并发下的
+    case_info/state_machine/dialogue 互相覆盖问题。
+    """
+    from agents import CIAgent
+    from api_runtime import MockApiClient
+
+    return CIAgent(
+        MockApiClient(),
+        llm_client,
+        max_turns=settings.get_scenario_config("CI").max_turns,
+        instruction_mode=settings.get_scenario_config("CI").instruction_mode,
+    )
+
+
+def save_ci_reasoning_state(record, ci_agent) -> None:
+    """把 CIAgent 的推理状态写回会话记录（随 input_json 持久化，零 schema 变更）。"""
+    record.input_json = dict(record.input_json or {})
+    record.input_json["_reasoning_state"] = extract_ci_reasoning_state(ci_agent)
+
+
+def state_ci_agent():
+    """共享 CIAgent（向后兼容回落）。新代码建议用 new_session_ci_agent()。"""
+    return ci_agent
+
+
+def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]],
+                   input_json: Optional[Dict[str, Any]] = None,
+                   reasoning_state: Optional[Dict[str, Any]] = None,
+                   ci_agent=None):
     response_text = ""
     is_finished = False
     response_role = "Lawyer"  # default for CD/DD
@@ -91,10 +133,14 @@ def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str
         else:
             response_role = "Lawyer"
     elif scenario == "CI":
-        response_text = ci_agent.process_turn(dialog_history, case_id, input_json)
+        agent = ci_agent or state_ci_agent()
+        response_text = agent.process_turn(
+            dialog_history, case_id, input_json,
+            reasoning_state=reasoning_state,
+        )
         finished_via_sm = False
         try:
-            finished_via_sm = ci_agent.state_machine.export_state().get("is_finished", False)
+            finished_via_sm = agent.state_machine.export_state().get("is_finished", False)
         except Exception:
             pass
         if finished_via_sm or _ci_final(response_text):

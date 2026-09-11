@@ -71,6 +71,9 @@ class ConversationMessageResponse(BaseModel):
     is_finished: bool = False
     # True 表示该回复由离线兜底模板生成（未调用真实 LLM），实验脚本应据此过滤数据
     degraded: bool = False
+    # CI 场景的推理元数据：judgment_status(ok/degraded/failed)、
+    # citation_report（法条回查命中/未命中）、case_warnings（数据契约告警）
+    reasoning_meta: Optional[Dict[str, Any]] = None
 
 
 class ConversationInfo(BaseModel):

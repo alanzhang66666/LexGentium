@@ -183,6 +183,49 @@ class StateMachine:
             self.mediation_phase.update(kwargs)
         self._sync_sub_stage()
 
+    # ---------- 序列化（ReasoningState 持久化） ----------
+
+    _SERIALIZE_PHASES = (
+        "opening_phase", "investigation_phase", "debate_phase", "mediation_phase",
+    )
+
+    def to_dict(self) -> dict:
+        """导出完整可恢复状态（深拷贝语义）。"""
+        import copy
+        return {
+            "version": 1,
+            "current_state": self.current_state.value,
+            "current_sub_stage": self.current_sub_stage.value,
+            "state_history": [s.value for s in self.state_history],
+            "sub_stage_history": [s.value for s in self.sub_stage_history],
+            "compliance_log": copy.deepcopy(self.compliance_log),
+            "phases": {
+                name: copy.deepcopy(getattr(self, name))
+                for name in self._SERIALIZE_PHASES
+            },
+        }
+
+    def apply_dict(self, data: dict) -> None:
+        """从 to_dict 输出恢复状态（原地）。"""
+        from .schemas import CourtState, CourtSubStage
+        self.current_state = CourtState(data["current_state"])
+        self.current_sub_stage = CourtSubStage(data["current_sub_stage"])
+        self.state_history = [CourtState(s) for s in data["state_history"]]
+        self.sub_stage_history = [CourtSubStage(s) for s in data["sub_stage_history"]]
+        self.compliance_log = list(data.get("compliance_log", []))
+        phases = data.get("phases", {})
+        for name in self._SERIALIZE_PHASES:
+            if name in phases:
+                getattr(self, name).clear()
+                getattr(self, name).update(phases[name])
+        self._sync_sub_stage()
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "StateMachine":
+        sm = cls()
+        sm.apply_dict(data)
+        return sm
+
     # ---------- 子阶段同步 ----------
 
     def _sync_sub_stage(self):

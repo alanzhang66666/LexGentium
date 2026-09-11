@@ -350,11 +350,16 @@ class FullCaseOrchestrator:
         dialog_history: List[Dict[str, Any]] = []
         final_doc = ""
         max_ci_turns = min(self.max_turns * 3, 60)
+        # 跨轮维护 CI 推理状态：避免每轮用启发式规则重放自然语言导致状态漂移
+        ci_state = None
+        from core.reasoning_state import extract_ci_reasoning_state
 
         for round_idx in range(max_ci_turns):
             role, text, finished = self._agent_turn(
                 "CI", case_id, dialog_history, input_json,
+                reasoning_state=ci_state,
             )
+            ci_state = extract_ci_reasoning_state(self.ci_agent)
             dialog_history.append({
                 "turn": len(dialog_history),
                 "role": role,
@@ -490,6 +495,7 @@ class FullCaseOrchestrator:
     def _agent_turn(
         self, scenario: str, case_id: str,
         dialog_history: List[Dict], input_json: Optional[Dict],
+        reasoning_state: Optional[Dict] = None,
     ):
         if scenario == "CD":
             text = self.cd_agent.process_turn(dialog_history, case_id, input_json)
@@ -502,7 +508,10 @@ class FullCaseOrchestrator:
                 return "Final", text, True
             return "Lawyer", text, False
         elif scenario == "CI":
-            text = self.ci_agent.process_turn(dialog_history, case_id, input_json)
+            text = self.ci_agent.process_turn(
+                dialog_history, case_id, input_json,
+                reasoning_state=reasoning_state,
+            )
             if _is_ci_final(text):
                 return "Final", text, True
             return "Judge", text, False

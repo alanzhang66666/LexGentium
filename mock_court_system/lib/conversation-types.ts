@@ -28,6 +28,12 @@ export interface ConversationMessageResponse {
   is_finished: boolean
   /** True 表示回复由离线兜底模板生成（未调用真实 LLM） */
   degraded?: boolean
+  /** CI 场景推理元数据（判决语义状态/法条回查/数据契约告警） */
+  reasoning_meta?: {
+    judgment_status: "ok" | "degraded" | "failed"
+    citation_report?: { checked: number; verified: number; unverified: string[] } | null
+    case_warnings: string[]
+  } | null
 }
 
 export interface DialogEntry {

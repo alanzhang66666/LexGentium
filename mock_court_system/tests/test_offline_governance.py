@@ -36,7 +36,7 @@ def _load_api_server(monkeypatch, db_path):
     import api_server
     from api import state
 
-    def fake_run_agent_turn(*, scenario, case_id, dialog_history, input_json):
+    def fake_run_agent_turn(*, scenario, case_id, dialog_history, input_json, reasoning_state=None, ci_agent=None):
         return "Lawyer", f"offline reply for {scenario}:{case_id}", False
 
     # 路由通过 state.run_agent_turn 属性访问，patch 这里才能生效
