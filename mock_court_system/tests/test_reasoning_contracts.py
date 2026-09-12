@@ -5,6 +5,7 @@ sys.path.insert(0, os.getcwd())
 import pytest
 
 from core.case_bundle import normalize_case_payload
+from core.fact_ledger import FactLedger
 from core.judgment_validator import validate_judgment
 from core.state_machine import StateMachine
 from core.schemas import CourtState
@@ -301,3 +302,92 @@ def test_new_session_ci_agent_returns_isolated_instances_with_shared_retriever()
     # 单例检索器共享（重资源只加载一次）
     if a1.law_retriever is not None:
         assert a1.law_retriever is a2.law_retriever
+
+
+# ---------- IssueGraph 争点分解 ----------
+
+def _make_ledger_with_positions():
+    ledger = FactLedger()
+    ev, _ = ledger.evidence.submit("plaintiff", "转账记录10万元", "交付")
+    ledger.add_claim("被告向原告借款10万元", "plaintiff", evidence_id=ev.evidence_id)
+    ledger.add_claim("被告已归还全部欠款", "defendant")
+    return ledger
+
+
+def test_decompose_rule_based_never_empty_and_binds_facts():
+    from core.issue_graph import IssueGraph, decompose
+    ledger = _make_ledger_with_positions()
+    graph = IssueGraph()
+    issues = decompose(ledger, graph, llm=None)
+    assert issues, "rule-based decomposition must never be empty"
+    for i in issues:
+        assert i.question
+        assert all(f in ledger.claims for f in i.fact_ids)
+
+
+def test_decompose_with_llm_uses_valid_fact_ids():
+    from core.issue_graph import IssueGraph, decompose
+    ledger = _make_ledger_with_positions()
+
+    class FakeLLM:
+        def chat_json(self, messages, **k):
+            return {"issues": [
+                {"question": "10万元借款是否实际交付", "fact_ids": ["F1"]},
+                {"question": "还款抗辩是否有证据", "fact_ids": ["F2", "F99"]},  # F99 应被过滤
+            ]}
+
+    graph = IssueGraph()
+    issues = decompose(ledger, graph, llm=FakeLLM())
+    assert len(issues) == 2
+    assert issues[0].fact_ids == ["F1"]
+    assert issues[1].fact_ids == ["F2"]  # F99 被过滤
+    assert graph.as_prompt_text().count("[I") == 2
+
+
+def test_issue_graph_roundtrip():
+    from core.issue_graph import IssueGraph
+    g = IssueGraph()
+    g.add_issue("争点一", ["F1"])
+    g.attach_law("I1", 81)
+    data = g.to_dict()
+    restored = IssueGraph.from_dict(data)
+    assert restored.issues["I1"].law_ids == [81]
+    assert json.dumps(data, ensure_ascii=False)
+
+
+# ---------- 诉请覆盖与事实引用校验 ----------
+
+def test_verify_dispositions_full_and_partial_coverage():
+    from core.judgment_validator import verify_dispositions
+    judgment = {"liability_mapping": {
+        "plaintiff_claims": ["归还本金10万元", "支付利息"],
+        "court_adoption": ["支持本金", "利息部分支持"],
+    }}
+    r = verify_dispositions(judgment, ["归还本金10万元", "支付利息"])
+    assert r["coverage"] == 1.0 and not r["missing"]
+
+    r2 = verify_dispositions({"liability_mapping": {
+        "plaintiff_claims": ["归还本金10万元"], "court_adoption": ["支持"]}},
+        ["归还本金10万元", "支付利息"])
+    assert r2["coverage"] == 0.5
+    assert r2["missing"] and r2["missing"][0].startswith("支付利息")
+
+
+def test_verify_fact_references_detects_unknown_refs():
+    from core.fact_ledger import FactLedger
+    from core.judgment_validator import verify_fact_references
+    ledger = FactLedger()
+    ledger.add_claim("借款交付", "plaintiff")  # F1
+    text = "本院查明：[F1] 借款交付事实清楚；另 [F7] 与 [E_x] 亦经查明。"
+    r = verify_fact_references(text, ledger)
+    assert "F7" in r["unknown_refs"]       # F7 不存在 → 幻觉引用
+    assert not r["no_references"]
+
+
+def test_verify_fact_references_flags_no_references():
+    from core.fact_ledger import FactLedger
+    from core.judgment_validator import verify_fact_references
+    ledger = FactLedger()
+    ledger.add_claim("借款交付", "plaintiff")
+    r = verify_fact_references("本院查明：借款已交付。", ledger)
+    assert r["no_references"]

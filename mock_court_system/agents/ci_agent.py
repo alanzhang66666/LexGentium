@@ -20,7 +20,9 @@ from core.state_machine import StateMachine
 from core.langchain_utils import RobustJsonOutputParser
 from core.law_retriever import LawRetriever, get_dashscope_api_key, get_shared_law_retriever
 from core.case_bundle import normalize_case_payload
-from core.judgment_validator import validate_judgment, verify_citations
+from core.judgment_validator import validate_judgment, verify_citations, verify_dispositions, verify_fact_references
+from core.fact_ledger import FactLedger
+from core.issue_graph import IssueGraph, decompose
 from utils import DialogHistory
 import os
 
@@ -51,6 +53,8 @@ class CIAgent(BaseAgent):
         }
         self.judgment_json: Optional[Dict] = None
         self.judgment_status: str = "failed"   # ok | degraded | failed（语义有效性）
+        self.fact_ledger = FactLedger()        # 事实-证据台账（Phase 1）
+        self.issue_graph = IssueGraph()        # 争点图（Phase 1）
         self.citation_report: Optional[Dict] = None  # 法条回查结果
         self.case_warnings: List[str] = []     # 案件数据契约告警（规范化时收集）
         self.finished: bool = False
@@ -146,6 +150,13 @@ class CIAgent(BaseAgent):
                 })
                 self.judgment_json = reasoning_state.get("judgment_json")
                 self.judgment_status = reasoning_state.get("judgment_status", "failed")
+                if isinstance(reasoning_state.get("fact_ledger"), dict):
+                    self.fact_ledger = FactLedger.from_dict(reasoning_state["fact_ledger"])
+                if isinstance(reasoning_state.get("issue_graph"), dict):
+                    self.issue_graph = IssueGraph.from_dict(reasoning_state["issue_graph"])
+                else:
+                    self.issue_graph = IssueGraph()
+                    decompose(self.fact_ledger, self.issue_graph)
                 nc = reasoning_state.get("name_confirmed_by_dialogue")
                 if isinstance(nc, dict):
                     self.name_confirmed_by_dialogue = {
@@ -207,6 +218,8 @@ class CIAgent(BaseAgent):
         }
         self.judgment_json = None
         self.judgment_status = "failed"
+        self.fact_ledger = FactLedger()
+        self.issue_graph = IssueGraph()
         self.finished = False
         self.name_confirmed_by_dialogue = {"plaintiff": False, "defendant": False}
 
@@ -463,6 +476,15 @@ class CIAgent(BaseAgent):
         self._add_msg(PartyRole.JUDGE, resp)
         return resp
 
+    def _expected_claims_list(self) -> List[str]:
+        """从规范化诉请文本拆出逐条诉请（供覆盖校验）。"""
+        desc = getattr(self.case_info, "claim_description", "") or ""
+        if not desc:
+            return []
+        import re
+        lines = [re.sub(r"^\d+\.\s*", "", ln).strip() for ln in desc.split("\n")]
+        return [ln for ln in lines if len(ln) >= 4]
+
     def _make_judgment(self) -> str:
         """生成判决"""
         if not self.extracted.get("summary"):
@@ -483,6 +505,26 @@ class CIAgent(BaseAgent):
         self.judgment_status, _missing = validate_judgment(self.judgment_json)
         if self.judgment_status != "ok":
             self.log(f"Judgment validation: status={self.judgment_status}, missing={_missing}")
+
+        # 诉请覆盖校验：漏判诉请是程序性硬伤，coverage < 1 时降级
+        self.disposition_report = None
+        expected_claims = self._expected_claims_list()
+        if expected_claims:
+            self.disposition_report = verify_dispositions(self.judgment_json, expected_claims)
+            cov = self.disposition_report.get("coverage")
+            if cov is not None and cov < 1.0 and self.judgment_status == "ok":
+                self.judgment_status = "degraded"
+            if self.disposition_report.get("missing"):
+                self.log(f"Unadjudicated claims: {self.disposition_report['missing']}")
+
+        # 事实引用校验：幻觉引用标记
+        self.fact_reference_report = None
+        if getattr(self, "fact_ledger", None) and len(self.fact_ledger.claims):
+            self.fact_reference_report = verify_fact_references(
+                self._format_judgment_text(), self.fact_ledger)
+            if self.fact_reference_report.get("unknown_refs"):
+                self.log(f"Unknown fact/evidence references: "
+                         f"{self.fact_reference_report['unknown_refs']}")
 
         # 法条回查：引用必须在法条库中真实存在，未命中标记 unverified
         self.citation_report = None
@@ -1168,6 +1210,7 @@ class CIAgent(BaseAgent):
 
         # 检索相关法条
         retrieved_laws_text = ""
+        ledger_text = ""
         if self.law_retriever:
             # 优先使用第三方查明事实，其次使用摘要，最后使用诉讼请求
             query_text = self.case_info.third_party_findings
@@ -1183,11 +1226,20 @@ class CIAgent(BaseAgent):
                     search_query = query_text[:1000]
                     laws = self.law_retriever.search(search_query, top_k=5)
                     if laws:
-                        retrieved_laws_text = "\n【参考法条（仅供参考，请优先适用）】：\n" + "\n".join(
+                        retrieved_laws_text = "\n【参考法条（引用时必须与台账法条一致，不得编造其他法条）】：\n" + "\n".join(
                             f"- {l['content']}" for l in laws
                         )
                 except Exception as e:
                     self.log(f"Law retrieval failed: {e}")
+
+        # 事实-证据台账注入：判决"本院查明"须逐条引用 F/E 编号
+        ledger_text = ""
+        if getattr(self, "fact_ledger", None) and len(self.fact_ledger.claims):
+            ledger_text = "\n" + self.fact_ledger.as_prompt_text()
+            no_ev = self.fact_ledger.disputed_without_evidence()
+            if no_ev:
+                ids = ", ".join(c.fact_id for c in no_ev)
+                ledger_text += f"\n【警告】以下事实主张无任何证据支持，不得写入本院查明：{ids}"
 
         return f"""
 你现在要扮演“撰写民事判决书的审判长助理”。请严格按照“先思考、后输出 JSON”的方式工作。
@@ -1206,7 +1258,7 @@ class CIAgent(BaseAgent):
 
 【证据清单】：
 {ev_text}
-{retrieved_laws_text}
+{retrieved_laws_text}{ledger_text}
 
 请按以下思维链步骤推理：
 1. 事实认定：基于上述材料，分条写出“本院查明的事实”；
@@ -1508,16 +1560,24 @@ class CIAgent(BaseAgent):
         if not data.get("is_submission"):
             return None
 
-        # Check for duplicates
-        if self._is_duplicate_evidence(data.get("evidence_content", text), role):
-            self.log(f"Detected duplicate evidence from {role.value}. Treating as 'no more evidence'.")
-            # Force update no_more_evidence
-            nm = dict(self.state_machine.investigation_phase["no_more_evidence"])
-            # Map PartyRole to lowercase key ('plaintiff' or 'defendant')
-            key = "plaintiff" if role == PartyRole.PLAINTIFF else "defendant"
-            nm[key] = True
-            self.state_machine.update_phase_status(no_more_evidence=nm)
+        content_text = data.get("evidence_content", text)
+        provider = "plaintiff" if role == PartyRole.PLAINTIFF else "defendant"
+        entry, is_new = self.fact_ledger.evidence.submit(
+            provider=provider, content=content_text, purpose=data.get("purpose", ""),
+        )
+        if not is_new:
+            # 重复提交：只累加计数并提示，不再误标"举证完毕"（重复≠举证完毕）
+            self.log(f"Duplicate evidence submission from {role.value} ({entry.evidence_id}), "
+                     f"count={entry.submissions_count}.")
             return None
+        evidence_id = entry.evidence_id
+
+        # 自动创建占位事实主张（以证据目的表达），后续可由争点分解细化
+        purpose_text = data.get("purpose") or content_text[:60]
+        self.fact_ledger.add_claim(
+            text=f"（待认定）{purpose_text}", party=provider,
+            burden=provider, evidence_id=evidence_id,
+        )
 
         # 标记需要质证
         self.state_machine.update_phase_status(
@@ -1526,9 +1586,9 @@ class CIAgent(BaseAgent):
         )
         
         return Evidence(
-            evidence_id=f"E_{role.value}_{abs(hash(text)) % 10000}",
+            evidence_id=evidence_id,
             provider=role,
-            content=data.get("evidence_content", text),
+            content=content_text,
             purpose=data.get("purpose", ""),
         )
 
@@ -1608,6 +1668,13 @@ class CIAgent(BaseAgent):
             "case_warnings": list(getattr(self, "case_warnings", [])),
             "judgment_status": getattr(self, "judgment_status", "failed"),
             "citation_report": getattr(self, "citation_report", None),
+            "fact_ledger_summary": {
+                "claims": len(self.fact_ledger.claims),
+                "evidence": len(self.fact_ledger.evidence),
+                "disputed_without_evidence": [
+                    c.fact_id for c in self.fact_ledger.disputed_without_evidence()
+                ],
+            } if getattr(self, "fact_ledger", None) else None,
             "dialogue_count": len(self.dialogue),
             "evidence_count": len(self.evidences),
             "extracted": self.extracted,

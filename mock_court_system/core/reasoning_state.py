@@ -22,6 +22,10 @@ def extract_ci_reasoning_state(ci_agent) -> Dict[str, Any]:
             for ev in getattr(ci_agent, "evidences", [])
         ],
         "extracted": ci_agent.extracted,
+        "fact_ledger": (
+            ci_agent.fact_ledger.to_dict()
+            if getattr(ci_agent, "fact_ledger", None) else {"claims": [], "evidence": {}, "counter": 0}
+        ),
         "judgment_json": ci_agent.judgment_json,
         "judgment_status": getattr(ci_agent, "judgment_status", "failed"),
         "name_confirmed_by_dialogue": dict(

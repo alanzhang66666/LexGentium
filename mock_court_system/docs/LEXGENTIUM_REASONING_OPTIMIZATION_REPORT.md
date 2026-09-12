@@ -328,9 +328,16 @@ Renderer（判决书文本）
 - 元数据传播：`ConversationMessageResponse.reasoning_meta`（judgment_status / citation_report / case_warnings）随响应与 SSE final 事件下发，前端类型已同步（`lib/conversation-types.ts`）；
 - 环境修复：Xcode CLT 路径变化导致 venv 解释器断链，已基于 CommandLineTools Python 3.9.6 + requirements.lock 重建 `.venv-test`，全套 26/26 通过、tsc 零错误。
 
-**已知待办（转入 Phase 1）：**
+**Phase 1 第一块已落地（2026-09-12，Fact/Evidence Ledger）：**
+- `core/fact_ledger.py`：EvidenceLedger（内容规范化去重，重复提交只累加计数）+ FactLedger（占位事实主张、证据挂载/反证、争议状态、adjudicate）+ `disputed_without_evidence()` 无证据争议清单 + 完整序列化；
+- CI 集成：证据抽取成功即入账并自动创建占位事实主张；**重复提交不再误标"举证完毕"**（报告 P0 审计 3.4 的逻辑修正）；判决提示词注入台账文本，要求"本院查明"逐条引用 F/E 编号，无证据争议事实显式警告不得写入；
+- `extract_ci_reasoning_state` 携带 ledger（三路径持久化覆盖）；`_report` 增加台账摘要（claims/evidence/无证据争议清单）；
+- 测试：新增 ledger 用例 9 个，全套 **35/35 通过**。
+
+**已知待办（转入 Phase 1 余下）：**
 - 前端 UI 展示 reasoning_meta（判决语义状态徽标、未验证法条提示）；
-- Fact/Evidence Ledger（事实台账 → 逐争点 IRAC → 逐项裁判），详见 Phase 1。
+- IssueGraph 争点分解 + per-issue IRAC + 逐诉请 Disposition Table（Phase 1 核心，依赖 Ledger）；
+- fact_finding 引用校验（verify_facts：判决查明事实须回指 ledger F/E 编号）。
 
 ## 5. 分阶段实施路线图
 

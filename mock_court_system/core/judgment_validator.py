@@ -144,3 +144,70 @@ def verify_citations(judgment: Dict[str, Any], law_db_path: str) -> Dict[str, An
                 item["verified"] = False
 
     return {"checked": checked, "verified": verified, "unverified": unverified}
+
+
+# ---------- 逐诉请覆盖与事实引用校验 ----------
+
+def verify_dispositions(judgment: Dict[str, Any],
+                        expected_claims: List[str]) -> Dict[str, Any]:
+    """校验判决是否对每条诉请给出结论（liability_mapping 覆盖率）。
+
+    coverage < 1.0 时建议把判决标记 degraded（诉请漏判是程序性硬伤）。
+    """
+    lm = (judgment or {}).get("liability_mapping") or {}
+    mapped_claims = lm.get("plaintiff_claims") or []
+    adoptions = lm.get("court_adoption") or []
+
+    expected = [str(c).strip() for c in (expected_claims or []) if str(c).strip()]
+    if not expected:
+        return {"expected": 0, "covered": 0, "coverage": None, "missing": []}
+
+    normalized_expected = [c[:24] for c in expected]
+    missing: List[str] = []
+    for c in expected:
+        hit = any(
+            c[:24] in str(m) or str(m)[:24] in c
+            for m in mapped_claims if str(m).strip()
+        )
+        if not hit:
+            missing.append(c[:40])
+
+    covered = len(expected) - len(missing)
+    # court_adoption 与 mapped_claims 的对齐检查
+    adoption_gap = max(0, len(mapped_claims) - len(adoptions))
+    return {
+        "expected": len(expected),
+        "covered": covered,
+        "coverage": round(covered / len(expected), 4),
+        "missing": missing,
+        "adoption_gap": adoption_gap,
+    }
+
+
+def verify_fact_references(text: str, fact_ledger) -> Dict[str, Any]:
+    """校验判决文本引用的 F/E 编号是否都存在于台账。
+
+    判决按新提示词要求逐条引用 [F1]/[E_plaintiff_1] 等编号；
+    引用了不存在的编号 = 幻觉引用；完全未引用 = 可见性提示（不阻断）。
+    """
+    import re
+    if not text or fact_ledger is None:
+        return {"referenced": 0, "unknown_refs": [], "no_references": True}
+
+    known_f = set(fact_ledger.claims.keys())
+    known_e = set(fact_ledger.evidence.entries.keys())
+
+    refs = set(re.findall(r"\[([FE][^\[\]]{1,30}?)\]", text))
+    unknown = []
+    for r in refs:
+        if r.startswith("F") and r[1:].isdigit() and f"F{r[1:]}" not in known_f and r not in known_f:
+            unknown.append(r)
+        elif r.startswith("E_") and r not in known_e:
+            unknown.append(r)
+
+    referenced = len(refs)
+    return {
+        "referenced": referenced,
+        "unknown_refs": sorted(unknown),
+        "no_references": referenced == 0,
+    }
