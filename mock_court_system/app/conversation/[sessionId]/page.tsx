@@ -21,7 +21,9 @@ import {
   Swords,
   Trash2,
 } from "lucide-react"
-import { autoAdvance, deleteConversation, getConversation, streamSessionMessage } from "@/lib/api"
+import { autoAdvance, deleteConversation, deriveConversation, getConversation, postSessionClaim, streamSessionMessage } from "@/lib/api"
+import { ClaimChainPanel } from "@/components/research/claim-chain"
+import type { ResearchClaimNode } from "@/lib/research"
 import { SCENARIO_LABELS, STAGE_LABELS } from "@/lib/labels"
 import { SessionProvider, useSession } from "@/lib/session/SessionProvider"
 import type {
@@ -52,10 +54,14 @@ function ConversationSessionInner() {
   const [selectedRole, setSelectedRole] = useState("")
   const [advanceRounds, setAdvanceRounds] = useState(3)
   const [streamingText, setStreamingText] = useState("")
+  const [claimError, setClaimError] = useState<string | null>(null)
+  const [claimBusy, setClaimBusy] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendAbortRef = useRef<AbortController | null>(null)
 
   const links = info?.links || {}
+  const research = info?.research || null
+  const claims = (info?.claim_chain || []) as ResearchClaimNode[]
 
   useEffect(() => {
     void loadConversation()
@@ -151,6 +157,46 @@ function ConversationSessionInner() {
     }
   }
 
+  const handleClaimSubmit = async (body: {
+    role: string
+    action: string
+    fact: string
+    norm: string
+    reasoning: string
+    claim_id?: string
+    target_claim_id?: string
+  }) => {
+    setClaimBusy(true)
+    setClaimError(null)
+    try {
+      await postSessionClaim(sessionId, body)
+      await loadConversation()
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "记录主张失败")
+    } finally {
+      setClaimBusy(false)
+    }
+  }
+
+  const handleDerive = async () => {
+    setClaimBusy(true)
+    setClaimError(null)
+    try {
+      const next = await deriveConversation({
+        session_id: sessionId,
+        experiment_conditions: {
+          notes: "derived from hearing text page",
+          enable_source_audit: true,
+        },
+      })
+      router.push(`/conversation/${next.session_id}`)
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "派生运行失败")
+    } finally {
+      setClaimBusy(false)
+    }
+  }
+
   const handleDeleteConversation = async () => {
     if (!confirm("确定要删除这个会话吗？")) return
     try {
@@ -189,6 +235,7 @@ function ConversationSessionInner() {
             <div className="text-[12px] text-muted-foreground">
               {sessionId.substring(0, 8)}…
               {messages.length > 0 ? ` · ${messages.length} 条` : ""}
+              {research?.run_id ? ` · ${research.run_id.slice(0, 12)}` : ""}
               {links.task_id ? ` · 全案 ${links.task_id.slice(0, 10)}` : ""}
               {links.game_id ? ` · 博弈 ${links.game_id.slice(0, 10)}` : ""}
             </div>
@@ -262,22 +309,38 @@ function ConversationSessionInner() {
           </div>
         ) : null}
 
-        <Transcript messages={messages} streamingText={isLoading ? streamingText : ""} endRef={messagesEndRef} />
-        <Composer
-          scenario={scenario}
-          isFinished={isFinished}
-          isLoading={isLoading}
-          isAdvancing={isAdvancing}
-          inputMessage={inputMessage}
-          selectedRole={selectedRole}
-          advanceRounds={advanceRounds}
-          onInputChange={setInputMessage}
-          onRoleChange={setSelectedRole}
-          onAdvanceRoundsChange={setAdvanceRounds}
-          onSend={handleSendMessage}
-          onAdvance={handleAutoAdvance}
-          onStop={() => sendAbortRef.current?.abort()}
-        />
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <Transcript messages={messages} streamingText={isLoading ? streamingText : ""} endRef={messagesEndRef} />
+            <Composer
+              scenario={scenario}
+              isFinished={isFinished}
+              isLoading={isLoading}
+              isAdvancing={isAdvancing}
+              inputMessage={inputMessage}
+              selectedRole={selectedRole}
+              advanceRounds={advanceRounds}
+              onInputChange={setInputMessage}
+              onRoleChange={setSelectedRole}
+              onAdvanceRoundsChange={setAdvanceRounds}
+              onSend={handleSendMessage}
+              onAdvance={handleAutoAdvance}
+              onStop={() => sendAbortRef.current?.abort()}
+            />
+          </div>
+          {research?.run_id ? (
+            <ClaimChainPanel
+              claims={claims}
+              runId={research.run_id}
+              derivedFrom={research.derived_from}
+              materialsHash={research.materials_hash}
+              busy={claimBusy}
+              error={claimError}
+              onSubmit={handleClaimSubmit}
+              onDerive={handleDerive}
+            />
+          ) : null}
+        </div>
       </div>
     </WorkbenchShell>
   )

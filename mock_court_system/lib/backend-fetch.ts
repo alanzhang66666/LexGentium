@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 export const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000"
 
-type BackendMethod = "GET" | "POST" | "DELETE"
+type BackendMethod = "GET" | "POST" | "DELETE" | "PATCH"
 
 interface BackendProxyOptions {
   method?: BackendMethod

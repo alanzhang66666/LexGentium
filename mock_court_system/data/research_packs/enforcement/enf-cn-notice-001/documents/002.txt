@@ -1,0 +1,23 @@
+【历史文本 · 《承认及执行外国仲裁裁决公约》第五条】
+dataset_id=enforcement  cluster_id=enf-cn-notice-001  document_id=002
+来源分层：historical。1958年纽约公约正式中文本 / 英文本摘录。
+复核状态：pending（技术摘录；法学需核对接用版本）。
+
+[zh-v-chapeau] 第五条
+一、裁决唯有于受裁决援用之一造向声请承认及执行地之主管机关提具证据证明有下列情形之一时，始得依该造之请求，拒予承认及执行：
+
+[zh-v-1-a] （甲）第二条所称协定之当事人依对其适用之法律有某种无行为能力情形者，或该项协定依当事人作为协定准据之法律系属无效，或未指明以何法律为准时，依裁决地所在国法律系属无效者；
+
+[zh-v-1-b] （乙）受裁决援用之一造未接获关于指派仲裁员或仲裁程序之适当通知，或因他故，致未能申辩者；
+
+[zh-v-1-c] （丙）裁决所处理之争议非为交付仲裁之标的或不在其条款之列，或裁决载有关于交付仲裁范围以外事项之决定者，但交付仲裁事项之决定可与未交付仲裁之事项划分时，裁决中关于交付仲裁事项之决定部分得予承认及执行；
+
+[zh-v-1-d] （丁）仲裁机关之组成或仲裁程序与各造间之协议不符，或无协议而与仲裁地所在国法律不符者；
+
+[zh-v-1-e] （戊）裁决对各造尚无拘束力，或业经裁决地所在国或裁决所依据法律之国家之主管机关撤销或停止执行者。
+
+[zh-v-2] 二、倘声请承认及执行地所在国之主管机关认定有下列情形之一，亦得拒不承认及执行仲裁裁决：
+（甲）依该国法律，争议事项系不能以仲裁解决者；
+（乙）承认或执行裁决有违该国公共政策者。
+
+[en-v-1-b] Article V(1)(b) (official English): Recognition and enforcement of the award may be refused, at the request of the party against whom it is invoked, only if that party furnishes to the competent authority where the recognition and enforcement is sought, proof that: the party against whom the award is invoked was not given proper notice of the appointment of the arbitrator or of the arbitration proceedings or was otherwise unable to present his case.

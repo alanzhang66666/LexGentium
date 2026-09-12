@@ -71,7 +71,64 @@ def cleanup_old_sessions(max_age_hours: int = 24) -> int:
         return 0
 
 
+def _research_claim_actions(input_json: Optional[Dict[str, Any]]) -> List[str]:
+    from core.research.runtime import research_block
+
+    run_id = research_block(input_json).get("run_id")
+    if not run_id:
+        return []
+    try:
+        from api.services.claims import list_claim_events
+
+        return [str(item.get("action") or "") for item in list_claim_events(str(run_id))]
+    except Exception:
+        return []
+
+
 def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]], input_json: Optional[Dict[str, Any]]):
+    from core.research.runtime import (
+        bind_research_context,
+        has_research,
+        inject_material_context,
+        research_llm_blocked,
+        research_stop_notice,
+        reset_research_context,
+        role_model_input,
+    )
+
+    blocked = research_llm_blocked(
+        input_json,
+        dialog_history,
+        _research_claim_actions(input_json),
+    )
+    if blocked:
+        return "Final", research_stop_notice(blocked), True
+
+    speaking = None
+    if dialog_history:
+        speaking = str((dialog_history[-1] or {}).get("role") or "") or None
+    filtered_input = input_json
+    working_history = dialog_history
+    token = None
+    if has_research(input_json):
+        filtered_input = role_model_input(input_json, speaking)
+        if input_json and input_json.get("_session_id"):
+            filtered_input["_session_id"] = input_json["_session_id"]
+        working_history = inject_material_context(list(dialog_history or []), filtered_input, scenario)
+        token = bind_research_context(filtered_input, speaking, cache_mode="replay")
+
+    try:
+        return _run_agent_turn_inner(
+            scenario=scenario,
+            case_id=case_id,
+            dialog_history=working_history,
+            input_json=filtered_input,
+        )
+    finally:
+        reset_research_context(token)
+
+
+def _run_agent_turn_inner(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]], input_json: Optional[Dict[str, Any]]):
     response_text = ""
     is_finished = False
     response_role = "Lawyer"  # default for CD/DD
@@ -155,98 +212,9 @@ ci_agent = runtime.ci_agent
 evaluation_tasks: Dict[str, Dict[str, Any]] = {}
 
 def run_evaluation_task(report_id: str, scenarios: List[str], prediction_files: Optional[Dict[str, str]]):
-    try:
-        # 鏇存柊鎸佷箙鍖栫姸鎬?
-        evaluation_task_store.upsert(
-            EvaluationTaskRecord(
-                report_id=report_id,
-                status="running",
-                message="评测进行中...",
-                created_at=evaluation_tasks[report_id]["created_at"],
-                updated_at=evaluation_tasks[report_id]["created_at"],
-            )
-        )
-        
-        # 导入评测模块
-        from evaluation.run_evaluation import run_evaluation, load_config
-        
-        # 加载配置
-        config_path = project_root / "evaluation" / "eval_config.yaml"
-        config = load_config(str(config_path))
-        
-        # 设置预测文件路径
-        if not prediction_files:
-            prediction_files = {}
-            for scenario in scenarios:
-                # 尝试查找默认预测文件
-                default_paths = [
-                    project_root / "evaluation" / "data" / "real_test_pred" / f"{scenario}_prediction.jsonl",
-                    project_root / f"{scenario}_prediction.jsonl",
-                    project_root / "evaluation" / "data" / "test_run" / f"{scenario}_test_pred.jsonl",
-                ]
-                for path in default_paths:
-                    if path.exists():
-                        prediction_files[scenario] = str(path)
-                        break
-        
-        # 运行评测
-        run_evaluation(config, scenarios, prediction_files)
-        
-        # 查找生成的报告文件
-        results_dir = project_root / "evaluation" / "results"
-        report_files = sorted(results_dir.glob("evaluation_report_*.json"), reverse=True)
-        
-        if report_files:
-            report_path = str(report_files[0])
-            with open(report_path, 'r', encoding='utf-8') as f:
-                results = json.load(f)
-            
-            evaluation_tasks[report_id]["status"] = "completed"
-            evaluation_tasks[report_id]["message"] = "评测完成"
-            evaluation_tasks[report_id]["results"] = results
-            evaluation_tasks[report_id]["report_path"] = report_path
+    from api.services.evaluation import execute_evaluation_task
 
-            evaluation_task_store.upsert(
-                EvaluationTaskRecord(
-                    report_id=report_id,
-                    status="completed",
-                    message="评测完成",
-                    created_at=evaluation_tasks[report_id]["created_at"],
-                    updated_at=_utcnow_iso(),
-                    results_json=json.dumps(results, ensure_ascii=False),
-                    report_path=report_path,
-                )
-            )
-        else:
-            evaluation_tasks[report_id]["status"] = "failed"
-            evaluation_tasks[report_id]["message"] = "评测完成但未找到报告文件"
-
-            evaluation_task_store.upsert(
-                EvaluationTaskRecord(
-                    report_id=report_id,
-                    status="failed",
-                    message="评测完成但未找到报告文件",
-                    created_at=evaluation_tasks[report_id]["created_at"],
-                    updated_at=_utcnow_iso(),
-                )
-            )
-            
-    except Exception as e:
-        eval_logger.error(f"评测任务失败: {e}", exc_info=True)
-        evaluation_tasks[report_id]["status"] = "failed"
-        evaluation_tasks[report_id]["message"] = f"评测失败: {str(e)}"
-        try:
-            evaluation_task_store.upsert(
-                EvaluationTaskRecord(
-                    report_id=report_id,
-                    status="failed",
-                    message=f"评测失败: {str(e)}",
-                    created_at=evaluation_tasks[report_id]["created_at"],
-                    updated_at=_utcnow_iso(),
-                )
-            )
-        except Exception:
-            pass
+    execute_evaluation_task(report_id, scenarios, prediction_files)
 
 
 
@@ -283,6 +251,7 @@ def _infer_conversation_meta(
     scenario: str,
     dialog_history: List[Dict[str, Any]],
     session_id: Optional[str] = None,
+    input_json: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     is_finished = False
     if dialog_history:
@@ -304,6 +273,12 @@ def _infer_conversation_meta(
                 is_finished = True
             if not is_finished and _ci_final(last_msg):
                 is_finished = True
+
+    if not is_finished:
+        from core.research.runtime import research_llm_blocked
+
+        if research_llm_blocked(input_json, dialog_history, _research_claim_actions(input_json)):
+            is_finished = True
 
     current_stage = None
     next_speaker = None

@@ -35,6 +35,7 @@ class LLMConfig(BaseSettings):
     base_url: str = Field(default="https://api.deepseek.com")
     model: str = Field(default="deepseek-chat")
     fast_model: str = Field(default="")
+    fast_max_tokens: int = Field(default=512)
     temperature: float = Field(default=0.1)
     max_tokens: int = Field(default=4096)
     timeout: int = Field(default=60)

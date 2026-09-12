@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import logging
 from dataclasses import dataclass, field, asdict
@@ -117,6 +118,19 @@ def _build_dispute_cause_context(cause_type: Optional[str], cause_detail: Option
     return template.format(detail=cause_detail or "具体细节请参见案件描述")
 
 
+def ci_auto_turn_limit(stage_turns: int, cap: Optional[int] = None) -> int:
+    """Auto full-case CI loop: three steps per stage turn, hard-capped by env."""
+    if cap is None:
+        raw = os.getenv("CI_MAX_AUTO_TURNS", "30")
+        try:
+            cap = int(raw)
+        except (TypeError, ValueError):
+            cap = 30
+    cap = max(1, int(cap))
+    steps = max(1, int(stage_turns)) * 3
+    return min(steps, cap)
+
+
 class FullCaseOrchestrator:
     """编排 CD -> DD -> CI 全流程（增强版：策略注入 + per-party SimAgent）。"""
 
@@ -136,6 +150,9 @@ class FullCaseOrchestrator:
         self.ci_agent = ci_agent
         self.sim_agent = sim_agent
         self.max_turns = max_turns_per_stage
+
+    def ci_auto_turn_limit(self) -> int:
+        return ci_auto_turn_limit(self.max_turns)
 
     def _create_party_sim_agent(
         self,
@@ -367,7 +384,7 @@ class FullCaseOrchestrator:
 
         dialog_history: List[Dict[str, Any]] = []
         final_doc = ""
-        max_ci_turns = min(self.max_turns * 3, 60)
+        max_ci_turns = self.ci_auto_turn_limit()
 
         for round_idx in range(max_ci_turns):
             role, text, finished = self._agent_turn(
@@ -461,7 +478,7 @@ class FullCaseOrchestrator:
         self.ci_agent.fast_path = True
         dialog_history: List[Dict[str, Any]] = []
         final_doc = ""
-        max_ci_turns = min(self.max_turns * 3, 60)
+        max_ci_turns = self.ci_auto_turn_limit()
         try:
             text, finished = runtime.start_court(session_id, case_id, input_json)
             dialog_history.append({"turn": 0, "role": "Judge", "message": text})

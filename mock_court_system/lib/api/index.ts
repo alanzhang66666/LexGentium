@@ -5,6 +5,7 @@ export * from "@/lib/api/simulation"
 export * from "@/lib/api/game"
 export * from "@/lib/api/evaluate"
 export * from "@/lib/api/mediation"
+export * from "@/lib/api/research"
 export * from "@/lib/api/sse"
 
 import { apiFetch } from "@/lib/api/http"

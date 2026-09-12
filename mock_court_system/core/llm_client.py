@@ -109,6 +109,7 @@ class LLMClient:
         timeout: int = 60,
         provider: str = "deepseek",
         fast_model: Optional[str] = None,
+        fast_max_tokens: int = 512,
         cache_path: Optional[str] = None,
     ):
         self.api_key = api_key
@@ -125,6 +126,7 @@ class LLMClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.fast_max_tokens = max(64, int(fast_max_tokens or 512))
         self.provider = provider
         self.mock_mode = False
         self._mock_map = {}
@@ -177,6 +179,7 @@ class LLMClient:
             timeout=config.get("timeout", 60),
             provider=config.get("provider", "deepseek"),
             fast_model=config.get("fast_model") or None,
+            fast_max_tokens=int(config.get("fast_max_tokens") or 512),
         )
 
     def _init_cache(self) -> None:
@@ -225,7 +228,16 @@ class LLMClient:
             self._metrics.append(rec)
 
     def _cache_key(self, model: str, messages: List[Dict[str, str]], temperature: float) -> str:
-        blob = json.dumps({"m": model, "msg": messages, "t": temperature}, ensure_ascii=False, sort_keys=True)
+        payload: Dict[str, Any] = {"m": model, "msg": messages, "t": temperature}
+        try:
+            from core.research.runtime import research_cache_namespace
+
+            namespace = research_cache_namespace()
+            if namespace:
+                payload["research"] = namespace
+        except Exception:
+            pass
+        blob = json.dumps(payload, ensure_ascii=False, sort_keys=True)
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
     def _cache_get(self, key: str) -> Optional[str]:
@@ -258,6 +270,12 @@ class LLMClient:
     def _maybe_cache(self, purpose: str, temperature: Optional[float]) -> bool:
         temp = self.temperature if temperature is None else temperature
         return purpose in CACHEABLE_PURPOSES and temp <= 0.1
+
+    def max_tokens_for(self, purpose: str) -> int:
+        """Clerk / extract / score stay short. Judgment and chat keep the full window."""
+        if purpose in CACHEABLE_PURPOSES:
+            return min(self.max_tokens, self.fast_max_tokens)
+        return self.max_tokens
 
     def _chat_model_for(self, temperature: Optional[float] = None):
         """按调用绑定温度，不改写共享 chat_model。"""
@@ -536,6 +554,8 @@ class LLMClient:
             "Content-Type": "application/json",
         }
 
+        if "max_tokens" not in kwargs:
+            kwargs["max_tokens"] = self.max_tokens_for(purpose)
         payload = {
             "model": model_name,
             "messages": messages,

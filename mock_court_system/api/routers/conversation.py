@@ -9,12 +9,14 @@ from api.services.sse import sse_event
 from api_schemas import (
     AutoAdvanceRequest,
     AutoAdvanceResponse,
+    ConversationDeriveRequest,
     ConversationImportRequest,
     ConversationImportResponse,
     ConversationMessageRequest,
     ConversationMessageResponse,
     ConversationStartRequest,
     ConversationStartResponse,
+    ResearchClaimRequest,
 )
 
 router = APIRouter()
@@ -23,7 +25,18 @@ router = APIRouter()
 @router.post("/conversation/start", response_model=ConversationStartResponse)
 async def start_conversation(req: ConversationStartRequest):
     try:
-        return ConversationStartResponse(**conv.start_session(req.scenario, req.case_id, req.input_json))
+        return ConversationStartResponse(**conv.start_session(
+            req.scenario,
+            req.case_id,
+            req.input_json,
+            dataset_id=req.dataset_id,
+            cluster_id=req.cluster_id,
+            pack_version=req.pack_version,
+            derived_from=req.derived_from,
+            visible_materials=req.visible_materials,
+            experiment_conditions=req.experiment_conditions,
+            model_config=req.model_config_snapshot,
+        ))
     except HTTPException:
         raise
     except Exception as e:
@@ -105,6 +118,40 @@ async def get_conversation_compliance(session_id: str):
     return conv.get_compliance(session_id)
 
 
+@router.post("/conversation/derive", response_model=ConversationStartResponse)
+async def derive_conversation(req: ConversationDeriveRequest):
+    if not req.session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    try:
+        return ConversationStartResponse(**conv.derive_session(
+            req.session_id,
+            visible_materials=req.visible_materials,
+            experiment_conditions=req.experiment_conditions,
+            model_config=req.model_config_snapshot,
+        ))
+    except HTTPException:
+        raise
+    except Exception as e:
+        state.eval_logger.error(f"派生运行失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"派生运行失败: {str(e)}")
+
+
+@router.get("/conversation/{session_id}/claims")
+async def get_conversation_claims(session_id: str):
+    from api.services.claims import session_claim_bundle
+
+    record = conv.require_session(session_id)
+    return {"session_id": session_id, **session_claim_bundle(record)}
+
+
+@router.post("/conversation/{session_id}/claims")
+async def post_conversation_claim(session_id: str, req: ResearchClaimRequest):
+    from api.services.claims import append_session_claim
+
+    record = conv.require_session(session_id)
+    return append_session_claim(record, req.model_dump())
+
+
 @router.post("/conversation/{session_id}/message/stream")
 async def stream_message(session_id: str, req: ConversationMessageRequest):
     record = conv.require_session(session_id)
@@ -129,7 +176,7 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                         scenario=record.scenario,
                         case_id=record.case_id,
                         dialog_history=record.dialog_history,
-                        input_json=conv._with_session_id(record),
+                        input_json=conv._with_session_id(record, req.role),
                     )
                 finally:
                     state.llm_client.clear_stream_hook()

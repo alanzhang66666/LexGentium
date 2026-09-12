@@ -10,6 +10,13 @@ export interface ConversationStartRequest {
   scenario: Scenario
   case_id: string
   input_json?: Record<string, unknown>
+  dataset_id?: string
+  cluster_id?: string
+  pack_version?: string
+  derived_from?: string
+  visible_materials?: Record<string, unknown>
+  experiment_conditions?: Record<string, unknown>
+  model_config_snapshot?: Record<string, unknown>
 }
 
 export interface ConversationStartResponse {
@@ -17,6 +24,12 @@ export interface ConversationStartResponse {
   scenario: string
   case_id: string
   created_at: string
+  run_id?: string
+  dataset_id?: string
+  cluster_id?: string
+  pack_version?: string
+  derived_from?: string
+  materials_hash?: string
 }
 
 export interface ConversationMessageRequest {
@@ -158,6 +171,10 @@ export interface ConversationInfo {
   is_finished?: boolean
   turn_count?: number
   links?: SessionLinks
+  research?: import("@/lib/research").ResearchSessionMeta | null
+  claim_chain?: import("@/lib/research").ResearchClaimNode[]
+  task_protocol?: Record<string, unknown> | null
+  stop_reason?: string | null
 }
 
 export interface ConversationSummary {

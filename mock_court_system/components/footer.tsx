@@ -1,12 +1,13 @@
 import Link from "next/link"
+import { RESEARCH_DISCLAIMER } from "@/lib/research"
 
 export function Footer({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <footer className="border-t border-border">
-        <div className="mx-auto flex h-10 max-w-none items-center justify-between px-4 text-xs text-muted-foreground">
+        <div className="mx-auto flex min-h-10 max-w-none flex-wrap items-center justify-between gap-2 px-4 py-1.5 text-xs text-muted-foreground">
           <span>LexGentium 0.8｜国际商事仲裁听证仿真</span>
-          <span>© 2026</span>
+          <span className="max-w-[42rem] text-right leading-snug">{RESEARCH_DISCLAIMER}</span>
         </div>
       </footer>
     )
@@ -63,7 +64,10 @@ export function Footer({ compact = false }: { compact?: boolean }) {
             </ul>
           </div>
         </div>
-        <div className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">© 2026 LexGentium</div>
+        <div className="mt-10 border-t border-border pt-6 text-xs text-muted-foreground">
+          <p>{RESEARCH_DISCLAIMER}</p>
+          <p className="mt-2">© 2026 LexGentium</p>
+        </div>
       </div>
     </footer>
   )

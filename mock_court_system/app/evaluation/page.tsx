@@ -45,7 +45,12 @@ import {
   runLiabilityChainCounterfactual,
   setGameStrategy,
   startEvaluation,
+  compareResearchRuns,
+  exportResearchRun,
+  reviewResearchRun,
+  scoreResearchRun,
 } from "@/lib/api"
+import { RESEARCH_DISCLAIMER } from "@/lib/research"
 import { streamGameRound } from "@/lib/court3d/adapters/gameStream"
 import { SCENARIO_DESCRIPTIONS, SCENARIO_LABELS, STAGE_LABELS, STRATEGY_LABELS } from "@/lib/labels"
 import { writeLastSessionId } from "@/lib/session/last-session"
@@ -59,6 +64,7 @@ const PANES = [
   { id: "contrast", label: "对照" },
   { id: "strategy", label: "策略推演" },
   { id: "compliance", label: "程序合规" },
+  { id: "research", label: "研究" },
 ] as const
 type ReviewPane = (typeof PANES)[number]["id"]
 const TKI_KEYS = Object.keys(STRATEGY_LABELS)
@@ -69,7 +75,7 @@ const EVOLUTION_METHODS = [
 ] as const
 
 function parsePane(value: string | null): ReviewPane {
-  if (value === "strategy" || value === "compliance" || value === "contrast") return value
+  if (value === "strategy" || value === "compliance" || value === "contrast" || value === "research") return value
   return "contrast"
 }
 
@@ -166,6 +172,13 @@ function EvaluationInner() {
 
   const [compliance, setCompliance] = useState<unknown>(null)
   const [complianceScenario, setComplianceScenario] = useState<string>("")
+  const [researchBusy, setResearchBusy] = useState(false)
+  const [researchEval, setResearchEval] = useState<Record<string, unknown> | null>(null)
+  const [researchCompare, setResearchCompare] = useState<Record<string, unknown> | null>(null)
+  const [compareIds, setCompareIds] = useState("")
+  const [reviewer, setReviewer] = useState("")
+  const [reviewNote, setReviewNote] = useState("")
+  const [reviewState, setReviewState] = useState("pending")
 
   const setQuery = (next: { session?: string; pane?: ReviewPane }) => {
     const params = new URLSearchParams()
@@ -597,7 +610,7 @@ function EvaluationInner() {
         <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-[22px] font-medium tracking-tight">复盘</h1>
-            <p className="mt-1 text-sm text-muted-foreground">对照本场、策略推演与程序合规。评测套件不在此页展开。</p>
+            <p className="mt-1 text-sm text-muted-foreground">对照本场、策略推演、程序合规与研究量表。评测套件不在此页展开。</p>
           </div>
           <div className="flex rounded-md border border-border p-0.5">
             {PANES.map((item) => (
@@ -1195,6 +1208,156 @@ function EvaluationInner() {
                     {gameBusy && gameEvalKind === "liability-cf" ? "分析中…" : "责任链反事实"}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+
+        {pane === "research" ? (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">研究评价</CardTitle>
+                <CardDescription>六维量表。机器检查不等于法律质量。有依据的不同路径可复核。</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {!bound?.research?.run_id ? (
+                  <p className="text-sm text-muted-foreground">先绑定一场带研究包的会话。</p>
+                ) : (
+                  <>
+                    <p className="break-all text-[12px] text-muted-foreground">
+                      {bound.research.run_id}
+                      {bound.research.materials_hash ? ` · ${bound.research.materials_hash.slice(0, 12)}` : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        disabled={researchBusy}
+                        onClick={async () => {
+                          setResearchBusy(true)
+                          setErrorMessage(null)
+                          try {
+                            setResearchEval(await scoreResearchRun({ run_id: bound.research?.run_id, session_id: sessionId }))
+                          } catch (err) {
+                            setErrorMessage(err instanceof Error ? err.message : "研究评价失败")
+                          } finally {
+                            setResearchBusy(false)
+                          }
+                        }}
+                      >
+                        六维打分
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={researchBusy || !bound.research.run_id}
+                        onClick={async () => {
+                          if (!bound.research?.run_id) return
+                          setResearchBusy(true)
+                          try {
+                            const bundle = await exportResearchRun(bound.research.run_id)
+                            const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement("a")
+                            a.href = url
+                            a.download = `research_${bound.research.run_id}.json`
+                            a.click()
+                            URL.revokeObjectURL(url)
+                          } catch (err) {
+                            setErrorMessage(err instanceof Error ? err.message : "导出失败")
+                          } finally {
+                            setResearchBusy(false)
+                          }
+                        }}
+                      >
+                        导出研究包
+                      </Button>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Input placeholder="复核人" value={reviewer} onChange={(e) => setReviewer(e.target.value)} />
+                      <Select value={reviewState} onValueChange={setReviewState}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">pending</SelectItem>
+                          <SelectItem value="tech_checked">tech_checked</SelectItem>
+                          <SelectItem value="law_reviewed">law_reviewed</SelectItem>
+                          <SelectItem value="disputed">disputed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Textarea placeholder="复核说明（失败 / 分歧 / 无法判断请留下）" value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={researchBusy || !bound.research.run_id}
+                      onClick={async () => {
+                        if (!bound.research?.run_id) return
+                        setResearchBusy(true)
+                        try {
+                          await reviewResearchRun({
+                            run_id: bound.research.run_id,
+                            review_state: reviewState as "pending" | "tech_checked" | "law_reviewed" | "disputed",
+                            reviewer,
+                            note: reviewNote,
+                          })
+                        } catch (err) {
+                          setErrorMessage(err instanceof Error ? err.message : "复核失败")
+                        } finally {
+                          setResearchBusy(false)
+                        }
+                      }}
+                    >
+                      写入人工复核
+                    </Button>
+                    {researchEval ? (
+                      <pre className="max-h-80 overflow-auto rounded-md border border-border bg-secondary/30 p-2 text-[11px]">
+                        {JSON.stringify(researchEval, null, 2)}
+                      </pre>
+                    ) : null}
+                  </>
+                )}
+                <p className="text-[12px] leading-snug text-muted-foreground">{RESEARCH_DISCLAIMER}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">同案条件对比</CardTitle>
+                <CardDescription>比较两次运行的材料哈希、条件与评分。</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input
+                  placeholder="run_id,run_id"
+                  value={compareIds}
+                  onChange={(e) => setCompareIds(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={researchBusy}
+                  onClick={async () => {
+                    setResearchBusy(true)
+                    try {
+                      const ids = compareIds.split(",").map((item) => item.trim()).filter(Boolean)
+                      if (bound?.research?.run_id && ids.length < 2) {
+                        ids.unshift(bound.research.run_id)
+                      }
+                      setResearchCompare(await compareResearchRuns(ids))
+                    } catch (err) {
+                      setErrorMessage(err instanceof Error ? err.message : "对比失败")
+                    } finally {
+                      setResearchBusy(false)
+                    }
+                  }}
+                >
+                  对比
+                </Button>
+                {researchCompare ? (
+                  <pre className="max-h-80 overflow-auto rounded-md border border-border bg-secondary/30 p-2 text-[11px]">
+                    {JSON.stringify(researchCompare, null, 2)}
+                  </pre>
+                ) : null}
               </CardContent>
             </Card>
           </div>

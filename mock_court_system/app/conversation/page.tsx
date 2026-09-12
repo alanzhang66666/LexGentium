@@ -9,10 +9,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
 import { AlertCircle, Loader2, Plus } from "lucide-react"
 import { CasePicker } from "@/components/hearing/CasePicker"
-import { createGame, listConversations, startConversation } from "@/lib/api"
+import { createGame, listConversations, listResearchPacks, startConversation } from "@/lib/api"
 import { SCENARIO_LABELS, STRATEGY_LABELS } from "@/lib/labels"
 import { writeLastSessionId } from "@/lib/session/last-session"
 import type { ConversationSummary } from "@/lib/conversation-types"
+import type { PackSummary } from "@/lib/research"
+
+type CaseSource = "research" | "civil"
+
+function packKey(pack: Pick<PackSummary, "dataset_id" | "cluster_id" | "pack_version">) {
+  return `${pack.dataset_id}/${pack.cluster_id}/${pack.pack_version}`
+}
 
 const TKI_KEYS = Object.keys(STRATEGY_LABELS)
 
@@ -28,10 +35,15 @@ export default function ConversationListPage() {
   const [offset, setOffset] = useState(0)
   const [total, setTotal] = useState(0)
   const [newScenario, setNewScenario] = useState<"CD" | "DD" | "CI">("CI")
+  const [caseSource, setCaseSource] = useState<CaseSource>("research")
   const [newCaseId, setNewCaseId] = useState("foreign_commercial_001")
+  const [packs, setPacks] = useState<PackSummary[]>([])
+  const [selectedPackKey, setSelectedPackKey] = useState("")
   const [plaintiffStrategy, setPlaintiffStrategy] = useState("")
   const [defendantStrategy, setDefendantStrategy] = useState("")
   const [creating, setCreating] = useState(false)
+
+  const selectedPack = packs.find((pack) => packKey(pack) === selectedPackKey) || null
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -44,6 +56,21 @@ export default function ConversationListPage() {
   useEffect(() => {
     loadConversations()
   }, [offset])
+
+  useEffect(() => {
+    listResearchPacks()
+      .then((data) => {
+        const rows = (data.packs || []) as PackSummary[]
+        setPacks(rows)
+        const preferred =
+          rows.find((row) => row.dataset_id === "enforcement" && row.cluster_id === "enf-cn-notice-001") ||
+          rows[0]
+        if (preferred) {
+          setSelectedPackKey((current) => current || packKey(preferred))
+        }
+      })
+      .catch(() => setPacks([]))
+  }, [])
 
   const loadConversations = async () => {
     setLoading(true)
@@ -59,22 +86,37 @@ export default function ConversationListPage() {
   }
 
   const handleCreateConversation = async () => {
-    if (!newCaseId.trim()) {
+    if (caseSource === "research") {
+      if (!selectedPack) {
+        setError("请选择研究包")
+        return
+      }
+    } else if (!newCaseId.trim()) {
       setError("请输入案例ID")
       return
     }
     setCreating(true)
     setError(null)
     try {
-      const data = await startConversation({
-        scenario: newScenario,
-        case_id: newCaseId.trim(),
-      })
+      const payload =
+        caseSource === "research" && selectedPack
+          ? {
+              scenario: newScenario,
+              case_id: selectedPack.cluster_id,
+              dataset_id: selectedPack.dataset_id,
+              cluster_id: selectedPack.cluster_id,
+              pack_version: selectedPack.pack_version,
+            }
+          : {
+              scenario: newScenario,
+              case_id: newCaseId.trim(),
+            }
+      const data = await startConversation(payload)
       writeLastSessionId(data.session_id)
       if (newScenario === "CI" && (plaintiffStrategy || defendantStrategy)) {
         try {
           await createGame({
-            case_info: { case_id: newCaseId.trim() },
+            case_info: { case_id: payload.case_id },
             session_id: data.session_id,
             plaintiff_strategy: plaintiffStrategy || "compromising",
             defendant_strategy: defendantStrategy || "compromising",
@@ -136,9 +178,35 @@ export default function ConversationListPage() {
                 <SelectItem value="DD">{SCENARIO_LABELS.DD}</SelectItem>
               </SelectContent>
             </Select>
-            <div className="w-56">
-              <CasePicker value={newCaseId} onChange={setNewCaseId} />
-            </div>
+            <Select value={caseSource} onValueChange={(v) => setCaseSource(v as CaseSource)}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="research">研究包</SelectItem>
+                <SelectItem value="civil">民事 1K</SelectItem>
+              </SelectContent>
+            </Select>
+            {caseSource === "research" ? (
+              <div className="w-72">
+                <Select value={selectedPackKey} onValueChange={setSelectedPackKey}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择研究包" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packs.map((pack) => (
+                      <SelectItem key={packKey(pack)} value={packKey(pack)}>
+                        {pack.case_name || pack.cluster_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="w-56">
+                <CasePicker value={newCaseId} onChange={setNewCaseId} />
+              </div>
+            )}
             {newScenario === "CI" ? (
               <>
                 <Select value={plaintiffStrategy || "__none__"} onValueChange={(v) => setPlaintiffStrategy(v === "__none__" ? "" : v)}>
@@ -169,12 +237,22 @@ export default function ConversationListPage() {
                 </Select>
               </>
             ) : null}
-            <Button onClick={handleCreateConversation} disabled={creating || !newCaseId.trim()}>
+            <Button
+              onClick={handleCreateConversation}
+              disabled={creating || (caseSource === "research" ? !selectedPack : !newCaseId.trim())}
+            >
               {creating ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
               新建
             </Button>
           </div>
         </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          {caseSource === "research"
+            ? selectedPack
+              ? `将载入 ${selectedPack.dataset_id} / ${selectedPack.cluster_id} / ${selectedPack.pack_version}`
+              : "将载入研究包（尚未选择）"
+            : `将载入 民事 1K · ${newCaseId.trim() || "未选 case_id"}`}
+        </p>
 
         {error ? (
           <Alert variant="destructive" className="mb-4">

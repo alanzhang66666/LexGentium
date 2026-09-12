@@ -172,6 +172,12 @@ class HearingRuntime:
             return
         try:
             summary = ci._summarize_dialogue()
+            try:
+                from core.research.runtime import filter_shared_memory_text
+
+                summary = filter_shared_memory_text(summary)
+            except Exception:
+                pass
             ci.extracted["summary"] = summary
             out["summary"] = summary
             out["extracted"] = dict(ci.extracted)

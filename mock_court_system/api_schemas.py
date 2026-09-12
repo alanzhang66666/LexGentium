@@ -33,6 +33,7 @@ class EvaluationRequest(BaseModel):
     prediction_files: Optional[Dict[str, str]] = None
     use_default_predictions: bool = True
     session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
 class EvaluationResponse(BaseModel):
@@ -41,6 +42,8 @@ class EvaluationResponse(BaseModel):
     message: str
     results: Optional[Dict[str, Any]] = None
     report_path: Optional[str] = None
+    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
 class LawSearchRequest(BaseModel):
@@ -55,8 +58,15 @@ class LawSearchResponse(BaseModel):
 
 class ConversationStartRequest(BaseModel):
     scenario: str
-    case_id: str
+    case_id: str = ""
     input_json: Optional[Dict[str, Any]] = None
+    dataset_id: Optional[str] = None
+    cluster_id: Optional[str] = None
+    pack_version: Optional[str] = None
+    derived_from: Optional[str] = None
+    visible_materials: Optional[Dict[str, Any]] = None
+    experiment_conditions: Optional[Dict[str, Any]] = None
+    model_config_snapshot: Optional[Dict[str, Any]] = None
 
 
 class ConversationStartResponse(BaseModel):
@@ -64,6 +74,45 @@ class ConversationStartResponse(BaseModel):
     scenario: str
     case_id: str
     created_at: str
+    run_id: Optional[str] = None
+    dataset_id: Optional[str] = None
+    cluster_id: Optional[str] = None
+    pack_version: Optional[str] = None
+    derived_from: Optional[str] = None
+    materials_hash: Optional[str] = None
+
+
+class ConversationDeriveRequest(BaseModel):
+    session_id: Optional[str] = None
+    visible_materials: Optional[Dict[str, Any]] = None
+    experiment_conditions: Optional[Dict[str, Any]] = None
+    model_config_snapshot: Optional[Dict[str, Any]] = None
+
+
+class ResearchClaimRequest(BaseModel):
+    role: str
+    action: str
+    fact: str = ""
+    norm: str = ""
+    reasoning: str = ""
+    claim_id: Optional[str] = None
+    target_claim_id: Optional[str] = None
+    source_ids: Optional[List[str]] = None
+    payload: Optional[Dict[str, Any]] = None
+
+
+class ResearchEvalRequest(BaseModel):
+    run_id: Optional[str] = None
+    session_id: Optional[str] = None
+    output: Optional[Dict[str, Any]] = None
+
+
+class ResearchReviewRequest(BaseModel):
+    run_id: str
+    review_state: str
+    reviewer: str = ""
+    note: str = ""
+    report_id: Optional[str] = None
 
 
 class ConversationMessageRequest(BaseModel):

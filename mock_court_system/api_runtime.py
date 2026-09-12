@@ -39,6 +39,7 @@ def create_llm_client(settings: Any) -> LLMClient:
         timeout=settings.llm.timeout,
         provider=settings.llm.provider,
         fast_model=getattr(settings.llm, "fast_model", None) or None,
+        fast_max_tokens=getattr(settings.llm, "fast_max_tokens", 512) or 512,
     )
 
 

@@ -44,7 +44,7 @@ export function CommandPalette({ sessionId }: { sessionId: string | null }) {
         >
           <Command.Input
             autoFocus
-            placeholder="跳转到开庭、观庭、复盘、系统…"
+            placeholder="跳转到开庭、研究、观庭、复盘、系统…"
             className="h-10 w-full border-b border-border bg-transparent px-3 text-[13px] outline-none placeholder:text-muted-foreground"
           />
           <Command.List className="max-h-80 overflow-y-auto p-1">

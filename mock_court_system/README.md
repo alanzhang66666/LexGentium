@@ -1,8 +1,17 @@
-# LexGentium 0.8
+# LexGentium 0.8 — 工程说明
 
-国际商事仲裁听证仿真：Next.js 工作台 + FastAPI 多智能体后端。一场听证一个 `session_id`，**开庭 → 观庭 → 复盘**。
+[中文](../README.md) · [English](../README.en.md) · [本页 English](README.en.md)
 
-引擎内部仍用 CD / DD / CI 任务标签（申请准备、答辩准备、仲裁听证）。版本 **0.8.0**（`package.json`）。
+这页是 **API / 目录 / 引用**。先跑起来请看根目录 [README.md](../README.md)。
+
+一场听证一个 `session_id`。版本 **0.8.0**。
+
+| 标签 | 人话 |
+|------|------|
+| **CD** | 申请准备 |
+| **DD** | 答辩准备 |
+| **CI** | 仲裁听证 |
+| **`med_*`** | 独立调解，不是庭内和解 |
 
 ## 学术基础
 
@@ -15,17 +24,31 @@
 
 ## 系统架构
 
+```mermaid
+flowchart TB
+  browser["浏览器"] --> next["Next.js :3000 /api/*"]
+  next --> fastapi["FastAPI :8000"]
+
+  fastapi --> conv["会话 / 全案<br/>CD DD CI Sim"]
+  fastapi --> game["GameEngine<br/>Nash / 进化"]
+  fastapi --> med["MediationEngine<br/>HDR 五阶段"]
+  fastapi --> ev["评测<br/>LexEval / J1 / CADD"]
+
+  conv --> runtime["HearingRuntime / PleadRuntime"]
+  game --> orch["CaseOrchestrator"]
+  orch --> runtime
+  runtime --> llm["LLMClient"]
+  runtime --> rag["LawRetriever"]
+  conv --> db[("SQLite data/")]
+  rag --> law[("FAISS + legal_articles")]
 ```
-浏览器 ──► Next.js :3000 /api/* ──► FastAPI :8000
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-                 会话/全案          GameEngine       MediationEngine
-                 CD DD CI Sim       Nash / 进化      HDR 五阶段
-                    │                 │                 │
-                    └──────── HearingRuntime / PleadRuntime ────────┘
-                                      │
-                         SQLite + 法条 FAISS/BM25
+
+```mermaid
+flowchart LR
+  session["session_id"] --> task["task_id 全案"]
+  session --> gid["game_id 博弈"]
+  session --> rid["report_id 对照"]
+  medid["med_* 独立调解"] -.-> session
 ```
 
 生产路径：CI 走 `HearingRuntime`（`CI_USE_GRAPH`），CD/DD 走 `PleadRuntime`（`PLEAD_USE_RUNTIME`）。全案由 `CaseOrchestrator` 编排；博弈 `GameEngine` 包一层编排器。`/mediation` 是独立调解；庭内 CI 和解仍走会话流。
@@ -37,8 +60,9 @@
 | 组 | 路由 |
 |----|------|
 | 开庭 | `/conversation` `/conversation/[id]` `/full-simulation` `/mediation` |
+| 研究 | `/research` `/research/packs/[dataset]/[cluster]`（RESEARCH 标注工作台） |
 | 观庭 | `/court3d` `/court3d/[id]` `/court3d/replay` |
-| 复盘 | `/evaluation`（对照 / 策略 / 合规）`/evaluation/reports/[id]` |
+| 复盘 | `/evaluation`（对照 / 策略 / 合规 / 研究）`/evaluation/reports/[id]` |
 | 系统 | `/login` `/register` `/system` `/settings` `/database` `/api-history` `/simulate` |
 
 `/login` 测通已有 LLM；`/register` 写入配置。都是 `sessionStorage` 软解锁，没有用户表。设了 `API_TOKEN` 时请求带 `Authorization`。
@@ -47,8 +71,9 @@
 
 ## 快速启动
 
+两终端，都在本目录：
+
 ```bash
-cd mock_court_system
 pip install -r requirements.txt
 npm install
 cp .env.example .env          # LLM_API_KEY、LLM_BASE_URL、LLM_MODEL
@@ -56,9 +81,9 @@ python api_server.py          # http://localhost:8000
 npm run dev                   # http://localhost:3000
 ```
 
-打开 `/register` 或 `/login`，再进 `/conversation`。3D：`/court3d`；离线回放：`/court3d/replay`。角色替换见 `docs/COURT3D_ASSET_SPEC.md`（`public/court3d/models/` 目前为空，运行时用胶囊人）。
+`/register` 或 `/login` → `/conversation` → `/court3d/{session_id}` → `/evaluation`。
 
-完整步骤：`docs/INSTALL.md`。部署：`docs/DEPLOY.md`。
+没放 VRM 时 `public/court3d/models/` 为空，庭上是胶囊人。换角色：`docs/COURT3D_ASSET_SPEC.md`。装不上：`docs/INSTALL.md`。部署：`docs/DEPLOY.md`。
 
 ## 目录结构
 

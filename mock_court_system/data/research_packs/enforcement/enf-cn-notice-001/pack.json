@@ -1,0 +1,694 @@
+{
+  "schema_version": "1",
+  "dataset_id": "enforcement",
+  "cluster_id": "enf-cn-notice-001",
+  "pack_version": "0.1.0-draft",
+  "task_type": "enforcement_nyc",
+  "caption": {
+    "case_name": "申请人甲贸易有限公司申请承认和执行新加坡国际仲裁中心仲裁裁决案（研究样例）",
+    "case_number": "SAMPLE-ENF-2019-001",
+    "court": "unknown",
+    "date": "unknown",
+    "source": "researcher draft; not a published judgment",
+    "procedure_chain": [
+      "合同订立与仲裁条款",
+      "新加坡 SIAC 仲裁",
+      "组庭与开庭通知（送达事实未知）",
+      "缺席裁决",
+      "向中国内地法院申请承认和执行",
+      "被申请人提出未获适当通知抗辩"
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "001",
+      "title": "承认执行研究样例叙事（研究者整理）",
+      "filename": "001.txt",
+      "source_tier": "researcher",
+      "language": "zh",
+      "review_state": "pending",
+      "notes": "",
+      "original_ref": {
+        "raw_id": "B-SAMPLE-001",
+        "raw_locator": "research_packs/enforcement/enf-cn-notice-001/documents/001.txt",
+        "catalog_no": "",
+        "workbook_sheet": "01记录文书"
+      },
+      "source_form": "later_restatement",
+      "completeness": "excerpt"
+    },
+    {
+      "document_id": "002",
+      "title": "纽约公约第五条正式中英文本摘录",
+      "filename": "002.txt",
+      "source_tier": "historical",
+      "language": "zh-en",
+      "review_state": "pending",
+      "notes": "",
+      "original_ref": {
+        "raw_id": "B-NYC-V",
+        "raw_locator": "research_packs/enforcement/enf-cn-notice-001/documents/002.txt",
+        "catalog_no": "",
+        "workbook_sheet": "03来源登记"
+      },
+      "source_form": "official_full",
+      "completeness": "excerpt"
+    }
+  ],
+  "procedural_facts": [
+    {
+      "source_ids": [
+        "001:p1",
+        "001:p2"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "样例设定仲裁地；待法学确认是否纳入研究范围。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-seat",
+      "field_key": "award_seat",
+      "value": "新加坡"
+    },
+    {
+      "source_ids": [
+        "001:p2"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-institution",
+      "field_key": "arbitration_institution",
+      "value": "SIAC"
+    },
+    {
+      "source_ids": [
+        "001:p1",
+        "001:p2"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "具体管辖法院未知。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-forum",
+      "field_key": "enforcement_forum",
+      "value": "中国内地法院"
+    },
+    {
+      "source_ids": [
+        "001:p5"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "是否适当通知及送达日期保持未知，禁止补造。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "unsupported",
+      "disclosure_status": "undisclosed",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-notice",
+      "field_key": "notice_of_proceedings",
+      "value": "unknown"
+    },
+    {
+      "source_ids": [
+        "001:p5"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "procedural_record",
+      "support_status": "unsupported",
+      "disclosure_status": null,
+      "missing_code": "UV",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-award-date",
+      "field_key": "award_date",
+      "value": "unknown"
+    }
+  ],
+  "party_claims": [
+    {
+      "source_ids": [
+        "001:p2",
+        "001:p3"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "applicant",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-claim-applicant",
+      "party": "applicant",
+      "claim_text": "请求承认并执行新加坡 SIAC 裁决；主张组庭与开庭通知已按合同最后为人所知地址发出。",
+      "facts": "合同含 SIAC 条款；申请人称已向合同地址寄送通知；被申请人未出庭后作出裁决。",
+      "norms": "承认及执行地程序 + 纽约公约承认执行框架（具体国内法条待复核）。",
+      "reasoning": "通知已按约定地址发出，缺席不影响裁决的可执行性。"
+    },
+    {
+      "source_ids": [
+        "001:p4",
+        "002:zh-v-1-b"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-claim-respondent",
+      "party": "respondent",
+      "claim_text": "请求拒绝承认及执行：未接获指派仲裁员或仲裁程序的适当通知，未能申辩。",
+      "facts": "合同地址在争议前已不使用；卷内未见完整送达凭证。送达与地址有效性本身仍为未知。",
+      "norms": "纽约公约第五条第一项（乙）款。",
+      "reasoning": "欠缺适当通知或未能申辩时，执行地主管机关得依该造请求拒予承认及执行。"
+    }
+  ],
+  "court_findings": [
+    {
+      "source_ids": [],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "样例包无已核对裁定。补入真实文书前不得填写认定结论。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "unsupported",
+      "disclosure_status": null,
+      "missing_code": "NR",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-finding-outcome",
+      "finding": "unknown",
+      "reasons": "unknown"
+    }
+  ],
+  "legal_bases": [
+    {
+      "source_ids": [
+        "002:zh-v-1-b",
+        "002:en-v-1-b"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-basis-v1b",
+      "rule_id": "nyc-v-1-b",
+      "rule_version": "1958-un-official",
+      "citation": "纽约公约第五条第一项（乙）款",
+      "application_note": "通知与申辩机会抗辩。国内转化条文待法学复核，本包不编造条号。"
+    }
+  ],
+  "material_gaps": [
+    {
+      "gap_id": "enf-gap-award",
+      "description": "完整仲裁裁决书未收入本包。",
+      "related_field": "award_text",
+      "related_item_ids": [],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "本样例包已收录叙事与公约摘录；裁决书、送达凭证、裁定未收录。",
+      "impact": "通知是否适当、执行结果均不能定为历史事实。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-service",
+      "description": "组庭/开庭通知的送达凭证与实际送达日期未知。",
+      "related_field": "notice_of_proceedings",
+      "related_item_ids": [
+        "enf-fact-notice"
+      ],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "本样例包已收录叙事与公约摘录；裁决书、送达凭证、裁定未收录。",
+      "impact": "通知是否适当、执行结果均不能定为历史事实。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-address",
+      "description": "争议发生时合同地址是否仍为有效通讯地址未知。",
+      "related_field": "notice_of_proceedings",
+      "related_item_ids": [],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "本样例包已收录叙事与公约摘录；裁决书、送达凭证、裁定未收录。",
+      "impact": "通知是否适当、执行结果均不能定为历史事实。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-prc-statute",
+      "description": "中国内地承认执行的具体程序法条与司法解释条号待法学指定，初稿不编造。",
+      "related_field": "legal_bases",
+      "related_item_ids": [],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "本样例包已收录叙事与公约摘录；裁决书、送达凭证、裁定未收录。",
+      "impact": "通知是否适当、执行结果均不能定为历史事实。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-ruling",
+      "description": "执行法院裁定及理由未收录。",
+      "related_field": "court_findings",
+      "related_item_ids": [
+        "enf-finding-outcome"
+      ],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "本样例包已收录叙事与公约摘录；裁决书、送达凭证、裁定未收录。",
+      "impact": "通知是否适当、执行结果均不能定为历史事实。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "source_anchors": [
+    {
+      "source_id": "001:p1",
+      "document_id": "001",
+      "locator": "p1",
+      "start_offset": 149,
+      "end_offset": 298,
+      "quote": "争点集中于《承认及执行外国仲裁裁决公约》（1958年纽约公约）第五条第一项（乙）款",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p2",
+      "document_id": "001",
+      "locator": "p2",
+      "start_offset": 298,
+      "end_offset": 422,
+      "quote": "合同含新加坡国际仲裁中心（SIAC）仲裁条款",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p3",
+      "document_id": "001",
+      "locator": "p3",
+      "start_offset": 422,
+      "end_offset": 513,
+      "quote": "仲裁机构已按被申请人在合同中载明的最后为人所知地址寄送组庭通知与开庭通知",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p4",
+      "document_id": "001",
+      "locator": "p4",
+      "start_offset": 513,
+      "end_offset": 625,
+      "quote": "其未接获指派仲裁员或仲裁程序的适当通知，因而未能到庭申辩",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 625,
+      "end_offset": 724,
+      "quote": "以下事项在本包中保持未知，禁止为走完仿真而补造",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p6",
+      "document_id": "001",
+      "locator": "p6",
+      "start_offset": 724,
+      "end_offset": null,
+      "quote": "程序链（研究者归纳，待法学复核）",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:zh-v-1-b",
+      "document_id": "002",
+      "locator": "zh-v-1-b",
+      "start_offset": 348,
+      "end_offset": 405,
+      "quote": "受裁决援用之一造未接获关于指派仲裁员或仲裁程序之适当通知，或因他故，致未能申辩者",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:en-v-1-b",
+      "document_id": "002",
+      "locator": "en-v-1-b",
+      "start_offset": 733,
+      "end_offset": null,
+      "quote": "was not given proper notice of the appointment of the arbitrator or of the arbitration proceedings",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:zh-v-chapeau",
+      "document_id": "002",
+      "locator": "zh-v-chapeau",
+      "start_offset": 169,
+      "end_offset": 251,
+      "quote": "裁决唯有于受裁决援用之一造向声请承认及执行地之主管机关提具证据证明有下列情形之一时",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "argument_records": [
+    {
+      "source_ids": [
+        "001:p3"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "applicant",
+      "speech_type": "party_claim",
+      "support_status": "unsupported",
+      "disclosure_status": "disputed",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "enf-arg-applicant",
+      "target_id": "enf-claim-applicant",
+      "document_id": "001",
+      "kind": "researcher",
+      "claim": "请求承认并执行 SIAC 裁决：通知已按合同地址发出。",
+      "reasoning": "缺席不影响可执行性，须以可见通知材料为限。",
+      "assumptions": "送达是否实际到达保持未知。",
+      "rebuttal_target": "",
+      "target_part": "",
+      "action": "first_raised",
+      "fact_ids": [
+        "enf-fact-institution",
+        "enf-fact-notice"
+      ],
+      "rule_ids": [
+        "nyc-v-1-b"
+      ],
+      "stage": "enforcement"
+    },
+    {
+      "source_ids": [
+        "001:p4",
+        "002:zh-v-1-b"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "enf-arg-respondent",
+      "target_id": "enf-claim-respondent",
+      "document_id": "001",
+      "kind": "researcher",
+      "claim": "未获适当通知，未能申辩，应拒绝承认及执行。",
+      "reasoning": "纽约公约第五条第一项（乙）款由受裁决援用之一造举证。",
+      "assumptions": "送达凭证与地址有效性未知，不得补造。",
+      "rebuttal_target": "enf-arg-applicant",
+      "target_part": "适当通知已发出",
+      "action": "first_raised",
+      "fact_ids": [
+        "enf-fact-notice"
+      ],
+      "rule_ids": [
+        "nyc-v-1-b"
+      ],
+      "stage": "enforcement"
+    }
+  ],
+  "evidence_links": [
+    {
+      "link_id": "enf-link-app-source",
+      "object_id": "enf-arg-applicant",
+      "relation": "source_support",
+      "evidence_id": "001:p3",
+      "field": "claim",
+      "purpose": "申请人关于寄送通知的陈述",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-app-rule",
+      "object_id": "enf-arg-applicant",
+      "relation": "rule_basis",
+      "evidence_id": "nyc-v-1-b",
+      "field": "norms",
+      "purpose": "承认执行框架下的通知抗辩条款",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-app-fact",
+      "object_id": "enf-arg-applicant",
+      "relation": "fact_basis",
+      "evidence_id": "enf-fact-notice",
+      "field": "facts",
+      "purpose": "通知事实本身为未知",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-resp-source",
+      "object_id": "enf-arg-respondent",
+      "relation": "source_support",
+      "evidence_id": "001:p4",
+      "field": "",
+      "purpose": "被申请人未获通知的主张",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-resp-rule",
+      "object_id": "enf-arg-respondent",
+      "relation": "rule_basis",
+      "evidence_id": "002:zh-v-1-b",
+      "field": "",
+      "purpose": "公约第五条第一项（乙）款原文",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-rebut",
+      "object_id": "enf-arg-respondent",
+      "relation": "rebuttal_target",
+      "evidence_id": "enf-arg-applicant",
+      "field": "",
+      "purpose": "针对申请人已通知主张",
+      "limits": ""
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "nyc-v",
+      "rule_version": "1958-un-official",
+      "title": "纽约公约第五条（拒予承认及执行）",
+      "text": "第五条列明依申请拒绝及依职权拒绝承认执行的事由。本卡仅收录条文，不预判本案结果。",
+      "source": "Convention on the Recognition and Enforcement of Foreign Arbitral Awards (1958)",
+      "applicability_conditions": [
+        "外国仲裁裁决的承认与执行",
+        "执行地为缔约国主管机关"
+      ],
+      "controversies": [
+        "适当通知的证明标准在不同法域并不统一"
+      ],
+      "usage_boundary": "不得把本仿真流程等同于某一法域的实际审查程序。",
+      "source_ids": [
+        "002:zh-v-chapeau",
+        "002:zh-v-1-b"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "rule_id": "nyc-v-1-b",
+      "rule_version": "1958-un-official",
+      "title": "纽约公约第五条第一项（乙）款",
+      "text": "受裁决援用之一造未接获关于指派仲裁员或仲裁程序之适当通知，或因他故，致未能申辩者。",
+      "source": "NYC Art. V(1)(b)",
+      "applicability_conditions": [
+        "由受裁决援用之一造举证并请求拒绝"
+      ],
+      "controversies": [
+        "合同最后为人所知地址是否构成适当通知"
+      ],
+      "usage_boundary": "本样例只用于通知与陈述争点，不扩展到公共政策或其他抗辩。",
+      "source_ids": [
+        "002:zh-v-1-b",
+        "002:en-v-1-b"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "task_labels": {
+    "task_type": "enforcement_nyc",
+    "enforcement_forum": "CN",
+    "procedure_type": "recognition_and_enforcement",
+    "convention_issues": [
+      "nyc-v-1-b"
+    ],
+    "notice_events": [
+      {
+        "source_ids": [
+          "001:p3"
+        ],
+        "source_tier": "researcher",
+        "review_state": "pending",
+        "notes": "",
+        "revisions": [],
+        "speaker": "applicant",
+        "speech_type": "party_claim",
+        "support_status": "unsupported",
+        "disclosure_status": "disputed",
+        "missing_code": "UV",
+        "conflict_values": [],
+        "original_ref": null,
+        "event_id": "enf-notice-constitution",
+        "document_id": "001",
+        "procedure_id": "siac-arbitration",
+        "notice_name": "组庭通知",
+        "event_type": "sent",
+        "sender": "SIAC",
+        "recipient": "被申请人乙制造有限公司",
+        "channel": "邮寄（申请人主张）",
+        "address": "合同载明的最后为人所知地址",
+        "address_basis": "合同地址；争议发生时是否仍有效为未知",
+        "date_raw": "unknown",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "申请人称已寄送组庭通知。原件未收录。",
+        "opportunity": "unknown",
+        "objection": "被申请人称未接获适当通知。",
+        "court_view": "unknown"
+      },
+      {
+        "source_ids": [
+          "001:p3",
+          "001:p4"
+        ],
+        "source_tier": "researcher",
+        "review_state": "pending",
+        "notes": "",
+        "revisions": [],
+        "speaker": "applicant",
+        "speech_type": "party_claim",
+        "support_status": "unsupported",
+        "disclosure_status": "disputed",
+        "missing_code": "UV",
+        "conflict_values": [],
+        "original_ref": null,
+        "event_id": "enf-notice-hearing",
+        "document_id": "001",
+        "procedure_id": "siac-arbitration",
+        "notice_name": "开庭通知",
+        "event_type": "sent",
+        "sender": "SIAC",
+        "recipient": "被申请人乙制造有限公司",
+        "channel": "邮寄（申请人主张）",
+        "address": "合同载明的最后为人所知地址",
+        "address_basis": "合同地址；争议发生时是否仍有效为未知",
+        "date_raw": "unknown",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "申请人称已寄送开庭通知。原件未收录。",
+        "opportunity": "unknown",
+        "objection": "被申请人称未能到庭申辩。",
+        "court_view": "unknown"
+      }
+    ],
+    "role_protocol": [],
+    "review_state": "pending"
+  },
+  "reference": {
+    "reference_version": "0.1.0-draft",
+    "gold_labels": {
+      "convention_issue": "nyc-v-1-b",
+      "outcome": "unknown"
+    },
+    "acceptable_paths": [],
+    "notes": "初稿无已核对裁判结果。本层不得写入角色可见快照或模型提示词。"
+  },
+  "review_state": "pending",
+  "review_records": [
+    {
+      "review_state": "pending",
+      "reviewer": "tech-draft",
+      "reviewed_at": "2026-09-12",
+      "note": "技术初稿：六栏已铺、身份已隔离；待法学确认研究范围与争点。"
+    }
+  ],
+  "notes": "承认执行案件包初稿。案号 SAMPLE-ENF-2019-001 仅供展示，主键为 dataset_id+cluster_id+pack_version。全部字段 pending。"
+}

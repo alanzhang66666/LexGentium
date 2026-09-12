@@ -1,4 +1,4 @@
-export type NavGroupId = "hearing" | "view" | "review" | "system"
+export type NavGroupId = "hearing" | "research" | "view" | "review" | "system"
 
 export type NavAction = {
   id: string
@@ -11,6 +11,7 @@ export type NavAction = {
 
 export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
   { id: "hearing", label: "开庭" },
+  { id: "research", label: "研究" },
   { id: "view", label: "观庭" },
   { id: "review", label: "复盘" },
   { id: "system", label: "系统" },
@@ -58,6 +59,21 @@ export const NAV_ACTIONS: NavAction[] = [
     title: "独立调解",
     description: "五阶段 HDR，不改庭内和解",
     href: "/mediation",
+  },
+  {
+    id: "research-packs",
+    group: "research",
+    title: "材料标注",
+    description: "原文、提取与字段回查",
+    href: "/research",
+  },
+  {
+    id: "research-eval",
+    group: "research",
+    title: "研究评价",
+    description: "六维量表、复核与导出",
+    href: (sessionId) =>
+      sessionId ? `/evaluation?session=${encodeURIComponent(sessionId)}&pane=research` : "/evaluation?pane=research",
   },
   {
     id: "view-session",
@@ -113,6 +129,15 @@ export const NAV_ACTIONS: NavAction[] = [
     description: "本场听证步骤完成情况",
     href: (sessionId) =>
       sessionId ? `/evaluation?session=${encodeURIComponent(sessionId)}&pane=compliance` : "/evaluation?pane=compliance",
+    requiresSession: true,
+  },
+  {
+    id: "review-research",
+    group: "review",
+    title: "研究量表",
+    description: "本场六维评价与导出",
+    href: (sessionId) =>
+      sessionId ? `/evaluation?session=${encodeURIComponent(sessionId)}&pane=research` : "/evaluation?pane=research",
     requiresSession: true,
   },
   {
@@ -175,6 +200,7 @@ export function isNavActionDisabled(action: NavAction, sessionId: string | null)
 }
 
 export function activeNavGroup(pathname: string): NavGroupId | null {
+  if (pathname.startsWith("/research")) return "research"
   if (pathname.startsWith("/evaluation")) return "review"
   if (pathname.startsWith("/court3d")) return "view"
   if (

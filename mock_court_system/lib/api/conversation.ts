@@ -43,6 +43,51 @@ export function getCompliance(sessionId: string) {
   )
 }
 
+export function deriveConversation(body: {
+  session_id: string
+  visible_materials?: Record<string, unknown>
+  experiment_conditions?: Record<string, unknown>
+  model_config_snapshot?: Record<string, unknown>
+}) {
+  return apiFetch<ConversationStartResponse>("/api/conversation/derive", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}
+
+export function getSessionClaims(sessionId: string) {
+  return apiFetch<{
+    session_id: string
+    research: unknown
+    claim_chain: unknown[]
+    task_protocol: unknown
+    stop_reason: string | null
+  }>(`/api/conversation/${encodeURIComponent(sessionId)}/claims`)
+}
+
+export function postSessionClaim(
+  sessionId: string,
+  body: {
+    role: string
+    action: string
+    fact?: string
+    norm?: string
+    reasoning?: string
+    claim_id?: string
+    target_claim_id?: string
+    source_ids?: string[]
+  },
+) {
+  return apiFetch<{
+    event: unknown
+    claim_chain: unknown[]
+    research: unknown
+  }>(`/api/conversation/${encodeURIComponent(sessionId)}/claims`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}
+
 export function importConversation(body: {
   scenario: Scenario
   case_id: string

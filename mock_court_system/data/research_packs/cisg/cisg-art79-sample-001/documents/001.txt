@@ -1,0 +1,32 @@
+【历史文本 · 《联合国国际货物销售合同公约》第七十九条】
+dataset_id=cisg  cluster_id=cisg-art79-sample-001  document_id=001
+来源分层：historical。CISG 正式中文本 / Official English text.
+复核状态：law_reviewed（条文本身）；适用争议另见标注。
+
+[zh-1] （1）当事人对不履行义务，不负责任，如果他能证明此种不履行义务，是由于某种非他所能控制的障碍，而且对于这种障碍，没有理由预期他在订立合同时能考虑到或能避免或克服它或它的后果。
+
+[zh-2] （2）如果当事人不履行义务是由于他所雇用履行合同的全部或一部分规定的第三方不履行义务所致，该当事人只有在以下情况下才能免除责任：
+
+[zh-2a] （a）他按照上一款的规定应免除责任，和
+
+[zh-2b] （b）假如该项的规定也适用于他所雇用的人，这个人也同样会免除责任。
+
+[zh-3] （3）本条所规定的免责对障碍存在的期间有效。
+
+[zh-4] （4）不履行义务的一方必须将障碍及其对他履行义务能力的影响通知另一方。如果该项通知在不履行义务的一方已知道或理应知道此一障碍后一段合理时间内仍未为另一方收到，则他对由于另一方未收到通知而造成的损害负赔偿责任。
+
+[zh-5] （5）本条规定不妨碍任何一方行使本公约规定的要求损害赔偿以外的任何权利。
+
+[en-1] (1) A party is not liable for a failure to perform any of his obligations if he proves that the failure was due to an impediment beyond his control and that he could not reasonably be expected to have taken the impediment into account at the time of the conclusion of the contract or to have avoided or overcome it or its consequences.
+
+[en-2] (2) If the party's failure is due to the failure by a third person whom he has engaged to perform the whole or a part of the contract, that party is exempt from liability only if:
+
+[en-2a] (a) he is exempt under the preceding paragraph; and
+
+[en-2b] (b) the person whom he has so engaged would be so exempt if the provisions of that paragraph were applied to him.
+
+[en-3] (3) The exemption provided by this article has effect for the period during which the impediment exists.
+
+[en-4] (4) The party who fails to perform must give notice to the other party of the impediment and its effect on his ability to perform. If the notice is not received by the other party within a reasonable time after the party who fails to perform knew or ought to have known of the impediment, he is liable for damages resulting from such non-receipt.
+
+[en-5] (5) Nothing in this article prevents either party from exercising any right other than to claim damages under this Convention.

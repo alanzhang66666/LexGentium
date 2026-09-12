@@ -28,6 +28,27 @@ export function listCases(limit = 40, split = "test") {
   )
 }
 
+export function getCaseFull(caseId: string, split?: string) {
+  const query = split ? `?split=${encodeURIComponent(split)}` : ""
+  return apiFetch<{ case: Record<string, unknown>; case_id: string }>(
+    `/api/reference/cases/${encodeURIComponent(caseId)}${query}`,
+  )
+}
+
+export function listResearchPacks(dataset?: string) {
+  const query = dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""
+  return apiFetch<{ packs: Array<Record<string, unknown>>; total: number }>(
+    `/api/reference/research-packs${query}`,
+  )
+}
+
+export function getResearchPack(dataset: string, cluster: string, packVersion?: string) {
+  const query = packVersion ? `?pack_version=${encodeURIComponent(packVersion)}` : ""
+  return apiFetch<Record<string, unknown>>(
+    `/api/reference/research-packs/${encodeURIComponent(dataset)}/${encodeURIComponent(cluster)}${query}`,
+  )
+}
+
 export function runSimulate(body: {
   scenario: string
   case_id: string

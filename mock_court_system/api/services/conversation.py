@@ -21,7 +21,12 @@ def bind_session_link(session_id: Optional[str], **updates: Optional[str]) -> No
 
 
 def session_payload(record) -> Dict[str, Any]:
-    meta = state._infer_conversation_meta(record.scenario, list(record.dialog_history), record.session_id)
+    from api.services.claims import session_claim_bundle
+
+    meta = state._infer_conversation_meta(
+        record.scenario, list(record.dialog_history), record.session_id, record.input_json
+    )
+    claims = session_claim_bundle(record)
     return {
         "session_id": record.session_id,
         "scenario": record.scenario,
@@ -31,6 +36,10 @@ def session_payload(record) -> Dict[str, Any]:
         "message_count": record.message_count,
         "dialog_history": list(record.dialog_history),
         "links": compact_links(record.input_json),
+        "research": claims.get("research"),
+        "claim_chain": claims.get("claim_chain") or [],
+        "task_protocol": claims.get("task_protocol"),
+        "stop_reason": claims.get("stop_reason"),
         **meta,
     }
 
@@ -56,21 +65,174 @@ def is_degraded(text: str) -> bool:
     return text.startswith("[离线模式回复]") or "（离线演示模板" in text
 
 
-def start_session(scenario: str, case_id: str, input_json: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def _trim_optional(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _hydrate_start_input(
+    case_id: str,
+    input_json: Optional[Dict[str, Any]],
+    *,
+    dataset_id: Optional[str],
+    cluster_id: Optional[str],
+    pack_version: Optional[str],
+    derived_from: Optional[str],
+    visible_materials: Optional[Dict[str, Any]] = None,
+    experiment_conditions: Optional[Dict[str, Any]] = None,
+    model_config: Optional[Dict[str, Any]] = None,
+    visibility_grants: Optional[List[Dict[str, Any]]] = None,
+) -> tuple[str, Dict[str, Any], Optional[str]]:
+    """Freeze a research pack or a civil 1K row into the session input_json."""
+    from api.services.cases import get_case_full, hydrate_civil_input
+    from api.services.materials import freeze_role_snapshot
+
+    payload = dict(input_json or {})
+    payload.pop("reference", None)
+    nested = {key: payload.pop(key, None) for key in ("dataset_id", "cluster_id", "pack_version", "derived_from")}
+    dataset_id = _trim_optional(dataset_id) or _trim_optional(nested.get("dataset_id") if isinstance(nested.get("dataset_id"), str) else None)
+    cluster_id = _trim_optional(cluster_id) or _trim_optional(nested.get("cluster_id") if isinstance(nested.get("cluster_id"), str) else None)
+    pack_version = _trim_optional(pack_version) or _trim_optional(nested.get("pack_version") if isinstance(nested.get("pack_version"), str) else None)
+    derived_from = _trim_optional(derived_from) or _trim_optional(nested.get("derived_from") if isinstance(nested.get("derived_from"), str) else None)
+    if visible_materials is None and isinstance(payload.get("visible_materials"), dict):
+        visible_materials = payload.pop("visible_materials")
+    if experiment_conditions is None and isinstance(payload.get("experiment_conditions"), dict):
+        experiment_conditions = payload.pop("experiment_conditions")
+    if model_config is None and isinstance(payload.get("model_config"), dict):
+        model_config = payload.pop("model_config")
+    if visibility_grants is None and isinstance(payload.get("visibility_grants"), list):
+        visibility_grants = payload.pop("visibility_grants")
+
+    research_fields = (dataset_id, cluster_id, pack_version)
+    if any(research_fields) and not all(research_fields):
+        raise HTTPException(
+            status_code=400,
+            detail="dataset_id, cluster_id, and pack_version are required together",
+        )
+
+    run_id: Optional[str] = None
+    if dataset_id and cluster_id and pack_version:
+        research = freeze_role_snapshot(
+            dataset_id,
+            cluster_id,
+            pack_version,
+            derived_from=derived_from,
+            model_config=model_config,
+            visible_materials=visible_materials,
+            experiment_conditions=experiment_conditions,
+            visibility_grants=visibility_grants,
+        )
+        if "reference" in research:
+            raise HTTPException(status_code=500, detail="role snapshot leaked reference")
+        payload["research"] = research
+        run_id = research.get("run_id")
+        if not case_id.strip():
+            case_id = cluster_id
+        return case_id, payload, run_id
+
+    if case_id.strip() and get_case_full(case_id):
+        payload = hydrate_civil_input(case_id, payload)
+    return case_id, payload, run_id
+
+
+def start_session(
+    scenario: str,
+    case_id: str,
+    input_json: Optional[Dict[str, Any]] = None,
+    *,
+    dataset_id: Optional[str] = None,
+    cluster_id: Optional[str] = None,
+    pack_version: Optional[str] = None,
+    derived_from: Optional[str] = None,
+    visible_materials: Optional[Dict[str, Any]] = None,
+    experiment_conditions: Optional[Dict[str, Any]] = None,
+    model_config: Optional[Dict[str, Any]] = None,
+    visibility_grants: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
     scenario = _normalize_scenario(scenario)
+    case_id = (case_id or "").strip()
+    case_id, hydrated, run_id = _hydrate_start_input(
+        case_id,
+        input_json,
+        dataset_id=dataset_id,
+        cluster_id=cluster_id,
+        pack_version=pack_version,
+        derived_from=derived_from,
+        visible_materials=visible_materials,
+        experiment_conditions=experiment_conditions,
+        model_config=model_config,
+        visibility_grants=visibility_grants,
+    )
+    if not case_id:
+        raise HTTPException(status_code=400, detail="case_id is required")
     session_id = state.generate_session_id()
     record = state.conversation_store.create(
         session_id=session_id,
         scenario=scenario,
         case_id=case_id,
-        input_json=input_json or {},
+        input_json=hydrated,
     )
-    return {
+    if run_id:
+        from api.services.claims import register_run_from_session
+
+        register_run_from_session(session_id, hydrated)
+    result = {
         "session_id": session_id,
         "scenario": scenario,
         "case_id": case_id,
         "created_at": record.created_at,
     }
+    if run_id:
+        result["run_id"] = run_id
+        result["dataset_id"] = (hydrated.get("research") or {}).get("dataset_id")
+        result["cluster_id"] = (hydrated.get("research") or {}).get("cluster_id")
+        result["pack_version"] = (hydrated.get("research") or {}).get("pack_version")
+        result["derived_from"] = (hydrated.get("research") or {}).get("derived_from")
+        result["materials_hash"] = (hydrated.get("research") or {}).get("materials_hash")
+    return result
+
+
+def derive_session(
+    session_id: str,
+    *,
+    visible_materials: Optional[Dict[str, Any]] = None,
+    experiment_conditions: Optional[Dict[str, Any]] = None,
+    model_config: Optional[Dict[str, Any]] = None,
+    visibility_grants: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Mint a new run_id when materials, rules, visibility, or model change."""
+    from core.research.runtime import conditions_changed, merge_condition_overrides, research_block
+
+    record = require_session(session_id)
+    research = research_block(record.input_json)
+    if not research:
+        raise HTTPException(status_code=400, detail="civil session has no research run to derive")
+    proposed = merge_condition_overrides(
+        research,
+        visible_materials=visible_materials,
+        experiment_conditions=experiment_conditions,
+        model_config=model_config,
+        visibility_grants=visibility_grants,
+    )
+    if not conditions_changed(research, proposed):
+        raise HTTPException(
+            status_code=400,
+            detail="conditions unchanged; resume the same run_id instead of minting a derived run",
+        )
+    return start_session(
+        record.scenario,
+        record.case_id,
+        dataset_id=research.get("dataset_id"),
+        cluster_id=research.get("cluster_id"),
+        pack_version=research.get("pack_version"),
+        derived_from=research.get("run_id"),
+        visible_materials=proposed.get("visible_materials"),
+        experiment_conditions=proposed.get("experiment_conditions"),
+        model_config=proposed.get("model_config"),
+        visibility_grants=proposed.get("visibility_grants"),
+    )
 
 
 def import_session(
@@ -166,21 +328,36 @@ def persist_agent_reply(record, role: str, text: str) -> None:
     state.conversation_store.save(record)
 
 
-def _with_session_id(record) -> Dict[str, Any]:
+def _with_session_id(record, role: Optional[str] = None) -> Dict[str, Any]:
+    from core.research.runtime import has_research, role_model_input
+
     payload = dict(record.input_json or {})
     payload["_session_id"] = record.session_id
-    return payload
+    if not has_research(payload):
+        return payload
+    filtered = role_model_input(payload, role)
+    filtered["_session_id"] = record.session_id
+    return filtered
+
+
+def _speaking_role(record, role: Optional[str] = None) -> Optional[str]:
+    if role:
+        return role
+    history = list(record.dialog_history or [])
+    if history:
+        return str(history[-1].get("role") or "") or None
+    return None
 
 
 def send_message(session_id: str, message: str, role: Optional[str] = None) -> Dict[str, Any]:
     record = require_session(session_id)
-    append_user_message(record, message, role)
+    user_role = append_user_message(record, message, role)
 
     response_role, response_text, is_finished = state.run_agent_turn(
         scenario=record.scenario,
         case_id=record.case_id,
         dialog_history=record.dialog_history,
-        input_json=_with_session_id(record),
+        input_json=_with_session_id(record, user_role),
     )
     persist_agent_reply(record, response_role, response_text)
 
@@ -208,7 +385,7 @@ async def auto_advance(
             scenario=record.scenario,
             case_id=record.case_id,
             dialog_history=dialog_history,
-            input_json=_with_session_id(record),
+            input_json=_with_session_id(record, _speaking_role(record)),
         )
         dialog_history.append({
             "turn": len(dialog_history),
@@ -219,7 +396,9 @@ async def auto_advance(
         if finished:
             break
 
-        meta = state._infer_conversation_meta(record.scenario, dialog_history, session_id)
+        meta = state._infer_conversation_meta(
+            record.scenario, dialog_history, session_id, record.input_json
+        )
         sim_role = meta.get("next_speaker")
         if not sim_role or sim_role not in auto_roles:
             break
@@ -228,7 +407,7 @@ async def auto_advance(
             state.sim_agent.simulate_role,
             sim_role,
             dialog_history,
-            record.input_json,
+            _with_session_id(record, sim_role),
             record.scenario,
         )
         dialog_history.append({
@@ -239,7 +418,9 @@ async def auto_advance(
 
     record.dialog_history = dialog_history
     state.conversation_store.save(record)
-    final_meta = state._infer_conversation_meta(record.scenario, dialog_history, session_id)
+    final_meta = state._infer_conversation_meta(
+        record.scenario, dialog_history, session_id, record.input_json
+    )
     return {
         "session_id": session_id,
         "rounds_played": rounds_played,
@@ -281,7 +462,9 @@ def get_compliance(session_id: str) -> Dict[str, Any]:
 
 def finalize_stream_turn(record, session_id: str, role: str, text: str, finished: bool) -> Dict[str, Any]:
     persist_agent_reply(record, role, text)
-    meta = state._infer_conversation_meta(record.scenario, list(record.dialog_history), session_id)
+    meta = state._infer_conversation_meta(
+        record.scenario, list(record.dialog_history), session_id, record.input_json
+    )
     return {
         "type": "final",
         "session_id": session_id,

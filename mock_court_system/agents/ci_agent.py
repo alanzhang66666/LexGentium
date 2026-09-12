@@ -1387,6 +1387,12 @@ class CIAgent(BaseAgent):
                     # 取前 1000 个字符通常足够覆盖核心事实
                     search_query = query_text[:1000]
                     laws = self.law_retriever.search(search_query, top_k=5)
+                    try:
+                        from core.research.runtime import filter_retrieval_snippets
+
+                        laws = filter_retrieval_snippets(laws)
+                    except Exception:
+                        pass
                     if laws:
                         retrieved_laws_text = "\n【参考法条（仅供参考，请优先适用）】：\n" + "\n".join(
                             f"- {l['content']}" for l in laws

@@ -18,6 +18,7 @@ venv/
 dist/
 build/
 *.sqlite3
+data/session_predictions/
 *.tsbuildinfo
 
 # 3D runtime assets (keep gitkeep; large models via LFS/CDN)
