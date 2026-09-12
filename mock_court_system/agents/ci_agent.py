@@ -23,6 +23,7 @@ from core.case_bundle import normalize_case_payload
 from core.judgment_validator import validate_judgment, verify_citations, verify_dispositions, verify_fact_references
 from core.fact_ledger import FactLedger
 from core.issue_graph import IssueGraph, decompose
+from core.irac import IssueIRACReasoner
 from utils import DialogHistory
 import os
 
@@ -77,6 +78,9 @@ class CIAgent(BaseAgent):
             self.log(f"Failed to initialize LawRetriever: {e}")
             print(f"[WARN] LawRetriever 初始化失败，法条增强将不可用: {e}", flush=True)
             self.law_retriever = None
+
+        # 逐争点 IRAC 推理器（依赖检索器单例与 LLM 客户端）
+        self.irac_reasoner = IssueIRACReasoner(self.law_retriever, self.llm)
 
         # 初始化 LangChain Chains
         if self.llm.chat_model:
@@ -1241,6 +1245,18 @@ class CIAgent(BaseAgent):
                 ids = ", ".join(c.fact_id for c in no_ev)
                 ledger_text += f"\n【警告】以下事实主张无任何证据支持，不得写入本院查明：{ids}"
 
+        # 逐争点 IRAC：每争点独立检索法条并推理，结果注入判决
+        irac_text = ""
+        if (getattr(self, "fact_ledger", None) and len(self.fact_ledger.claims)
+                and getattr(self, "irac_reasoner", None) and self.llm.api_key):
+            try:
+                if not len(self.issue_graph.issues):
+                    decompose(self.fact_ledger, self.issue_graph, llm=self.llm)
+                analyses = self.irac_reasoner.reason_all(self.issue_graph, self.fact_ledger)
+                irac_text = "\n" + self.irac_reasoner.render(analyses)
+            except Exception as e:
+                self.log(f"IRAC reasoning failed: {e}")
+
         return f"""
 你现在要扮演“撰写民事判决书的审判长助理”。请严格按照“先思考、后输出 JSON”的方式工作。
 
@@ -1258,7 +1274,7 @@ class CIAgent(BaseAgent):
 
 【证据清单】：
 {ev_text}
-{retrieved_laws_text}{ledger_text}
+{retrieved_laws_text}{ledger_text}{irac_text}
 
 请按以下思维链步骤推理：
 1. 事实认定：基于上述材料，分条写出“本院查明的事实”；

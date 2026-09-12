@@ -391,3 +391,69 @@ def test_verify_fact_references_flags_no_references():
     ledger.add_claim("借款交付", "plaintiff")
     r = verify_fact_references("本院查明：借款已交付。", ledger)
     assert r["no_references"]
+
+
+# ---------- per-issue IRAC ----------
+
+def test_irac_reason_issue_with_fake_llm_and_real_retriever():
+    """逐争点 IRAC：检索白名单 + LLM 结构化输出 + 事实绑定。"""
+    from core.issue_graph import IssueGraph
+    from core.irac import IssueIRACReasoner
+
+    ledger = _make_ledger_with_positions()
+    graph = IssueGraph()
+    graph.add_issue("10万元借款是否实际交付", ["F1"])
+
+    class FakeLLM:
+        def chat_json(self, messages, **k):
+            # 校验提示词包含台账事实与白名单法条
+            prompt = messages[0]["content"]
+            assert "F1" in prompt and "转账记录" in prompt
+            assert "只允许引用" in prompt
+            return {
+                "application": "原告提交转账记录证明交付，被告未提出反证。",
+                "conclusion": "借款交付事实成立。",
+                "disposition_hints": [
+                    {"claim_text": "归还本金10万元", "result": "支持"},
+                ],
+            }
+
+    try:
+        from core.law_retriever import get_shared_law_retriever
+        retriever = get_shared_law_retriever()
+    except Exception:
+        pytest.skip("law db unavailable")
+
+    reasoner = IssueIRACReasoner(retriever, FakeLLM())
+    a = reasoner.reason_issue(graph.issues["I1"], ledger)
+
+    assert a.status == "ok"
+    assert a.fact_ids == ["F1"]
+    assert a.application and a.conclusion
+    assert a.disposition_hints[0]["result"] == "支持"
+    # 检索白名单：law_refs 都来自库内（检索器返回即库内）
+    for ref in a.law_refs:
+        assert ref.startswith("《")
+
+
+def test_irac_render_and_degraded_status():
+    from core.issue_graph import IssueGraph
+    from core.irac import IssueIRACReasoner
+
+    ledger = _make_ledger_with_positions()
+    graph = IssueGraph()
+    graph.add_issue("争点A", ["F1"])
+
+    class FailingLLM:
+        def chat_json(self, messages, **k):
+            raise RuntimeError("llm down")
+
+    reasoner = IssueIRACReasoner(None, FailingLLM())  # 无检索器 + LLM 失败
+    a = reasoner.reason_issue(graph.issues["I1"], ledger)
+    assert a.status == "failed"   # LLM 完全失败（区别于缺字段的 degraded）
+
+    graph.add_issue("争点B", [])
+    reasoner2 = IssueIRACReasoner(None, FailingLLM())
+    analyses = reasoner2.reason_all(graph, ledger)
+    text = reasoner2.render(analyses)
+    assert "[I1]" in text and "分析生成失败" in text
