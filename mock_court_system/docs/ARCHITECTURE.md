@@ -6,14 +6,16 @@
 
 - **前端（Next.js App Router）**：`mock_court_system/app/`
   - 开庭：`/conversation`、`/conversation/[id]`、`/full-simulation`、`/mediation`
+  - 研究：`/research`、`/research/packs/[dataset]/[cluster]`（RESEARCH 标注；无研究包时民事路径不变）
   - 观庭：`/court3d`、`/court3d/[id]`、`/court3d/replay`
-  - 复盘：`/evaluation`（对照 / 策略 / 合规）、`/evaluation/reports/[id]`
+  - 复盘：`/evaluation`（对照 / 策略 / 合规 / 研究）、`/evaluation/reports/[id]`
   - 系统：`/login` `/register`（LLM 软解锁）、`/system`（健康 + 映射表 + 实验面板）、`/settings` `/database` `/api-history` `/simulate`
   - 共享：优先 `lib/api/`；SSE 与个别调试页仍可直接 `fetch`。`lib/session/`、`lib/labels.ts`。配色 `html[data-scheme]`。
 - **后端（FastAPI）**：`mock_court_system/api_server.py`
   - 薄路由：`api/routers/`
-  - 业务：`api/services/`（conversation / simulation / game / evaluation / sse / cases / links）
+  - 业务：`api/services/`（conversation / simulation / game / evaluation / research / claims / materials / sse / cases / links）
   - `api/state.py` 为运行时与智能体入口，SSE 拼包委托 `services.sse`
+  - 研究运行时：`core/research/`（材料视图、停止条件、工作簿只读）
 - **会话存储**：`core/conversation_store.py`，默认 SQLite `data/conversations.sqlite3`
 - **智能体**：`agents/`（CD/DD/CI 提示词与状态机不在本重构范围内）
 
@@ -37,6 +39,7 @@ flowchart LR
 | 档 | 能力 | 页面 |
 |---|---|---|
 | 官方 | 会话 CRUD + stream + auto-advance + import；全案启动/状态/stream；health/config/database/api-history；`POST /evaluate`；`GET /reference/cases`；`/login` `/register` 的 LLM 配置 | 开庭、观庭、复盘、系统 |
+| 研究 | `/research/packs|runs|evaluate|review|compare|export`；会话主张链；选包水合 | `/research`、`/evaluation?pane=research` |
 | 半官方 | compliance；game create/list/get/round/SSE/策略/均衡/评测；独立调解（SQLite） | `/evaluation?pane=strategy`、`/mediation`、观庭绑定 |
 | 实验 | 无状态 `POST /`、`/case/*` 创新（与 `game.py` 会话版并存） | `/simulate`；`/system` 底部实验面板 |
 
@@ -59,6 +62,11 @@ SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation
 ### 4.4 复盘
 - `POST /evaluate` 可选 `session_id`：从会话 `dialog_history` 生成预测，关闭默认预测文件
 - 1:1 别名：`GET /api/evaluation/status/{id}`、`GET /api/evaluation/results`、`GET /api/evaluation/reports/{id}`（UI 仍走 `/api/evaluate`）
+- 研究量表：`/evaluation?pane=research` → `/api/research/evaluate|compare|export`
+
+### 4.4b 研究工作台
+- `/research` → `/api/research/packs|runs` 与 `/api/reference/research-packs`
+- 开庭选包会把研究块写入 `input_json.research`，民事无包时不注入
 
 ### 4.5 调试与实验
 - `/simulate`（系统菜单）→ `POST /api/simulate` → `POST /`（1:1 别名 `POST /api/legacy`，勿改 UI）
@@ -72,7 +80,7 @@ SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation
 - `BACKEND_URL`：Next 代理目标（默认 `http://localhost:8000`）
 - `CONVERSATION_STORE=sqlite|memory`
 - `CONVERSATION_DB_PATH`（默认 `./data/conversations.sqlite3`）
-- `CI_USE_GRAPH` / `PLEAD_USE_RUNTIME` / `LLM_CACHE` / `API_TOKEN`（见 `.env.example`）
+- `CI_USE_GRAPH` / `PLEAD_USE_RUNTIME` / `LLM_CACHE` / `LLM_FAST_MODEL` / `LLM_FAST_MAX_TOKENS` / `CI_MAX_AUTO_TURNS` / `API_TOKEN`（见 `.env.example`）
 
 ## 6. 启动
 
@@ -95,6 +103,8 @@ SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation
 - `CI_LEGACY_ANALYSIS=1`：回合内仍分多次分析调用
 - `LLM_CACHE=0`：关闭 `purpose in {clerk,extract,score}` 且 `temperature<=0.1` 的 SQLite 提示缓存
 - `LLM_FAST_MODEL` / `settings.llm.fast_model`：书记员/抽取/评分用小模型
+- `LLM_FAST_MAX_TOKENS`：上述 JSON 调用的 token 上限（默认 512；判决不截）
+- `CI_MAX_AUTO_TURNS`：全案自动 CI 步数上限（默认 30；live 回合不变）
 
 基线脚本：`python scripts/bench_hearing.py --turns 20`；CD 窗口：`python scripts/bench_plead.py`。
 

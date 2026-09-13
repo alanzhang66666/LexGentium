@@ -183,7 +183,8 @@ A hearing can also link `task_id` (full case), `game_id` (strategy play), and `r
 | [`docs/DEPLOY.md`](mock_court_system/docs/DEPLOY.md) | You need to deploy |
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | You are changing pages or proxies |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | You are running review or offline eval |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | You want the research workbench / RESEARCH path status |
+| [`AGENTS.md`](AGENTS.md) | Read first in a new session: live boundaries |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | Current status as of 2026-09-14; the old 76-item table is archived |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | You are swapping 3D characters |
 | [`归档/README.md`](归档/README.md) | You need filings, papers, or the external inference memo |
 

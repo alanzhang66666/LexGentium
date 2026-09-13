@@ -124,6 +124,14 @@ mock_court_system/
 
 非流式 `POST /conversation/{id}/message` 仅调试。
 
+### 研究（无研究包时民事会话不走这条）
+
+| 端点 | 说明 |
+|------|------|
+| `GET /research/packs` | 列出研究包（含 SAMPLE） |
+| `GET /research/runs` | 运行记录 |
+| `POST /research/evaluate` | 六维量表 |
+
 ### 博弈（复盘「策略推演」；需先为本场开局）
 
 | 端点 | 说明 |
@@ -173,7 +181,9 @@ Web 对照主路是 **`POST /evaluate`**。别名：`/api/evaluation/status|resu
 
 ## 环境旗
 
-见 `.env.example`：`CI_USE_GRAPH`、`PLEAD_USE_RUNTIME`、`LLM_CACHE`、`CI_LEGACY_ANALYSIS`、`API_TOKEN`、`LLM_FAST_MODEL`。
+见 `.env.example`：`CI_USE_GRAPH`、`PLEAD_USE_RUNTIME`、`LLM_CACHE`、`CI_LEGACY_ANALYSIS`、`API_TOKEN`、`LLM_FAST_MODEL`、`LLM_FAST_MAX_TOKENS`、`CI_MAX_AUTO_TURNS`。
+
+`data/research_packs/` 现有两个 SAMPLE（执行通知、CISG 第 79 条），是技术夹具，不是正式研究案。
 
 ## 引用
 

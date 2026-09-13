@@ -124,6 +124,14 @@ The browser calls `/api/*` only. Paths below are FastAPI.
 
 Non-stream `POST /conversation/{id}/message` is debug-only.
 
+### Research (civil sessions without a pack skip this)
+
+| Endpoint | Role |
+|----------|------|
+| `GET /research/packs` | List packs (including SAMPLE) |
+| `GET /research/runs` | Run records |
+| `POST /research/evaluate` | Six-dimension rubric |
+
 ### Game (Review → Strategy; create a game for this hearing first)
 
 | Endpoint | Role |
@@ -173,7 +181,9 @@ Web contrast path is **`POST /evaluate`**. Aliases: `/api/evaluation/status|resu
 
 ## Flags
 
-See `.env.example`: `CI_USE_GRAPH`, `PLEAD_USE_RUNTIME`, `LLM_CACHE`, `CI_LEGACY_ANALYSIS`, `API_TOKEN`, `LLM_FAST_MODEL`.
+See `.env.example`: `CI_USE_GRAPH`, `PLEAD_USE_RUNTIME`, `LLM_CACHE`, `CI_LEGACY_ANALYSIS`, `API_TOKEN`, `LLM_FAST_MODEL`, `LLM_FAST_MAX_TOKENS`, `CI_MAX_AUTO_TURNS`.
+
+`data/research_packs/` currently has two SAMPLE packs (enforcement notice, CISG Art. 79). They are tech fixtures, not formal research cases.
 
 ## Citation
 

@@ -183,7 +183,8 @@ API、BibTeX、更细的架构：[`mock_court_system/README.md`](mock_court_syst
 | [`docs/DEPLOY.md`](mock_court_system/docs/DEPLOY.md) | 要部署 |
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | 要改页面或代理 |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | 要跑复盘或离线评测 |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 要看研究工作台 / RESEARCH 路径是否已接通 |
+| [`AGENTS.md`](AGENTS.md) | 下次开会话前先看：现役边界，避免混线 |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 2026-09-14 现役现状；旧 76 项表已归档 |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | 要换 3D 角色 |
 | [`归档/README.md`](归档/README.md) | 要找申报、参考文献、外仓推理对照稿 |
 
