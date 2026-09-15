@@ -20,8 +20,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, List, Optional, Callable
 
 from core import LLMClient
-from core.case_orchestrator import FullCaseOrchestrator, FullCaseResult, StageResult
-from core.llm_client import is_degraded_json
+from core.case_orchestrator import FullCaseOrchestrator, FullCaseResult
 from core.nash_bargaining import NashBargainingEngine
 from core.nash_equilibrium import (
     NashEquilibriumTracker,
@@ -33,14 +32,6 @@ from core.nash_equilibrium import (
 logger = logging.getLogger("game_engine")
 
 
-_SCORE_KEYS = (
-    "plaintiff_win_rate",
-    "defendant_win_rate",
-    "reasoning_quality",
-    "evidence_strength",
-)
-
-
 @dataclass
 class GameScore:
     plaintiff_win_rate: float = 0.0
@@ -48,27 +39,9 @@ class GameScore:
     reasoning_quality: float = 0.0
     evidence_strength: float = 0.0
     details: Dict[str, Any] = field(default_factory=dict)
-    degraded: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "GameScore":
-        payload = data if isinstance(data, dict) else {}
-        details = payload.get("details")
-        return cls(
-            plaintiff_win_rate=float(payload.get("plaintiff_win_rate") or 0.0),
-            defendant_win_rate=float(payload.get("defendant_win_rate") or 0.0),
-            reasoning_quality=float(payload.get("reasoning_quality") or 0.0),
-            evidence_strength=float(payload.get("evidence_strength") or 0.0),
-            details=details if isinstance(details, dict) else {},
-            degraded=bool(payload.get("degraded")),
-        )
-
-    @classmethod
-    def offline(cls, reason: str) -> "GameScore":
-        return cls(degraded=True, details={"reason": reason, "analysis": ""})
 
 
 @dataclass
@@ -367,8 +340,8 @@ class GameEngine:
         case_info: Optional[Dict[str, Any]] = None,
     ) -> GameScore:
         """从判决书中提取博弈评分；若提供 case_info 则与诉请覆盖规则分混合。"""
-        if not ci_result or not getattr(ci_result, "final_document", None):
-            return GameScore.offline("missing_final_document")
+        if not ci_result or not ci_result.final_document:
+            return GameScore()
 
         judgment_text = ci_result.final_document[:3000]
 
@@ -378,23 +351,18 @@ class GameEngine:
                     judgment_text=judgment_text
                 )}],
                 temperature=0.1,
-                purpose="score",
-                tier="fast",
             )
         except Exception as e:
             logger.warning(f"评分 LLM 调用失败: {e}")
             result = {}
 
-        if is_degraded_json(result) or not any(key in result for key in _SCORE_KEYS):
-            reason = "missing_api_key" if not getattr(self.llm, "api_key", None) else "score_json_empty"
-            if isinstance(result, dict) and result.get("reason"):
-                reason = str(result.get("reason"))
-            return GameScore.offline(reason)
+        if not isinstance(result, dict):
+            result = {}
 
-        p_win = float(result.get("plaintiff_win_rate", 0.0))
-        d_win = float(result.get("defendant_win_rate", 0.0))
-        q = float(result.get("reasoning_quality", 0.0))
-        e = float(result.get("evidence_strength", 0.0))
+        p_win = float(result.get("plaintiff_win_rate", 0.5))
+        d_win = float(result.get("defendant_win_rate", 0.5))
+        q = float(result.get("reasoning_quality", 0.5))
+        e = float(result.get("evidence_strength", 0.5))
 
         align = None
         if case_info:
@@ -418,14 +386,10 @@ class GameEngine:
     def evolve_both_strategies(
         self, last_round: GameRound, method: str = "llm_reflection",
     ) -> None:
-        """原告/被告双方策略进化并行执行（两侧互相独立，llm_reflection 时各省一次 LLM 往返）。"""
-        from concurrent.futures import ThreadPoolExecutor
-
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            list(pool.map(
-                lambda party: self.evolve_strategy(party, last_round, method=method),
-                ["plaintiff", "defendant"],
-            ))
+        """按原告、被告顺序更新策略，保留交替更新的博弈语义。"""
+        # 对方策略和进化历史会在更新期间改变，不能把两侧当作独立任务并行。
+        for party in ("plaintiff", "defendant"):
+            self.evolve_strategy(party, last_round, method=method)
 
     def evolve_strategy(
         self,
@@ -549,8 +513,6 @@ class GameEngine:
             result = self.llm.chat_json(
                 [{"role": "user", "content": prompt}],
                 temperature=0.3,
-                purpose="evolve",
-                tier="fast",
             )
         except Exception as e:
             logger.warning(f"策略进化 LLM 调用失败: {e}")
@@ -643,8 +605,6 @@ class GameEngine:
                     current_strategy=_STRATEGY_LABELS.get(current_strat, current_strat),
                 )}],
                 temperature=0.2,
-                purpose="evolve",
-                tier="fast",
             )
         except Exception as e:
             logger.warning(f"反事实推演 LLM 调用失败: {e}")
@@ -700,10 +660,7 @@ class GameEngine:
 
         prev_summary = self._build_previous_round_summary()
 
-        from core.graphs.full_case_graph import run_full_case_graph
-
-        case_result = run_full_case_graph(
-            self.orchestrator,
+        case_result = self.orchestrator.run_full_case(
             case_info,
             cd_strategy=self._plaintiff_strategy_text,
             dd_strategy=self._defendant_strategy_text,
@@ -718,13 +675,12 @@ class GameEngine:
         score = self.evaluate_judgment(case_result.ci_result, case_info)
         case_result.judgment_score = score.to_dict()
 
-        # 降级占位分不写入收益矩阵，避免全零/默认值被当成真实观测
-        if not score.degraded:
-            self.nash_tracker.record_round(
-                self._plaintiff_strategy_type,
-                self._defendant_strategy_type,
-                score.to_dict(),
-            )
+        # 更新纳什均衡追踪器
+        self.nash_tracker.record_round(
+            self._plaintiff_strategy_type,
+            self._defendant_strategy_type,
+            score.to_dict(),
+        )
 
         try:
             self._nbs_engine.refresh_spne_disagreement_point()
@@ -826,82 +782,3 @@ class GameEngine:
     def get_payoff_matrix(self) -> Dict[str, Any]:
         """获取收益矩阵。"""
         return self.nash_tracker.get_payoff_matrix_display()
-
-    def export_snapshot(self) -> Dict[str, Any]:
-        """可落盘的引擎快照：策略、均衡矩阵、轮次文书摘要。"""
-        return {
-            "plaintiff_strategy_type": self._plaintiff_strategy_type,
-            "defendant_strategy_type": self._defendant_strategy_type,
-            "plaintiff_strategy_text": self._plaintiff_strategy_text,
-            "defendant_strategy_text": self._defendant_strategy_text,
-            "dispute_cause": self._dispute_cause,
-            "dispute_cause_detail": self._dispute_cause_detail,
-            "evolution_log": list(self._evolution_log),
-            "nash": self.nash_tracker.export_state(),
-            "rounds": [self._round_snapshot(row) for row in self.strategy_history],
-        }
-
-    def import_snapshot(self, data: Optional[Dict[str, Any]]) -> None:
-        if not isinstance(data, dict) or not data:
-            return
-        self._plaintiff_strategy_type = data.get("plaintiff_strategy_type") or self._plaintiff_strategy_type
-        self._defendant_strategy_type = data.get("defendant_strategy_type") or self._defendant_strategy_type
-        self._plaintiff_strategy_text = data.get("plaintiff_strategy_text")
-        self._defendant_strategy_text = data.get("defendant_strategy_text")
-        self._dispute_cause = data.get("dispute_cause")
-        self._dispute_cause_detail = data.get("dispute_cause_detail")
-        log = data.get("evolution_log")
-        self._evolution_log = list(log) if isinstance(log, list) else []
-        nash = data.get("nash")
-        if isinstance(nash, dict):
-            self.nash_tracker.import_state(nash)
-            try:
-                self._nbs_engine.refresh_spne_disagreement_point()
-            except Exception as exc:
-                logger.debug("restore NBS skip: %s", exc)
-        self.strategy_history = [
-            self._round_from_snapshot(row) for row in (data.get("rounds") or []) if isinstance(row, dict)
-        ]
-
-    @staticmethod
-    def _round_snapshot(row: GameRound) -> Dict[str, Any]:
-        ci = row.case_result.ci_result
-        cd = row.case_result.cd_result
-        dd = row.case_result.dd_result
-        return {
-            "round_index": row.round_index,
-            "cd_strategy": row.cd_strategy,
-            "dd_strategy": row.dd_strategy,
-            "score": row.score.to_dict(),
-            "elapsed_seconds": row.elapsed_seconds,
-            "equilibrium_snapshot": row.equilibrium_snapshot,
-            "case_id": row.case_result.case_id,
-            "ci_final_document": (ci.final_document[:8000] if ci and ci.final_document else ""),
-            "cd_final_document": (cd.final_document[:4000] if cd and cd.final_document else ""),
-            "dd_final_document": (dd.final_document[:4000] if dd and dd.final_document else ""),
-        }
-
-    @staticmethod
-    def _round_from_snapshot(row: Dict[str, Any]) -> GameRound:
-        case_id = str(row.get("case_id") or "restored")
-
-        def _stage(scenario: str, text: Any) -> StageResult:
-            return StageResult(scenario=scenario, dialog_history=[], final_document=str(text or ""))
-
-        result = FullCaseResult(
-            case_id=case_id,
-            cd_result=_stage("CD", row.get("cd_final_document")),
-            dd_result=_stage("DD", row.get("dd_final_document")),
-            ci_result=_stage("CI", row.get("ci_final_document")),
-            judgment_score=row.get("score") if isinstance(row.get("score"), dict) else None,
-            elapsed_seconds=float(row.get("elapsed_seconds") or 0),
-        )
-        return GameRound(
-            round_index=int(row.get("round_index") or 0),
-            cd_strategy=row.get("cd_strategy"),
-            dd_strategy=row.get("dd_strategy"),
-            case_result=result,
-            score=GameScore.from_dict(row.get("score") if isinstance(row.get("score"), dict) else {}),
-            elapsed_seconds=float(row.get("elapsed_seconds") or 0),
-            equilibrium_snapshot=row.get("equilibrium_snapshot") if isinstance(row.get("equilibrium_snapshot"), dict) else None,
-        )

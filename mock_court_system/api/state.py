@@ -16,8 +16,6 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from fastapi import HTTPException
-
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -37,6 +35,7 @@ from api_schemas import (
 )
 from api_runtime import create_runtime, rebind_runtime_llm
 from core.case_orchestrator import _is_ci_final as _ci_final
+from core.reasoning_state import extract_ci_reasoning_state
 from core.llm_client import LLMClient
 from core.conversation_store import build_conversation_store, ConversationRecord
 from core.evaluation_task_store import build_evaluation_task_store, EvaluationTaskRecord
@@ -71,126 +70,83 @@ def cleanup_old_sessions(max_age_hours: int = 24) -> int:
         return 0
 
 
-def _research_claim_actions(input_json: Optional[Dict[str, Any]]) -> List[str]:
-    from core.research.runtime import research_block
-
-    run_id = research_block(input_json).get("run_id")
-    if not run_id:
-        return []
-    try:
-        from api.services.claims import list_claim_events
-
-        return [str(item.get("action") or "") for item in list_claim_events(str(run_id))]
-    except Exception:
-        return []
+def ci_reasoning_state_from_record(record) -> Optional[Dict[str, Any]]:
+    """从会话记录中取出上一轮保存的 CI ReasoningState（无则 None）。"""
+    if record is None:
+        return None
+    state = (record.input_json or {}).get("_reasoning_state")
+    return state if isinstance(state, dict) else None
 
 
-def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]], input_json: Optional[Dict[str, Any]]):
-    from core.research.runtime import (
-        bind_research_context,
-        has_research,
-        inject_material_context,
-        research_llm_blocked,
-        research_stop_notice,
-        reset_research_context,
-        role_model_input,
+def new_session_ci_agent():
+    """为单个会话请求创建独立 CIAgent 实例（并发隔离）。
+
+    成本分析：chains 是 LangChain 管道轻对象（内部引用共享的 chat_model），
+    law_retriever 走模块级单例（BM25/FAISS 只加载一次），
+    因此按请求构造不会带来重资源开销，却彻底消除共享实例在并发下的
+    case_info/state_machine/dialogue 互相覆盖问题。
+    """
+    from agents import CIAgent
+    from api_runtime import MockApiClient
+
+    return CIAgent(
+        MockApiClient(),
+        llm_client,
+        max_turns=settings.get_scenario_config("CI").max_turns,
+        instruction_mode=settings.get_scenario_config("CI").instruction_mode,
     )
 
-    blocked = research_llm_blocked(
-        input_json,
-        dialog_history,
-        _research_claim_actions(input_json),
-    )
-    if blocked:
-        return "Final", research_stop_notice(blocked), True
 
-    speaking = None
-    if dialog_history:
-        speaking = str((dialog_history[-1] or {}).get("role") or "") or None
-    filtered_input = input_json
-    working_history = dialog_history
-    token = None
-    if has_research(input_json):
-        filtered_input = role_model_input(input_json, speaking)
-        if input_json and input_json.get("_session_id"):
-            filtered_input["_session_id"] = input_json["_session_id"]
-        working_history = inject_material_context(list(dialog_history or []), filtered_input, scenario)
-        token = bind_research_context(filtered_input, speaking, cache_mode="replay")
-
-    try:
-        return _run_agent_turn_inner(
-            scenario=scenario,
-            case_id=case_id,
-            dialog_history=working_history,
-            input_json=filtered_input,
-        )
-    finally:
-        reset_research_context(token)
+def save_ci_reasoning_state(record, ci_agent) -> None:
+    """把 CIAgent 的推理状态写回会话记录（随 input_json 持久化，零 schema 变更）。"""
+    record.input_json = dict(record.input_json or {})
+    record.input_json["_reasoning_state"] = extract_ci_reasoning_state(ci_agent)
 
 
-def _run_agent_turn_inner(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]], input_json: Optional[Dict[str, Any]]):
+def state_ci_agent():
+    """共享 CIAgent（向后兼容回落）。新代码建议用 new_session_ci_agent()。"""
+    return ci_agent
+
+
+def run_agent_turn(*, scenario: str, case_id: str, dialog_history: List[Dict[str, Any]],
+                   input_json: Optional[Dict[str, Any]] = None,
+                   reasoning_state: Optional[Dict[str, Any]] = None,
+                   ci_agent=None):
     response_text = ""
     is_finished = False
     response_role = "Lawyer"  # default for CD/DD
 
-    if scenario in ("CD", "DD"):
-        session_id = (input_json or {}).get("_session_id")
-        from core.graphs.plead_runtime import get_plead_runtime, use_plead_runtime
-        if session_id and use_plead_runtime():
-            runtime = get_plead_runtime(
-                cd_agent=cd_agent, dd_agent=dd_agent, llm=llm_client,
-            )
-            response_text, is_finished = runtime.live_turn(
-                session_id, scenario, dialog_history, case_id, input_json,
-            )
-        elif scenario == "CD":
-            response_text = cd_agent.process_turn(dialog_history, case_id, input_json)
-            is_finished = response_text.strip().replace("*", "").replace("#", "").replace(" ", "").startswith("民事起诉状")
+    if scenario == "CD":
+        response_text = cd_agent.process_turn(dialog_history, case_id, input_json)
+        clean_start = response_text.strip().replace("*", "").replace("#", "").replace(" ", "")
+        if clean_start.startswith("民事起诉状"):
+            is_finished = True
+            response_role = "Final"
         else:
-            response_text = dd_agent.process_turn(dialog_history, case_id, input_json)
-            is_finished = response_text.strip().replace("*", "").replace("#", "").replace(" ", "").startswith("民事答辩状")
-        response_role = "Final" if is_finished else "Lawyer"
+            response_role = "Lawyer"
+    elif scenario == "DD":
+        response_text = dd_agent.process_turn(dialog_history, case_id, input_json)
+        clean_start = response_text.strip().replace("*", "").replace("#", "").replace(" ", "")
+        if clean_start.startswith("民事答辩状"):
+            is_finished = True
+            response_role = "Final"
+        else:
+            response_role = "Lawyer"
     elif scenario == "CI":
-        session_id = (input_json or {}).get("_session_id")
-        from core.graphs.hearing_runtime import get_hearing_runtime, use_hearing_graph
-        if session_id and use_hearing_graph():
-            runtime = get_hearing_runtime(ci_agent=ci_agent, llm=llm_client)
-            if not dialog_history:
-                response_text, is_finished = runtime.start_court(session_id, case_id, input_json)
-            else:
-                last = dialog_history[-1]
-                response_text, is_finished = runtime.live_turn(
-                    session_id,
-                    last.get("role", "Plaintiff"),
-                    last.get("message", ""),
-                    case_id,
-                    input_json,
-                )
-        else:
-            response_text = ci_agent.process_turn(dialog_history, case_id, input_json)
-            is_finished = False
-            try:
-                is_finished = ci_agent.state_machine.export_state().get("is_finished", False)
-            except Exception:
-                pass
-        finished_via_sm = bool(is_finished)
-        if session_id and use_hearing_graph():
-            try:
-                sm = get_hearing_runtime().get_state_machine(session_id)
-                if sm and sm.export_state().get("is_finished"):
-                    finished_via_sm = True
-            except Exception:
-                pass
-        else:
-            try:
-                finished_via_sm = finished_via_sm or ci_agent.state_machine.export_state().get("is_finished", False)
-            except Exception:
-                pass
+        agent = ci_agent or state_ci_agent()
+        response_text = agent.process_turn(
+            dialog_history, case_id, input_json,
+            reasoning_state=reasoning_state,
+        )
+        finished_via_sm = False
+        try:
+            finished_via_sm = agent.state_machine.export_state().get("is_finished", False)
+        except Exception:
+            pass
         if finished_via_sm or _ci_final(response_text):
             is_finished = True
             response_role = "Final"
         else:
-            is_finished = False
             response_role = "Judge"
     else:
         raise HTTPException(status_code=400, detail=f"Unknown scenario: {scenario}")
@@ -212,9 +168,98 @@ ci_agent = runtime.ci_agent
 evaluation_tasks: Dict[str, Dict[str, Any]] = {}
 
 def run_evaluation_task(report_id: str, scenarios: List[str], prediction_files: Optional[Dict[str, str]]):
-    from api.services.evaluation import execute_evaluation_task
+    try:
+        # 鏇存柊鎸佷箙鍖栫姸鎬?
+        evaluation_task_store.upsert(
+            EvaluationTaskRecord(
+                report_id=report_id,
+                status="running",
+                message="评测进行中...",
+                created_at=evaluation_tasks[report_id]["created_at"],
+                updated_at=evaluation_tasks[report_id]["created_at"],
+            )
+        )
+        
+        # 导入评测模块
+        from evaluation.run_evaluation import run_evaluation, load_config
+        
+        # 加载配置
+        config_path = project_root / "evaluation" / "eval_config.yaml"
+        config = load_config(str(config_path))
+        
+        # 设置预测文件路径
+        if not prediction_files:
+            prediction_files = {}
+            for scenario in scenarios:
+                # 尝试查找默认预测文件
+                default_paths = [
+                    project_root / "evaluation" / "data" / "real_test_pred" / f"{scenario}_prediction.jsonl",
+                    project_root / f"{scenario}_prediction.jsonl",
+                    project_root / "evaluation" / "data" / "test_run" / f"{scenario}_test_pred.jsonl",
+                ]
+                for path in default_paths:
+                    if path.exists():
+                        prediction_files[scenario] = str(path)
+                        break
+        
+        # 运行评测
+        run_evaluation(config, scenarios, prediction_files)
+        
+        # 查找生成的报告文件
+        results_dir = project_root / "evaluation" / "results"
+        report_files = sorted(results_dir.glob("evaluation_report_*.json"), reverse=True)
+        
+        if report_files:
+            report_path = str(report_files[0])
+            with open(report_path, 'r', encoding='utf-8') as f:
+                results = json.load(f)
+            
+            evaluation_tasks[report_id]["status"] = "completed"
+            evaluation_tasks[report_id]["message"] = "评测完成"
+            evaluation_tasks[report_id]["results"] = results
+            evaluation_tasks[report_id]["report_path"] = report_path
 
-    execute_evaluation_task(report_id, scenarios, prediction_files)
+            evaluation_task_store.upsert(
+                EvaluationTaskRecord(
+                    report_id=report_id,
+                    status="completed",
+                    message="评测完成",
+                    created_at=evaluation_tasks[report_id]["created_at"],
+                    updated_at=_utcnow_iso(),
+                    results_json=json.dumps(results, ensure_ascii=False),
+                    report_path=report_path,
+                )
+            )
+        else:
+            evaluation_tasks[report_id]["status"] = "failed"
+            evaluation_tasks[report_id]["message"] = "评测完成但未找到报告文件"
+
+            evaluation_task_store.upsert(
+                EvaluationTaskRecord(
+                    report_id=report_id,
+                    status="failed",
+                    message="评测完成但未找到报告文件",
+                    created_at=evaluation_tasks[report_id]["created_at"],
+                    updated_at=_utcnow_iso(),
+                )
+            )
+            
+    except Exception as e:
+        eval_logger.error(f"评测任务失败: {e}", exc_info=True)
+        evaluation_tasks[report_id]["status"] = "failed"
+        evaluation_tasks[report_id]["message"] = f"评测失败: {str(e)}"
+        try:
+            evaluation_task_store.upsert(
+                EvaluationTaskRecord(
+                    report_id=report_id,
+                    status="failed",
+                    message=f"评测失败: {str(e)}",
+                    created_at=evaluation_tasks[report_id]["created_at"],
+                    updated_at=_utcnow_iso(),
+                )
+            )
+        except Exception:
+            pass
 
 
 
@@ -247,12 +292,7 @@ def get_law_retriever():
 # ========== 会话辅助 ==========
 
 
-def _infer_conversation_meta(
-    scenario: str,
-    dialog_history: List[Dict[str, Any]],
-    session_id: Optional[str] = None,
-    input_json: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+def _infer_conversation_meta(scenario: str, dialog_history: List[Dict[str, Any]]) -> Dict[str, Any]:
     is_finished = False
     if dialog_history:
         last_role = dialog_history[-1].get("role", "")
@@ -268,17 +308,14 @@ def _infer_conversation_meta(
             if clean.startswith("民事答辩状"):
                 is_finished = True
         elif scenario == "CI":
-            exported = _ci_exported_state(session_id)
-            if exported.get("is_finished"):
-                is_finished = True
+            try:
+                exported = ci_agent.state_machine.export_state()
+                if exported.get("is_finished"):
+                    is_finished = True
+            except Exception:
+                pass
             if not is_finished and _ci_final(last_msg):
                 is_finished = True
-
-    if not is_finished:
-        from core.research.runtime import research_llm_blocked
-
-        if research_llm_blocked(input_json, dialog_history, _research_claim_actions(input_json)):
-            is_finished = True
 
     current_stage = None
     next_speaker = None
@@ -305,7 +342,7 @@ def _infer_conversation_meta(
             next_speaker = "Lawyer"
         available_actions = ["send_message", "auto_advance"]
     elif scenario == "CI":
-        current_stage = _guess_ci_stage(dialog_history, session_id)
+        current_stage = _guess_ci_stage(dialog_history)
         last_role = dialog_history[-1]["role"] if dialog_history else None
         if last_role == "Judge":
             next_speaker = "Plaintiff"
@@ -314,10 +351,10 @@ def _infer_conversation_meta(
         else:
             next_speaker = "Judge"
         available_actions = ["send_message", "auto_advance"]
-        exported = _ci_exported_state(session_id)
-        if exported.get("stage_label"):
-            current_stage = exported["stage_label"]
-        current_sub_stage = exported.get("current_sub_stage") or current_sub_stage
+        try:
+            current_sub_stage = ci_agent.state_machine.current_sub_stage.value
+        except Exception:
+            pass
 
     return {
         "current_stage": current_stage,
@@ -329,26 +366,12 @@ def _infer_conversation_meta(
     }
 
 
-def _ci_exported_state(session_id: Optional[str] = None) -> Dict[str, Any]:
-    if session_id:
-        try:
-            from core.graphs.hearing_runtime import get_hearing_runtime, use_hearing_graph
-            if use_hearing_graph():
-                sm = get_hearing_runtime().get_state_machine(session_id)
-                if sm:
-                    return sm.export_state()
-        except Exception:
-            pass
+def _guess_ci_stage(dialog_history: List[Dict[str, Any]]) -> str:
     try:
-        return ci_agent.state_machine.export_state()
+        exported = ci_agent.state_machine.export_state()
+        return exported.get("stage_label", "opening")
     except Exception:
-        return {}
-
-
-def _guess_ci_stage(dialog_history: List[Dict[str, Any]], session_id: Optional[str] = None) -> str:
-    exported = _ci_exported_state(session_id)
-    if exported.get("stage_label"):
-        return exported["stage_label"]
+        pass
     text_blob = " ".join(item.get("message", "") for item in dialog_history[-20:])
     if any(k in text_blob for k in ["判决", "裁定", "案号", "判决结果"]):
         return "judgment"
@@ -385,57 +408,26 @@ _game_engine = runtime.game_engine
 simulation_tasks: Dict[str, Dict[str, Any]] = {}
 
 
-def persist_simulation_task(task_id: str) -> None:
-    payload = simulation_tasks.get(task_id)
-    if not payload:
-        return
-    try:
-        from core.graphs.checkpoint import SqliteCheckpointStore
-        SqliteCheckpointStore().save(task_id, payload)
-    except Exception:
-        pass
-
-
-def load_simulation_task(task_id: str) -> Optional[Dict[str, Any]]:
-    if task_id in simulation_tasks:
-        return simulation_tasks[task_id]
-    try:
-        from core.graphs.checkpoint import SqliteCheckpointStore
-        data = SqliteCheckpointStore().load(task_id)
-        if data:
-            simulation_tasks[task_id] = data
-            return data
-    except Exception:
-        pass
-    return None
-
-
 def _run_full_simulation_task(task_id: str, case_info: Dict[str, Any]):
     try:
         simulation_tasks[task_id]["status"] = "running"
         simulation_tasks[task_id]["current_stage"] = "CD"
-        persist_simulation_task(task_id)
 
-        def on_progress(stage, round_idx, role, finished, sub_stage=None):
+        def on_progress(stage, round_idx, role, finished):
             simulation_tasks[task_id]["current_stage"] = stage
-            simulation_tasks[task_id]["current_sub_stage"] = sub_stage
             simulation_tasks[task_id]["message"] = f"阶段 {stage}，轮次 {round_idx}，角色 {role}"
-            persist_simulation_task(task_id)
 
-        from core.graphs.full_case_graph import run_full_case_graph
-        result = run_full_case_graph(_orchestrator, case_info, on_progress=on_progress, task_id=task_id)
+        result = _orchestrator.run_full_case(case_info, on_progress=on_progress)
 
         simulation_tasks[task_id]["status"] = "completed"
         simulation_tasks[task_id]["message"] = "completed"
         simulation_tasks[task_id]["result"] = result.to_dict()
         simulation_tasks[task_id]["current_stage"] = "finished"
-        persist_simulation_task(task_id)
 
     except Exception as e:
         eval_logger.error(f"全流程模拟失败: {e}", exc_info=True)
         simulation_tasks[task_id]["status"] = "failed"
-        simulation_tasks[task_id]["message"] = f"模拟失败: {str(e)}"
-        persist_simulation_task(task_id)
+        simulation_tasks[task_id]["message"] = f"妯℃嫙澶辫触: {str(e)}"
 
 
 def _run_tournament_task(task_id: str, case_info: Dict[str, Any], rounds: int):
@@ -443,28 +435,23 @@ def _run_tournament_task(task_id: str, case_info: Dict[str, Any], rounds: int):
         simulation_tasks[task_id]["status"] = "running"
         simulation_tasks[task_id]["current_stage"] = "round_1"
 
-        def on_progress(stage, round_idx, role, finished, sub_stage=None):
+        def on_progress(stage, round_idx, role, finished):
             simulation_tasks[task_id]["current_stage"] = f"{stage}_round_{round_idx}"
-            simulation_tasks[task_id]["current_sub_stage"] = sub_stage
             simulation_tasks[task_id]["message"] = f"锦标赛 {stage}，轮次 {round_idx}"
-            persist_simulation_task(task_id)
 
-        from core.graphs.full_case_graph import run_tournament_graph
-        result = run_tournament_graph(
-            _game_engine, case_info, rounds=rounds, on_progress=on_progress,
+        result = _game_engine.run_tournament(
+            case_info, rounds=rounds, on_progress=on_progress,
         )
 
         simulation_tasks[task_id]["status"] = "completed"
         simulation_tasks[task_id]["message"] = f"博弈锦标赛完成（{rounds} 轮）"
         simulation_tasks[task_id]["result"] = result.to_dict()
         simulation_tasks[task_id]["current_stage"] = "finished"
-        persist_simulation_task(task_id)
 
     except Exception as e:
         eval_logger.error(f"博弈锦标赛失败: {e}", exc_info=True)
         simulation_tasks[task_id]["status"] = "failed"
         simulation_tasks[task_id]["message"] = f"锦标赛失败: {str(e)}"
-        persist_simulation_task(task_id)
 
 
 
@@ -486,18 +473,6 @@ def _reinit_llm_and_agents(new_llm: "LLMClient"):
     _game_engine = runtime.game_engine
     if "_mediation_engine" in globals():
         _mediation_engine = runtime.mediation_engine
-    try:
-        from core.graphs.hearing_runtime import get_hearing_runtime
-        get_hearing_runtime(ci_agent=ci_agent, llm=llm_client).bind(ci_agent=ci_agent, llm=llm_client)
-    except Exception:
-        pass
-    try:
-        from core.graphs.plead_runtime import get_plead_runtime
-        get_plead_runtime(cd_agent=cd_agent, dd_agent=dd_agent, llm=llm_client).bind(
-            cd_agent=cd_agent, dd_agent=dd_agent, llm=llm_client,
-        )
-    except Exception:
-        pass
 
 
 def _mask_key(key: str) -> str:
@@ -557,8 +532,8 @@ _game_store = GameSessionStore(str(project_root / "data" / "game_sessions.sqlite
 
 
 def _sse_event(event_type: str, data: Any) -> str:
-    from api.services.sse import sse_event
-    return sse_event(event_type, data)
+    payload = json.dumps(data, ensure_ascii=False, default=str)
+    return f"event: {event_type}\ndata: {payload}\n\n"
 
 
 
