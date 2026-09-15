@@ -18,4 +18,11 @@ venv/
 dist/
 build/
 *.sqlite3
+data/session_predictions/
 *.tsbuildinfo
+
+# 3D runtime assets (keep gitkeep; large models via LFS/CDN)
+public/court3d/models/*.glb
+public/court3d/models/*.gltf
+public/court3d/models/*.vrm
+public/court3d/models/*.bin

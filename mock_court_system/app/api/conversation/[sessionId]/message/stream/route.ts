@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server"
-import { BACKEND_URL } from "@/lib/backend-fetch"
+import { BACKEND_URL, backendAuthHeaders } from "@/lib/backend-fetch"
 
 // SSE 透传：不能走 backendFetch（它会缓冲 JSON），必须把字节流原样转发
 export async function POST(
@@ -13,7 +13,10 @@ export async function POST(
     `${BACKEND_URL}/conversation/${encodeURIComponent(sessionId)}/message/stream`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await backendAuthHeaders(request)),
+      },
       body: JSON.stringify(body),
     },
   )

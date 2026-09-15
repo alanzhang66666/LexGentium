@@ -89,60 +89,104 @@ class CDAgent(BaseAgent):
             self.instruction_chain = None
             self.draft_chain = None
 
-    def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None) -> str:
-        """处理单轮对话 (API 模式)"""
-        # 1. 转换历史格式
+    def _rebuild_chains(self) -> None:
+        if not self.llm.chat_model:
+            self.instruction_chain = None
+            self.draft_chain = None
+            return
+        self.instruction_prompt = ChatPromptTemplate.from_messages([
+            ("system", self.system_prompt),
+            MessagesPlaceholder(variable_name="history"),
+        ])
+        self.instruction_chain = self.instruction_prompt | self.llm.chat_model | StrOutputParser()
+        self.draft_prompt = ChatPromptTemplate.from_template(
+            "根据以下的对话历史，请起草一份完整的{doc_name}。\n\n{history_text}\n"
+        )
+        self.draft_chain = self.draft_prompt | self.llm.chat_model | StrOutputParser()
+
+    def fork_stateless(self) -> "CDAgent":
+        child = CDAgent.__new__(CDAgent)
+        child.api_client = self.api_client
+        child.llm = self.llm
+        child.scenario = self.scenario
+        child.max_turns = self.max_turns
+        child.verbose = self.verbose
+        child.role = self.role
+        child.user_role = self.user_role
+        child.doc_name = self.doc_name
+        child.system_prompt = self.system_prompt
+        child.law_retriever = self.law_retriever
+        child.instruction_prompt = getattr(self, "instruction_prompt", None)
+        child.instruction_chain = self.instruction_chain
+        child.draft_prompt = getattr(self, "draft_prompt", None)
+        child.draft_chain = self.draft_chain
+        return child
+
+    def process_window(
+        self,
+        window_history: List[Dict],
+        *,
+        total_messages: int,
+        summary: str = "",
+        case_id: str = "",
+        input_json: Dict = None,
+    ) -> str:
+        history: List[Dict] = []
+        if summary:
+            history.append({"role": "System", "message": f"【先前对话摘要】{summary}"})
+        history.extend(window_history)
+        return self._generate_from_history(history, force_draft=total_messages >= self.max_turns * 2)
+
+    def _generate_from_history(self, dialog_history: List[Dict], *, force_draft: bool = False) -> str:
         dh = DialogHistory(self.scenario)
-        dh.history = dialog_history
+        dh.history = [item for item in dialog_history if item.get("role") != "System"]
         history_text = ""
         for item in dialog_history:
             history_text += f"{item['role']}: {item['message']}\n"
-            
-        # 2. 检查是否应该结束
-        if len(dialog_history) >= self.max_turns * 2:
-            if self.draft_chain:
-                try:
-                    return self.draft_chain.invoke({
-                        "doc_name": self.doc_name,
-                        "history_text": history_text
-                    })
-                except Exception:
-                    pass
-            draft_messages = [{"role": "user", "content": f"根据以下对话历史，起草一份{self.doc_name}：\n\n{history_text}"}]
-            return self.llm.chat_completion(draft_messages)
-
-        # 3. 生成指令
-        # instruction_chain 需要 LangChain 格式的消息列表
+        if force_draft:
+            return self._draft(history_text)
         lc_history = dh.get_langchain_messages()
         if self.instruction_chain:
             try:
                 instruction = self.instruction_chain.invoke({"history": lc_history})
             except Exception:
-                messages = [{"role": "system", "content": self.system_prompt}]
-                for item in dialog_history:
-                    role = "assistant" if item.get("role") == self.role else "user"
-                    messages.append({"role": role, "content": item.get("message", "")})
-                instruction = self.llm.chat_completion(messages)
+                instruction = self._instruction_via_llm(dialog_history)
         else:
-            messages = [{"role": "system", "content": self.system_prompt}]
-            for item in dialog_history:
-                role = "assistant" if item.get("role") == self.role else "user"
-                messages.append({"role": role, "content": item.get("message", "")})
-            instruction = self.llm.chat_completion(messages)
-        
+            instruction = self._instruction_via_llm(dialog_history)
         if "[READY_TO_DRAFT]" in instruction:
-            if self.draft_chain:
-                try:
-                    return self.draft_chain.invoke({
-                        "doc_name": self.doc_name,
-                        "history_text": history_text
-                    })
-                except Exception:
-                    pass
-            draft_messages = [{"role": "user", "content": f"根据以下对话历史，起草一份{self.doc_name}：\n\n{history_text}"}]
-            return self.llm.chat_completion(draft_messages)
-            
+            return self._draft(history_text)
         return instruction
+
+    def _instruction_via_llm(self, dialog_history: List[Dict]) -> str:
+        messages = [{"role": "system", "content": self.system_prompt}]
+        for item in dialog_history:
+            if item.get("role") == "System":
+                messages.append({"role": "system", "content": item.get("message", "")})
+                continue
+            role = "assistant" if item.get("role") == self.role else "user"
+            messages.append({"role": role, "content": item.get("message", "")})
+        return self.llm.chat_completion(messages)
+
+    def _draft(self, history_text: str) -> str:
+        if self.draft_chain:
+            try:
+                return self.draft_chain.invoke({
+                    "doc_name": self.doc_name,
+                    "history_text": history_text,
+                })
+            except Exception:
+                pass
+        return self.llm.chat_completion([{
+            "role": "user",
+            "content": f"根据以下对话历史，起草一份{self.doc_name}：\n\n{history_text}",
+        }])
+
+    def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None) -> str:
+        """处理单轮对话 (API 模式 / 离线全量回放)"""
+        return self._generate_from_history(
+            dialog_history,
+            force_draft=len(dialog_history) >= self.max_turns * 2,
+        )
 
     def run_case(
         self,

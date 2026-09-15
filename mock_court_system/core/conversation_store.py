@@ -95,6 +95,7 @@ class MemoryConversationStore(ConversationStore):
                 "updated_at": r.updated_at,
                 "message_count": r.message_count,
                 "is_finished": bool(r.dialog_history and r.dialog_history[-1].get("role") == "Final"),
+                "links": (r.input_json or {}).get("links") or {},
             }
             for r in page
         ]
@@ -215,7 +216,7 @@ class SqliteConversationStore(ConversationStore):
             total = conn.execute("SELECT COUNT(*) AS c FROM conversations").fetchone()["c"]
             rows = conn.execute(
                 """
-                SELECT session_id, scenario, case_id, created_at, updated_at, dialog_history_json
+                SELECT session_id, scenario, case_id, created_at, updated_at, dialog_history_json, input_json_json
                 FROM conversations
                 ORDER BY updated_at DESC
                 LIMIT ? OFFSET ?
@@ -228,6 +229,11 @@ class SqliteConversationStore(ConversationStore):
                 hist = json.loads(r["dialog_history_json"]) if r["dialog_history_json"] else []
             except Exception:
                 hist = []
+            try:
+                extra = json.loads(r["input_json_json"]) if r["input_json_json"] else {}
+            except Exception:
+                extra = {}
+            links = extra.get("links") if isinstance(extra, dict) else {}
             result.append(
                 {
                     "session_id": r["session_id"],
@@ -237,6 +243,7 @@ class SqliteConversationStore(ConversationStore):
                     "updated_at": r["updated_at"],
                     "message_count": len(hist),
                     "is_finished": bool(hist and isinstance(hist, list) and hist[-1].get("role") == "Final"),
+                    "links": links if isinstance(links, dict) else {},
                 }
             )
         return result, int(total)

@@ -324,6 +324,30 @@ class NashEquilibriumTracker:
             rounds_to_convergence_estimate=self.estimate_rounds_to_convergence(),
         )
 
+    def export_state(self) -> Dict[str, Any]:
+        return {
+            "payoff_p": [list(row) for row in self._payoff_p],
+            "payoff_d": [list(row) for row in self._payoff_d],
+            "counts": [list(row) for row in self._counts],
+            "history": list(self._history),
+        }
+
+    def import_state(self, data: Dict[str, Any]) -> None:
+        if not isinstance(data, dict):
+            return
+        payoff_p = data.get("payoff_p")
+        payoff_d = data.get("payoff_d")
+        counts = data.get("counts")
+        history = data.get("history")
+        if isinstance(payoff_p, list) and len(payoff_p) == N_STRATEGIES:
+            self._payoff_p = [[float(v) for v in row] for row in payoff_p]
+        if isinstance(payoff_d, list) and len(payoff_d) == N_STRATEGIES:
+            self._payoff_d = [[float(v) for v in row] for row in payoff_d]
+        if isinstance(counts, list) and len(counts) == N_STRATEGIES:
+            self._counts = [[int(v) for v in row] for row in counts]
+        if isinstance(history, list):
+            self._history = [item for item in history if isinstance(item, dict)]
+
     def get_payoff_matrix_display(self) -> Dict[str, Any]:
         """返回人类可读的收益矩阵。"""
         rows = []

@@ -1,6 +1,6 @@
 """核心数据模型定义"""
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict, fields
 from typing import List, Optional, Literal, Dict, Any
 from enum import Enum
 
@@ -143,6 +143,16 @@ class CaseInfo:
     plaintiff_info: Dict[str, str] = field(default_factory=dict)
     defendant_info: Dict[str, str] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "CaseInfo":
+        if not data:
+            return cls()
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in known})
+
 
 @dataclass
 class CaseData:
@@ -165,6 +175,27 @@ class CaseData:
     last_reasoning: str = ""
     plaintiff_identity: str = ""
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "CaseData":
+        if not data:
+            return cls()
+        known = {f.name for f in fields(cls)}
+        payload = {k: v for k, v in data.items() if k in known}
+        person = payload.get("person_info")
+        if isinstance(person, dict):
+            payload["person_info"] = PersonInfo(**{
+                k: v for k, v in person.items() if k in {f.name for f in fields(PersonInfo)}
+            })
+        org = payload.get("org_info")
+        if isinstance(org, dict):
+            payload["org_info"] = OrgInfo(**{
+                k: v for k, v in org.items() if k in {f.name for f in fields(OrgInfo)}
+            })
+        return cls(**payload)
+
     def get_missing_mandatory_fields(self) -> List[str]:
         """返回必须追问的基础信息"""
         if self.user_entity_type == "自然人":
@@ -186,6 +217,30 @@ class Evidence:
     purpose: str
     opponent_opinion: Optional[str] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "evidence_id": self.evidence_id,
+            "provider": self.provider.value if isinstance(self.provider, PartyRole) else self.provider,
+            "content": self.content,
+            "purpose": self.purpose,
+            "opponent_opinion": self.opponent_opinion,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "Evidence":
+        if not data:
+            raise ValueError("Evidence.from_dict requires data")
+        provider = data.get("provider")
+        if isinstance(provider, str):
+            provider = PartyRole(provider)
+        return cls(
+            evidence_id=data.get("evidence_id", ""),
+            provider=provider,
+            content=data.get("content", ""),
+            purpose=data.get("purpose", ""),
+            opponent_opinion=data.get("opponent_opinion"),
+        )
+
 
 # ========== 对话消息 ==========
 
@@ -196,6 +251,31 @@ class Message:
     content: str
     timestamp: str
     state: Optional[CourtState] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "role": self.role.value if isinstance(self.role, PartyRole) else self.role,
+            "content": self.content,
+            "timestamp": self.timestamp,
+            "state": self.state.value if isinstance(self.state, CourtState) else self.state,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> "Message":
+        if not data:
+            raise ValueError("Message.from_dict requires data")
+        role = data.get("role")
+        if isinstance(role, str):
+            role = PartyRole(role)
+        state = data.get("state")
+        if isinstance(state, str):
+            state = CourtState(state)
+        return cls(
+            role=role,
+            content=data.get("content", ""),
+            timestamp=data.get("timestamp", ""),
+            state=state,
+        )
 
 
 @dataclass

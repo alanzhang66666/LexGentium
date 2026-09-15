@@ -1,305 +1,191 @@
-﻿# 模拟法庭多智能体系统项目
+# LexGentium 0.8
 
-本仓库是一个围绕 **LexGentium 模拟法庭多智能体系统** 建设的项目工作区，包含可运行的前后端系统、评估实验模块、法律数据与法条检索资源，以及申报、答辩、商业计划和参考文献等归档材料。
+[中文](README.md) · [English](README.en.md)
 
-## 项目定位
+**国际商事仲裁听证仿真工作台。** 不是泛用模拟法庭演示页。
 
-本项目面向民事诉讼与纠纷解决场景，尝试使用大语言模型构建多智能体模拟法庭系统。系统将原告、被告、法官、调解参与者等角色抽象为不同 Agent，并结合博弈论、策略演化、法律检索、调解流程和多维评估方法，实现从案件输入、诉辩生成、庭审推演、调解协商到结果评估的完整流程模拟。
+一场听证 = 一个 `session_id`。三步共用这一场：
 
-## 当前仓库结构
+| 步 | 做什么 | 打开 |
+|----|--------|------|
+| 1 开庭 | 申请 / 答辩 / 听证 | [`/conversation`](http://localhost:3000/conversation) |
+| 2 观庭 | 3D 听证（没模型就是胶囊人） | [`/court3d/{session_id}`](http://localhost:3000/court3d) |
+| 3 复盘 | 对照、策略、程序合规 | [`/evaluation`](http://localhost:3000/evaluation) |
 
-```text
-.
-├── mock_court_system/          # 主工程：Next.js 前端 + FastAPI 后端
-├── evaluation/                 # 顶层评估结果目录
-├── 归档/                       # 项目材料归档
-│   ├── 申报材料/               # 基金/启研申请书、推荐意见、正文材料等
-│   ├── 答辩与展示材料/         # 答辩稿、PPT、展示材料、技术问题回答等
-│   ├── 参考文献/               # 项目相关论文 PDF
-│   ├── 商业计划与市场材料/     # 商业计划书、市场分析、执行摘要等
-│   ├── 图片与附件/             # 图片、截图和附件材料
-│   └── 临时脚本与提取文本/     # 文档处理脚本和临时提取文本
-├── .venv/                      # Python 虚拟环境
-├── .vscode/                    # VS Code 配置
-├── .cursor/                    # Cursor 配置
-└── README.md                   # 本说明文件
-```
+**能跑的代码只在 [`mock_court_system/`](mock_court_system/)。** 从那里启动。版本 `0.8.0`。
 
-## 主工程说明
+---
 
-主工程位于：
+## 5 分钟跑起来
 
-```text
-mock_court_system/
-```
+需要 **Python 3.9+**、**Node.js 20+**、一个 OpenAI 兼容的 LLM Key。
 
-它是当前项目的核心代码目录，包含前端页面、后端 API、智能体模块、博弈引擎、评估框架、法律数据库和实验脚本。
-
-主要结构如下：
-
-```text
-mock_court_system/
-├── app/                        # Next.js 前端页面
-├── components/                 # 前端组件
-├── agents/                     # 多智能体模块
-├── core/                       # 核心推理、博弈、检索与流程引擎
-├── evaluation/                 # 评估框架与实验脚本
-├── data/                       # 数据集、SQLite 状态库、法条索引等
-├── database/                   # 数据库相关资源
-├── docs/                       # 工程文档和项目文档
-├── scripts/                    # 数据处理、测试和辅助脚本
-├── tests/                      # 测试目录
-├── api_server.py               # FastAPI 后端主入口
-├── main.py                     # 批处理/场景运行入口
-├── package.json                # 前端依赖与脚本
-└── requirements.txt            # Python 依赖
-```
-
-## 技术栈
-
-前端：
-
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS 4
-- Radix UI
-- Recharts
-
-后端：
-
-- FastAPI
-- LangChain
-- OpenAI SDK
-- Pydantic
-- SQLite
-- FAISS
-- BM25 / jieba
-- Uvicorn
-
-## 核心功能模块
-
-### 1. 多智能体模拟
-
-系统包含多个法律任务 Agent：
-
-- `CDAgent`：原告侧起诉状/主张生成。
-- `DDAgent`：被告侧答辩状/抗辩生成。
-- `CIAgent`：庭审、裁判和裁判理由生成。
-- `SimAgent`：当事人角色模拟与策略行为生成。
-
-对应目录：
-
-```text
-mock_court_system/agents/
-```
-
-### 2. 博弈论与策略推演
-
-系统包含博弈建模、纳什均衡、策略反思、收益矩阵、反事实推演和策略演化等能力。
-
-相关文件集中在：
-
-```text
-mock_court_system/core/
-```
-
-代表性模块：
-
-- `game_engine.py`
-- `nash_equilibrium.py`
-- `nash_bargaining.py`
-- `evolutionary_dynamics.py`
-- `extensive_form.py`
-
-### 3. 案件流程编排
-
-系统支持从案件输入到诉辩、庭审、裁判、调解和结果评估的流程编排。
-
-代表性模块：
-
-- `case_orchestrator.py`
-- `state_machine.py`
-- `mediation_engine.py`
-- `liability_chain.py`
-
-### 4. 法律检索与知识增强
-
-项目内置法律数据库和索引文件，支持基于法条数据库的检索增强。
-
-相关资源：
-
-```text
-mock_court_system/data/legal_articles.db
-mock_court_system/data/legal_articles.index
-mock_court_system/data/legal_articles_id_map.npy
-```
-
-代表性模块：
-
-- `law_retriever.py`
-- `progressive_rag.py`
-- `dual_mode_reasoning.py`
-
-### 5. 评估体系
-
-系统内置多维评估框架，用于评估法律推理质量、流程合规性、调解结果、行为对称性、责任链解释性等。
-
-相关目录：
-
-```text
-mock_court_system/evaluation/
-```
-
-代表性模块：
-
-- `lexeval_cognitive.py`
-- `j1eval_metrics.py`
-- `outcome_evaluator.py`
-- `solution_evaluator.py`
-- `multi_layer_evaluator.py`
-- `cadd_framework.py`
-- `game_eval.py`
-
-## 前端页面
-
-主工程前端包含以下页面路由：
-
-- `/`：首页。
-- `/about`：项目介绍。
-- `/conversation`：会话式模拟入口。
-- `/simulate`：快速模拟入口。
-- `/full-simulation`：完整案件流程模拟。
-- `/evaluation`：评估任务与结果页面。
-- `/database`：法律数据库/法条检索页面。
-- `/api-history`：API 调用历史页面。
-- `/settings`：系统与 LLM 配置页面。
-- `/system`：系统状态页面。
-- `/docs`：项目文档页面。
-
-## 后端 API 能力
-
-后端主入口：
-
-```text
-mock_court_system/api_server.py
-```
-
-主要 API 类型包括：
-
-- 健康检查：`/health`
-- LLM 配置：`/config/llm`
-- 会话管理：`/conversation/*`
-- 完整案件模拟：`/case/full-simulation`
-- 博弈会话：`/game/*`
-- 调解流程：`/mediation/*`
-- 法条检索：`/database/search`
-- 评估任务：`/evaluate`、`/game/{game_id}/evaluate/*`
-- 责任链与反事实推理：`/game/{game_id}/liability-chain`
-- 渐进式 RAG、双模式推理、多法官推理等扩展能力。
-
-## 快速启动
-
-环境要求：
-
-- Python **3.9+**（在 3.9 实测通过；建议使用 `requirements.lock` 复现已验证的依赖组合）
-- Node.js **20+**（在 24 实测通过）
-
-进入主工程目录：
+两个终端，都进 `mock_court_system`：
 
 ```bash
 cd mock_court_system
-```
-
-安装 Python 依赖（二选一）：
-
-```bash
-pip install -r requirements.txt        # 宽松版本（开发）
-pip install -r requirements.lock       # 锁定版本（可复现，实测通过组合）
-```
-
-安装前端依赖：
-
-```bash
+pip install -r requirements.txt    # 可复现：requirements.lock
 npm install
+cp .env.example .env               # 填 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
 ```
-
-配置环境变量：
 
 ```bash
-# 根据本地实际情况配置 .env
-# 重点配置 LLM_API_KEY、LLM_BASE_URL、LLM_MODEL 等字段
+python api_server.py               # 后端  http://localhost:8000
 ```
-
-启动后端：
 
 ```bash
-python api_server.py
+npm run dev                        # 前端  http://localhost:3000
 ```
 
-启动前端：
+然后：
 
-```bash
-npm run dev
+1. 打开 [`/register`](http://localhost:3000/register) 写入模型，或 [`/login`](http://localhost:3000/login) 测通已有配置（软解锁，没有用户表）。
+2. [`/conversation`](http://localhost:3000/conversation) 开一场，记下 `session_id`。
+3. [`/court3d/{session_id}`](http://localhost:3000/court3d) 看庭。
+4. [`/evaluation?session=…`](http://localhost:3000/evaluation) 复盘。
+
+逐步排错：[`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md)。
+
+**Windows 建议先建虚拟环境：** `python -m venv venv` → `.\venv\Scripts\Activate.ps1`，再 `pip install`。
+
+---
+
+## 先看懂这几个词
+
+| 你看到的 | 人话 |
+|----------|------|
+| **CD** | 申请准备（Claim Draft） |
+| **DD** | 答辩准备（Defence Draft） |
+| **CI** | 仲裁听证（Court Interaction） |
+| **`session_id`** | 这一场听证的身份证。开庭、观庭、复盘都带它 |
+| **`med_*`** | 独立调解会话。和庭内和解不是同一条线 |
+| **软解锁** | `/register` `/login` 只把 LLM 配置写进浏览器，**没有账号表** |
+
+独立调解在 [`/mediation`](http://localhost:3000/mediation)，用另一套 `med_*` id，**不会改**庭内 CI 和解。
+
+---
+
+## 产品主环
+
+```mermaid
+flowchart LR
+  subgraph open["开庭"]
+    conv["/conversation"]
+    full["/full-simulation"]
+    med["/mediation"]
+  end
+  subgraph watch["观庭"]
+    live["/court3d/{session_id}"]
+    replay["/court3d/replay"]
+  end
+  subgraph review["复盘"]
+    eval["/evaluation"]
+  end
+  conv --> live --> eval
+  full --> live
 ```
 
-默认访问地址：
+浏览器只打 Next 的 `/api/*`。Next 当 BFF，转给 FastAPI。智能体、博弈、调解、评测都在后端。3D 只在浏览器里把 SSE 译成演出。
+
+```mermaid
+flowchart TB
+  browser["浏览器"] --> next["Next.js :3000"]
+  next --> fastapi["FastAPI :8000"]
+  fastapi --> agents["CD / DD / CI / Sim 智能体"]
+  fastapi --> extra["博弈 · 调解 · 评测"]
+  agents --> llm["LLM + 法条检索"]
+```
+
+---
+
+## 工作台地图
+
+营销页：`/` `/about` `/docs`。工作台四组（`Ctrl+K` 同一套）：
+
+| 组 | 路由 | 干什么 |
+|----|------|--------|
+| 开庭 | `/conversation` `/full-simulation` `/mediation` | 单场、全案 CD→DD→CI、独立调解 |
+| 研究 | `/research` `/research/packs/[dataset]/[cluster]` | 材料标注工作台（RESEARCH 路径） |
+| 观庭 | `/court3d` `/court3d/[id]` `/court3d/replay` | 选场、本场 3D、离线回放 |
+| 复盘 | `/evaluation` `/evaluation/reports/[id]` | 对照 / 策略 / 合规 / 研究量表 |
+| 系统 | `/login` `/register` `/system` `/settings` `/database` | 测 LLM、健康、法条 |
+
+配色：`ink`（默认）/ `parchment` / `seal`，见 [`DESIGN.md`](mock_court_system/DESIGN.md)。
+
+---
+
+## 仓库里什么能跑、什么别碰
 
 ```text
-后端：http://localhost:8000
-前端：http://localhost:3000
+.
+├── mock_court_system/     # 唯一启动入口
+├── 法学材料/              # 指南、工作簿、原始母表。不是运行入口
+├── 3D建模方案/            # 设计稿。不要拷进 public/
+├── 归档/                  # 申报、商计、论文。不是运行入口
+├── README.md
+└── README.en.md
 ```
 
-## 重要数据与本地状态
-
-> 路径说明：`main.py` 是依赖远程法庭模拟服务（`COURT_API_BASE_URL`）的历史批处理/实验入口，
-> 日常使用请从 `api_server.py`（Web 服务）启动，Web 主路径不依赖任何远程服务。
-
-主工程内已有若干本地数据和状态文件：
-
-```text
-mock_court_system/data/app_state.sqlite3
-mock_court_system/data/conversations.sqlite3
-mock_court_system/data/game_sessions.sqlite3
-mock_court_system/data/legal_articles.db
-mock_court_system/data/legal_articles.index
-```
-
-这些文件用于保存应用状态、会话记录、博弈记录和法条检索索引。迁移、清理或提交仓库前需要确认是否包含敏感数据或临时实验数据。
-
-## 项目材料归档
-
-顶层散落的申报书、答辩材料、论文和商业计划书已经整理到：
-
-```text
-归档/
-```
-
-归档目录只用于保存项目支撑材料，不作为系统运行入口。
-
-## 注意事项
-
-- 当前主工程是 `mock_court_system/`，优先从该目录启动和维护。
-- `.env` 可能包含 LLM 服务地址和密钥，提交或共享前应检查敏感信息。
-- `node_modules/`、`.next/`、`.venv/` 属于本地环境或构建产物，不建议作为正式交付内容。
-- `api_server.py` 当前承担大量后端路由和业务逻辑，后续维护时可以考虑拆分为独立 router 模块。
-- 项目包含工程实现和申报/答辩材料两类内容，后续若开源或交付，建议进一步拆分代码仓库与材料归档。
-
-## 推荐使用入口
-
-日常开发和演示优先使用：
+主工程里常看这些：
 
 ```text
 mock_court_system/
+├── app/                   # 页面 + /api 代理
+├── agents/                # CD / DD / CI / Sim
+├── api/                   # FastAPI 路由和服务
+├── core/                  # 听证 / 书状 runtime、博弈、调解、检索
+├── evaluation/            # LexEval / J1 / CADD / AgentMed
+├── data/                  # 运行时 SQLite（不要提交）
+├── database/              # 法条库 + FAISS
+├── public/court3d/        # 剧组 JSON；models/ 空着就用胶囊人
+├── api_server.py          # Web 后端
+└── main.py                # 离线批跑，不是 Web
 ```
 
-推荐页面入口：
+API、BibTeX、更细的架构：[`mock_court_system/README.md`](mock_court_system/README.md)。
 
-```text
-/conversation
-/simulate
-/full-simulation
-/evaluation
-/database
-/settings
-```
+---
+
+## 数据落在哪
+
+路径都相对 `mock_court_system/`。
+
+| 用途 | 路径 |
+|------|------|
+| 会话 | `data/conversations.sqlite3` |
+| 评测任务 | `data/app_state.sqlite3` |
+| 博弈 / 调解 | `data/game_sessions.sqlite3`、`data/mediation_sessions.sqlite3` |
+| 法条 + 向量 | `database/legal_articles.db` 和旁边的 `.index` |
+| 开庭选案 | `data/dataset_1000/`（仓库里只有元数据 + 100 条摘要） |
+
+**不要提交** `.env` 和 SQLite。完整 1000 条按 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
+
+一场听证还可以挂：`task_id`（全案）、`game_id`（策略推演）、`report_id`（对照报告）。读写在 `api/services/links.py`。浏览器用 `sessionStorage` 记本场：`lexgentium.lastSessionId`。
+
+---
+
+## 论文对应哪块
+
+| 论文 | 系统里干什么 |
+|------|----------------|
+| LexEval (NeurIPS 2024) | 六层法律认知评测 |
+| J1-EVAL (2025) | 程序合规 |
+| AgentMediation (AAAI 2026) | TKI 策略 + 五阶段调解 |
+| CADD (2025) | 行为–责任–法条推理链 |
+
+---
+
+## 文档
+
+| 文件 | 看这个如果… |
+|------|----------------|
+| [`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md) | 装不上 / 连不上后端 |
+| [`docs/DEPLOY.md`](mock_court_system/docs/DEPLOY.md) | 要部署 |
+| [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | 要改页面或代理 |
+| [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | 要跑复盘或离线评测 |
+| [`AGENTS.md`](AGENTS.md) | 下次开会话前先看：现役边界，避免混线 |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 2026-09-14 现役现状；旧 76 项表已归档 |
+| [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | 要换 3D 角色 |
+| [`归档/README.md`](归档/README.md) | 要找申报、参考文献、外仓推理对照稿 |
+
+`3D建模方案/` 只作设计参考。超过 GitHub 100MB 的答辩文件不在仓库里。

@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { ScrollIndicator } from "@/components/scroll-indicator"
+import { WorkbenchShell } from "@/components/shell"
+import { clientAuthHeaders } from "@/lib/session/unlock"
+import { SCENARIO_LABELS } from "@/lib/labels"
 import {
   History,
   Search,
@@ -17,7 +17,6 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
   Filter,
 } from "lucide-react"
 
@@ -53,7 +52,7 @@ export default function APIHistoryPage() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch("/api/api-history/stats")
+      const response = await fetch("/api/api-history/stats", { headers: { ...clientAuthHeaders() } })
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -76,7 +75,9 @@ export default function APIHistoryPage() {
       params.append("limit", limit.toString())
       params.append("offset", "0")
 
-      const response = await fetch(`/api/api-history/list?${params.toString()}`)
+      const response = await fetch(`/api/api-history/list?${params.toString()}`, {
+        headers: { ...clientAuthHeaders() },
+      })
       if (response.ok) {
         const data = await response.json()
         setInteractions(data.interactions || [])
@@ -88,39 +89,14 @@ export default function APIHistoryPage() {
     }
   }
 
-  const scenarioNames: Record<string, string> = {
-    CD: "起诉状生成",
-    DD: "答辩状生成",
-    CI: "法庭判决",
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <section className="relative border-b bg-gradient-to-br from-background via-muted/30 to-background overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]" />
-        <div className="container mx-auto px-4 md:px-8 py-12 md:py-16 relative">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">API交互历史管理</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-balance bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-              API历史
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-pretty">
-              查看和管理API交互历史记录，用于API重建和调试
-            </p>
-          </div>
+    <WorkbenchShell>
+      <main className="flex-1 px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-[22px] font-medium tracking-tight">API 历史</h1>
+          <p className="mt-1 text-sm text-muted-foreground">调用记录，用于调试。</p>
         </div>
-      </section>
-
-      <ScrollIndicator />
-
-      <section className="container mx-auto px-4 md:px-8 py-8 md:py-12">
-        {/* 统计信息 */}
-        <Card className="mb-8 border-2">
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -165,7 +141,7 @@ export default function APIHistoryPage() {
                   {Object.entries(stats.by_scenario || {}).map(([scenario, count]) => (
                     <div key={scenario} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
-                        {scenarioNames[scenario] || scenario}:
+                        {SCENARIO_LABELS[scenario] || scenario}:
                       </span>
                       <span className="font-semibold">{count as number}</span>
                     </div>
@@ -181,7 +157,7 @@ export default function APIHistoryPage() {
         </Card>
 
         {/* 筛选和搜索 */}
-        <Card className="mb-8 border-2">
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <Filter className="w-5 h-5" />
@@ -198,9 +174,9 @@ export default function APIHistoryPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">全部场景</SelectItem>
-                    <SelectItem value="CD">起诉状生成 (CD)</SelectItem>
-                    <SelectItem value="DD">答辩状生成 (DD)</SelectItem>
-                    <SelectItem value="CI">法庭判决 (CI)</SelectItem>
+                    <SelectItem value="CD">{SCENARIO_LABELS.CD}</SelectItem>
+                    <SelectItem value="DD">{SCENARIO_LABELS.DD}</SelectItem>
+                    <SelectItem value="CI">{SCENARIO_LABELS.CI}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -230,7 +206,7 @@ export default function APIHistoryPage() {
         </Card>
 
         {/* 交互列表 */}
-        <Card className="border-2">
+        <Card>
           <CardHeader>
             <CardTitle>交互记录</CardTitle>
             <CardDescription>共 {interactions.length} 条记录</CardDescription>
@@ -248,7 +224,7 @@ export default function APIHistoryPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-base">
-                            {scenarioNames[interaction.scenario] || interaction.scenario} - {interaction.case_id}
+                            {SCENARIO_LABELS[interaction.scenario] || interaction.scenario} · {interaction.case_id}
                           </CardTitle>
                           <CardDescription className="mt-1">
                             轮次: {interaction.turn_count || interaction.dialog_history?.length || 0}
@@ -294,10 +270,8 @@ export default function APIHistoryPage() {
             )}
           </CardContent>
         </Card>
-      </section>
-
-      <Footer />
-    </div>
+      </main>
+    </WorkbenchShell>
   )
 }
 

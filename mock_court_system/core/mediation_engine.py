@@ -16,6 +16,7 @@ V.   Closure       —— 达成协议/确认分歧/轮次耗尽 → 调解员�
 from __future__ import annotations
 
 import json
+import os
 import time
 import logging
 from dataclasses import dataclass, field, asdict
@@ -23,8 +24,10 @@ from enum import Enum
 from typing import Dict, Any, List, Optional
 
 from core import LLMClient
+from core.mediation_session_store import MediationSessionStore
 
 logger = logging.getLogger("mediation_engine")
+_DEFAULT_MEDIATION_DB = os.path.join("data", "mediation_sessions.sqlite3")
 
 
 class MediationStage(Enum):
@@ -162,11 +165,37 @@ _PARTY_RESPONSE_PROMPT = """你是当事人「{party_name}」，正在参与调�
 class MediationEngine:
     """五阶段调解引擎。"""
 
-    def __init__(self, llm_client: LLMClient, sim_agent=None):
+    def __init__(self, llm_client: LLMClient, sim_agent=None, persist_path: Optional[str] = None):
         self.llm = llm_client
         self.sim_agent = sim_agent
-
         self._sessions: Dict[str, Dict[str, Any]] = {}
+        if persist_path == "":
+            self._store = None
+        else:
+            path = persist_path or os.getenv("MEDIATION_DB_PATH") or _DEFAULT_MEDIATION_DB
+            self._store = MediationSessionStore(path)
+
+    def _serialize_session(self, sess: Dict[str, Any]) -> Dict[str, Any]:
+        payload = dict(sess)
+        stage = payload.get("stage")
+        if isinstance(stage, MediationStage):
+            payload["stage"] = stage.value
+        return payload
+
+    def _deserialize_session(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = dict(data)
+        stage = payload.get("stage")
+        if isinstance(stage, str):
+            try:
+                payload["stage"] = MediationStage(stage)
+            except ValueError:
+                payload["stage"] = MediationStage.PRELIMINARY
+        return payload
+
+    def _save(self, session_id: str) -> None:
+        if not self._store or session_id not in self._sessions:
+            return
+        self._store.save(session_id, self._serialize_session(self._sessions[session_id]))
 
     def create_session(
         self,
@@ -199,6 +228,7 @@ class MediationEngine:
             "created_at": time.time(),
             "nbs_reference_text": (nbs_reference_text or "").strip(),
         }
+        self._save(session_id)
 
         return {
             "session_id": session_id,
@@ -207,8 +237,12 @@ class MediationEngine:
         }
 
     def _get_session(self, session_id: str) -> Dict[str, Any]:
+        if session_id not in self._sessions and self._store:
+            raw = self._store.get(session_id)
+            if raw:
+                self._sessions[session_id] = self._deserialize_session(raw)
         if session_id not in self._sessions:
-            raise ValueError(f"调解会话不存在: {session_id}")
+            raise ValueError("调解会话不存在。后端重启后若存档缺失，请重新创建。")
         return self._sessions[session_id]
 
     def _add_turn(self, sess: Dict, stage: str, role: str, message: str):
@@ -248,6 +282,7 @@ class MediationEngine:
         self._add_turn(sess, "preliminary", "Mediator", response)
         sess["stage"] = MediationStage.STATEMENT
         sess["stages_completed"].append("preliminary")
+        self._save(session_id)
 
         return {
             "stage": "preliminary",
@@ -288,6 +323,7 @@ class MediationEngine:
         if all_stated:
             sess["stage"] = MediationStage.OPTION_GENERATION
             sess["stages_completed"].append("statement")
+        self._save(session_id)
 
         return {
             "stage": "statement",
@@ -344,6 +380,7 @@ class MediationEngine:
         self._add_turn(sess, "option_generation", "Mediator", mediator_msg)
         sess["stage"] = MediationStage.BARGAINING
         sess["stages_completed"].append("option_generation")
+        self._save(session_id)
 
         return {
             "stage": "option_generation",
@@ -442,6 +479,7 @@ class MediationEngine:
         if termination:
             sess["stage"] = MediationStage.CLOSURE
             sess["stages_completed"].append("bargaining")
+        self._save(session_id)
 
         return {
             "stage": "bargaining",
@@ -521,6 +559,7 @@ class MediationEngine:
             },
             elapsed_seconds=round(time.time() - sess["created_at"], 2),
         )
+        self._save(session_id)
 
         return result
 

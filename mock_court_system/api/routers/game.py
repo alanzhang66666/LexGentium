@@ -3,14 +3,13 @@ from typing import Optional, Dict, Any, List
 import asyncio
 from datetime import datetime
 import uuid
-import os
-import queue
-import threading
 import json
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
+from api.services.game import GAME_NOT_FOUND, delete_game, ensure_game, persist_game
+from api.services.sse import sse_event
 from api_schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
@@ -29,54 +28,14 @@ router = APIRouter()
 
 @router.post("/game/create")
 async def create_game_session(req: GameCreateRequest):
-    if req.plaintiff_strategy not in state.VALID_STRATEGIES:
-        raise HTTPException(400, f"Invalid plaintiff_strategy. Options: {state.VALID_STRATEGIES}")
-    if req.defendant_strategy not in state.VALID_STRATEGIES:
-        raise HTTPException(400, f"Invalid defendant_strategy. Options: {state.VALID_STRATEGIES}")
-
-    game_id = f"game_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
-
-    engine = state.GameEngine(state._orchestrator, state.llm_client)
-    engine.set_strategy("plaintiff", req.plaintiff_strategy)
-    engine.set_strategy("defendant", req.defendant_strategy)
-    engine._dispute_cause = req.dispute_cause
-    engine._dispute_cause_detail = req.dispute_cause_detail
-
-    config_dict = req.model_dump()
-    state.game_sessions[game_id] = {
-        "engine": engine,
-        "config": config_dict,
-        "case_info": req.case_info,
-        "rounds_completed": 0,
-        "created_at": state._utcnow_iso(),
-        "status": "created",
-    }
-
-    state._game_store.save(game_id, config_dict, req.case_info, "created", 0)
-
-    return {
-        "game_id": game_id,
-        "status": "created",
-        "config": config_dict,
-        "strategy_state": engine.get_strategy_state(),
-        "initial_equilibrium": engine.get_equilibrium_analysis(),
-    }
+    from api.services.game import create_game
+    return create_game(req)
 
 
 @router.get("/game/list")
 async def list_game_sessions():
-    sessions = []
-    for gid, sess in state.game_sessions.items():
-        engine: state.GameEngine = sess["engine"]
-        sessions.append({
-            "game_id": gid,
-            "status": sess["status"],
-            "rounds_completed": sess["rounds_completed"],
-            "created_at": sess["created_at"],
-            "plaintiff_strategy": engine._plaintiff_strategy_type,
-            "defendant_strategy": engine._defendant_strategy_type,
-            "convergence_rate": engine.nash_tracker.compute_convergence(),
-        })
+    from api.services.game import list_games
+    sessions = list_games()
 
     # 服务重启后引擎对象不可恢复，内存中消失的会话从 SQLite 存档补全（只读展示）
     live_ids = {s["game_id"] for s in sessions}
@@ -102,8 +61,8 @@ async def list_game_sessions():
 
 @router.get("/game/{game_id}")
 async def get_game_session(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     engine: state.GameEngine = sess["engine"]
@@ -116,21 +75,21 @@ async def get_game_session(game_id: str):
         "strategy_state": engine.get_strategy_state(),
         "equilibrium": engine.get_equilibrium_analysis(),
         "config": sess["config"],
+        "restored": bool(sess.get("restored")),
+        "degraded": any(getattr(r.score, "degraded", False) for r in engine.strategy_history),
     }
 
 
 @router.delete("/game/{game_id}")
 async def delete_game_session(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
-    del state.game_sessions[game_id]
+    delete_game(game_id)
     return {"message": "deleted", "game_id": game_id}
 
 
 @router.post("/game/{game_id}/strategy/set")
 async def set_game_strategy(game_id: str, req: GameStrategySetRequest):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
     if req.strategy_type not in state.VALID_STRATEGIES:
         raise HTTPException(400, f"Invalid strategy. Options: {list(state.VALID_STRATEGIES)}")
     if req.party not in ("plaintiff", "defendant"):
@@ -138,6 +97,7 @@ async def set_game_strategy(game_id: str, req: GameStrategySetRequest):
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     engine.set_strategy(req.party, req.strategy_type, req.custom_instruction)
+    persist_game(game_id)
 
     return {
         "game_id": game_id,
@@ -149,8 +109,8 @@ async def set_game_strategy(game_id: str, req: GameStrategySetRequest):
 
 @router.post("/game/{game_id}/strategy/reflect")
 async def reflect_strategy(game_id: str, req: GameStrategySetRequest):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -159,6 +119,7 @@ async def reflect_strategy(game_id: str, req: GameStrategySetRequest):
     last_round = engine.strategy_history[-1]
     method = req.strategy_type if req.strategy_type in ("llm_reflection", "best_response", "fictitious_play") else "llm_reflection"
     new_type = engine.evolve_strategy(req.party, last_round, method=method)
+    persist_game(game_id)
 
     return {
         "game_id": game_id,
@@ -172,19 +133,21 @@ async def reflect_strategy(game_id: str, req: GameStrategySetRequest):
 
 @router.get("/game/{game_id}/strategy/history")
 async def get_strategy_history(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     return {
         "game_id": game_id,
         "history": engine.get_strategy_history(),
+        "degraded": any(getattr(r.score, "degraded", False) for r in engine.strategy_history),
         "rounds": [
             {
                 "round": r.round_index,
                 "plaintiff_strategy": r.cd_strategy,
                 "defendant_strategy": r.dd_strategy,
                 "score": r.score.to_dict(),
+                "degraded": bool(getattr(r.score, "degraded", False)),
             }
             for r in engine.strategy_history
         ],
@@ -193,8 +156,8 @@ async def get_strategy_history(game_id: str):
 
 @router.get("/game/{game_id}/strategy/payoff-matrix")
 async def get_payoff_matrix(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     return {
@@ -205,8 +168,8 @@ async def get_payoff_matrix(game_id: str):
 
 @router.post("/game/{game_id}/round")
 async def run_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     engine: state.GameEngine = sess["engine"]
@@ -240,13 +203,14 @@ async def run_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
         converged = conv >= (1 - threshold) and round_idx >= 1
 
         sess["status"] = "converged" if converged else "in_progress"
-        state._game_store.update_status(game_id, sess["status"], sess["rounds_completed"])
+        persist_game(game_id)
 
         return {
             "game_id": game_id,
             "round_index": round_idx,
             "status": sess["status"],
             "score": game_round.score.to_dict(),
+            "degraded": bool(game_round.score.degraded),
             "strategy_state": engine.get_strategy_state(),
             "equilibrium_snapshot": game_round.equilibrium_snapshot,
             "converged": converged,
@@ -263,8 +227,8 @@ async def run_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
 
 @router.get("/game/{game_id}/equilibrium")
 async def get_equilibrium(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     return {
@@ -275,8 +239,8 @@ async def get_equilibrium(game_id: str):
 
 @router.get("/game/{game_id}/equilibrium/convergence")
 async def get_equilibrium_convergence(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     snapshots = []
@@ -299,8 +263,8 @@ async def get_equilibrium_convergence(game_id: str):
 
 @router.post("/game/{game_id}/strategy/counterfactual")
 async def run_counterfactual(game_id: str, req: GameCounterfactualRequest):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
     if req.party not in ("plaintiff", "defendant"):
         raise HTTPException(400, "party must be 'plaintiff' or 'defendant'")
     if req.hypothetical_strategy not in state.VALID_STRATEGIES:
@@ -324,8 +288,8 @@ async def run_counterfactual(game_id: str, req: GameCounterfactualRequest):
 
 @router.post("/game/{game_id}/stream-round")
 async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     engine: state.GameEngine = sess["engine"]
@@ -338,57 +302,61 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
 
     method = (req.evolution_method if req and req.evolution_method else None) or config.get("evolution_method", "llm_reflection")
     round_idx = sess["rounds_completed"]
-    event_queue: queue.Queue = queue.Queue()
+    loop = asyncio.get_running_loop()
+    event_queue: asyncio.Queue = asyncio.Queue()
 
-    def on_progress(stage, round_i, role, finished):
-        event_queue.put(state._sse_event("stage_transition", {
+    def on_progress(stage, round_i, role, finished, sub_stage=None):
+        loop.call_soon_threadsafe(event_queue.put_nowait, sse_event("stage_transition", {
             "stage": stage,
             "round_within_stage": round_i,
             "role": role,
             "finished": finished,
+            "sub_stage": sub_stage,
         }))
 
-    def run_round():
+    async def run_round():
         try:
             sess["status"] = "running"
-            event_queue.put(state._sse_event("round_start", {
+            await event_queue.put(sse_event("round_start", {
                 "round_index": round_idx,
                 "plaintiff_strategy": engine._plaintiff_strategy_type,
                 "defendant_strategy": engine._defendant_strategy_type,
             }))
 
-            game_round = engine.run_game_round(
-                case_info, round_idx,
+            game_round = await asyncio.to_thread(
+                engine.run_game_round,
+                case_info,
+                round_idx,
                 on_progress=on_progress,
                 evolution_method=method,
             )
             sess["rounds_completed"] = round_idx + 1
 
-            event_queue.put(state._sse_event("score_update", {
+            await event_queue.put(sse_event("score_update", {
                 "round_index": round_idx,
                 "score": game_round.score.to_dict(),
+                "degraded": bool(game_round.score.degraded),
             }))
 
-            event_queue.put(state._sse_event("equilibrium_update", {
+            await event_queue.put(sse_event("equilibrium_update", {
                 "equilibrium": game_round.equilibrium_snapshot,
             }))
 
-            # 未收敛则执行策略进化
             if sess["rounds_completed"] < max_rounds and config.get("enable_dynamic_strategy", True):
                 old_p = engine._plaintiff_strategy_type
                 old_d = engine._defendant_strategy_type
 
-                engine.evolve_both_strategies(game_round, method)
+                await asyncio.to_thread(engine.evolve_both_strategies, game_round, method)
 
                 if engine._plaintiff_strategy_type != old_p:
-                    event_queue.put(state._sse_event("strategy_switch", {
+                    await event_queue.put(sse_event("strategy_switch", {
                         "party": "plaintiff",
                         "old": old_p,
                         "new": engine._plaintiff_strategy_type,
                     }))
 
                 if engine._defendant_strategy_type != old_d:
-                    event_queue.put(state._sse_event("strategy_switch", {
+                    await event_queue.put(sse_event("strategy_switch", {
                         "party": "defendant",
                         "old": old_d,
                         "new": engine._defendant_strategy_type,
@@ -398,34 +366,42 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
             threshold = config.get("convergence_threshold", 0.05)
             converged = conv >= (1 - threshold) and round_idx >= 1
             sess["status"] = "converged" if converged else "in_progress"
+            persist_game(game_id)
 
-            event_queue.put(state._sse_event("round_complete", {
+            await event_queue.put(sse_event("round_complete", {
                 "round_index": round_idx,
                 "converged": converged,
                 "convergence_rate": conv,
                 "rounds_completed": sess["rounds_completed"],
                 "strategy_state": engine.get_strategy_state(),
+                "degraded": bool(game_round.score.degraded),
             }))
 
         except Exception as e:
             sess["status"] = "failed"
-            event_queue.put(state._sse_event("error", {"message": str(e)}))
+            persist_game(game_id)
+            await event_queue.put(sse_event("error", {"message": str(e)}))
         finally:
-            event_queue.put(None)
+            await event_queue.put(None)
 
-    thread = threading.Thread(target=run_round, daemon=True)
-    thread.start()
+    worker = asyncio.create_task(run_round())
 
     async def event_generator():
-        while True:
-            try:
-                event = await asyncio.to_thread(event_queue.get, timeout=120)
-            except Exception:
-                yield state._sse_event("error", {"message": "timeout"})
-                break
-            if event is None:
-                break
-            yield event
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=25)
+                except asyncio.TimeoutError:
+                    if worker.done():
+                        break
+                    yield sse_event("heartbeat", {"ok": True})
+                    continue
+                if event is None:
+                    break
+                yield event
+        finally:
+            if not worker.done():
+                worker.cancel()
 
     return StreamingResponse(
         event_generator(),
@@ -440,14 +416,14 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
 
 @router.post("/game/{game_id}/evaluate/outcome")
 async def evaluate_game_outcome(game_id: str, req: Optional[GameEvaluateRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     engine: state.GameEngine = sess["engine"]
 
     if not engine.strategy_history:
-        raise HTTPException(status_code=400, detail="error")
+        raise HTTPException(status_code=400, detail="尚无推演轮次，请先推演一轮")
 
     last_round = engine.strategy_history[-1]
     ci_result = last_round.case_result.ci_result
@@ -480,14 +456,14 @@ async def evaluate_game_outcome(game_id: str, req: Optional[GameEvaluateRequest]
 
 @router.post("/game/{game_id}/evaluate/composite")
 async def evaluate_game_composite(game_id: str, req: Optional[GameEvaluateRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     engine: state.GameEngine = sess["engine"]
 
     if not engine.strategy_history:
-        raise HTTPException(status_code=400, detail="error")
+        raise HTTPException(status_code=400, detail="尚无推演轮次，请先推演一轮")
 
     last_round = engine.strategy_history[-1]
     ci_result = last_round.case_result.ci_result
@@ -547,14 +523,15 @@ async def evaluate_game_composite(game_id: str, req: Optional[GameEvaluateReques
         "multi_layer_evaluation": multi_layer,
         "final_composite_score": final_composite,
         "game_score": last_round.score.to_dict(),
+        "degraded": bool(last_round.score.degraded),
         "equilibrium_snapshot": last_round.equilibrium_snapshot,
     }
 
 
 @router.get("/game/{game_id}/compliance/realtime")
 async def get_game_compliance(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     try:
         realtime = state.ci_agent.state_machine.get_realtime_compliance()
@@ -569,8 +546,8 @@ async def get_game_compliance(game_id: str):
 
 @router.post("/game/{game_id}/evaluate/lexeval")
 async def evaluate_lexeval_cognitive(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -588,8 +565,8 @@ async def evaluate_lexeval_cognitive(game_id: str):
 
 @router.post("/game/{game_id}/evaluate/j1eval")
 async def evaluate_j1eval(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -621,8 +598,8 @@ async def evaluate_j1eval(game_id: str):
 
 @router.post("/game/{game_id}/evaluate/behavior-symmetry")
 async def evaluate_behavior_symmetry(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -646,8 +623,8 @@ async def evaluate_behavior_symmetry(game_id: str):
 
 @router.post("/game/{game_id}/evaluate/explainable")
 async def evaluate_explainable_decisions(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -673,8 +650,8 @@ async def evaluate_explainable_decisions(game_id: str):
 
 @router.post("/game/{game_id}/evaluate/progressive-benchmark")
 async def evaluate_progressive_benchmark(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -714,8 +691,8 @@ async def evaluate_progressive_benchmark(game_id: str):
 
 @router.get("/game/{game_id}/evaluate/polarization")
 async def detect_polarization(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if len(engine.strategy_history) < 2:
@@ -743,8 +720,8 @@ async def detect_polarization(game_id: str):
 
 @router.get("/game/{game_id}/liability-chain")
 async def get_liability_chain(game_id: str):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -769,8 +746,8 @@ async def get_liability_chain(game_id: str):
 
 @router.post("/game/{game_id}/liability-chain/counterfactual")
 async def liability_counterfactual(game_id: str, req: LiabilityCounterfactualRequest):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     engine: state.GameEngine = state.game_sessions[game_id]["engine"]
     if not engine.strategy_history:
@@ -798,8 +775,8 @@ async def liability_counterfactual(game_id: str, req: LiabilityCounterfactualReq
 
 @router.post("/game/{game_id}/progressive-rag")
 async def run_progressive_rag(game_id: str, req: ProgressiveRAGRequest):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     retriever = state.get_law_retriever()
     if not retriever:
@@ -820,8 +797,8 @@ async def run_progressive_rag(game_id: str, req: ProgressiveRAGRequest):
 
 @router.post("/game/{game_id}/dual-mode-reasoning")
 async def run_game_dual_mode(game_id: str, req: Optional[DualModeRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     case_info = json.dumps(sess["case_info"], ensure_ascii=False)[:3000]
@@ -840,8 +817,8 @@ async def run_game_dual_mode(game_id: str, req: Optional[DualModeRequest] = None
 
 @router.post("/game/{game_id}/multi-judge")
 async def run_game_multi_judge(game_id: str, req: Optional[MultiJudgeRequest] = None):
-    if game_id not in state.game_sessions:
-        raise HTTPException(status_code=404, detail="error")
+    if not ensure_game(game_id):
+        raise HTTPException(status_code=404, detail=GAME_NOT_FOUND)
 
     sess = state.game_sessions[game_id]
     case_facts = str(sess["case_info"].get("case_description", ""))
@@ -860,9 +837,4 @@ async def run_game_multi_judge(game_id: str, req: Optional[MultiJudgeRequest] = 
         engine.run, case_facts, claims, "", num_judges, aggregation,
     )
     return {"game_id": game_id, **result.to_dict()}
-
-
-if __name__ == "__main__":
-    # 默认仅监听本机；如需局域网访问，设置 API_HOST=0.0.0.0 并强烈建议同时设置 API_TOKEN
-    uvicorn.run(app, host=os.getenv("API_HOST", "127.0.0.1"), port=int(os.getenv("API_PORT", "8000")))
 

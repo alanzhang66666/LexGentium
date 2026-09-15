@@ -117,3 +117,32 @@ async def get_big_five_traits():
 async def get_progressive_benchmark_info():
     return {"levels": state.PROGRESSIVE_BENCHMARK_LEVELS}
 
+
+@router.get("/reference/cases")
+async def list_reference_cases(limit: int = 40, split: str = "test"):
+    from api.services.cases import list_case_index
+    cases = list_case_index(limit=limit, split=split)
+    return {"cases": cases, "total": len(cases), "split": split}
+
+
+@router.get("/reference/cases/{case_id}")
+async def get_reference_case(case_id: str, split: Optional[str] = None):
+    from api.services.cases import get_case_full
+    row = get_case_full(case_id, split=split)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"case not found: {case_id}")
+    return {"case": row, "case_id": case_id}
+
+
+@router.get("/reference/research-packs")
+async def list_research_packs(dataset: Optional[str] = None):
+    from api.services.materials import list_packs
+    packs = list_packs(dataset)
+    return {"packs": packs, "total": len(packs)}
+
+
+@router.get("/reference/research-packs/{dataset}/{cluster}")
+async def get_research_pack(dataset: str, cluster: str, pack_version: Optional[str] = None):
+    from api.services.materials import pack_public_view
+    return pack_public_view(dataset, cluster, pack_version)
+

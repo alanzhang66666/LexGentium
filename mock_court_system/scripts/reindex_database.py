@@ -11,7 +11,9 @@ import time
 DB_PATH = "database/legal_articles.db"
 NEW_INDEX_PATH = "database/legal_articles.index"
 NEW_MAPPING_PATH = "database/legal_articles_id_map.npy"
-API_KEY = "sk-tkfnlkgyhkxihqqgyowdrkhdpzyldhtblrjdmnqmthmfjqln"
+API_KEY = os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("LLM_API_KEY") or ""
+if not API_KEY:
+    raise SystemExit("Set DASHSCOPE_API_KEY or LLM_API_KEY before running reindex_database.py")
 
 dashscope.api_key = API_KEY
 

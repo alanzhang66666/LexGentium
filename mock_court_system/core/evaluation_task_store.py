@@ -21,6 +21,8 @@ class EvaluationTaskRecord:
     updated_at: str
     results_json: Optional[str] = None
     report_path: Optional[str] = None
+    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
     def results(self) -> Optional[Dict[str, Any]]:
         if not self.results_json:
@@ -40,6 +42,21 @@ class EvaluationTaskStore:
 
     def list_recent(self, limit: int = 50) -> List[EvaluationTaskRecord]:
         raise NotImplementedError
+
+
+def _row_to_record(row: sqlite3.Row) -> EvaluationTaskRecord:
+    keys = set(row.keys())
+    return EvaluationTaskRecord(
+        report_id=row["report_id"],
+        status=row["status"],
+        message=row["message"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        results_json=row["results_json"],
+        report_path=row["report_path"],
+        session_id=row["session_id"] if "session_id" in keys else None,
+        run_id=row["run_id"] if "run_id" in keys else None,
+    )
 
 
 class SqliteEvaluationTaskStore(EvaluationTaskStore):
@@ -69,20 +86,33 @@ class SqliteEvaluationTaskStore(EvaluationTaskStore):
                 """
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_eval_updated_at ON evaluation_tasks(updated_at)")
+            self._migrate_attribution_columns(conn)
+
+    def _migrate_attribution_columns(self, conn: sqlite3.Connection) -> None:
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(evaluation_tasks)")}
+        if "session_id" not in existing:
+            conn.execute("ALTER TABLE evaluation_tasks ADD COLUMN session_id TEXT")
+        if "run_id" not in existing:
+            conn.execute("ALTER TABLE evaluation_tasks ADD COLUMN run_id TEXT")
 
     def upsert(self, record: EvaluationTaskRecord) -> None:
         record.updated_at = _utcnow_iso()
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT INTO evaluation_tasks(report_id, status, message, created_at, updated_at, results_json, report_path)
-                VALUES(?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO evaluation_tasks(
+                  report_id, status, message, created_at, updated_at,
+                  results_json, report_path, session_id, run_id
+                )
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(report_id) DO UPDATE SET
                   status=excluded.status,
                   message=excluded.message,
                   updated_at=excluded.updated_at,
                   results_json=excluded.results_json,
-                  report_path=excluded.report_path
+                  report_path=excluded.report_path,
+                  session_id=COALESCE(excluded.session_id, evaluation_tasks.session_id),
+                  run_id=COALESCE(excluded.run_id, evaluation_tasks.run_id)
                 """,
                 (
                     record.report_id,
@@ -92,23 +122,20 @@ class SqliteEvaluationTaskStore(EvaluationTaskStore):
                     record.updated_at,
                     record.results_json,
                     record.report_path,
+                    record.session_id,
+                    record.run_id,
                 ),
             )
 
     def get(self, report_id: str) -> Optional[EvaluationTaskRecord]:
         with self._connect() as conn:
-            row = conn.execute("SELECT * FROM evaluation_tasks WHERE report_id = ?", (report_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM evaluation_tasks WHERE report_id = ?",
+                (report_id,),
+            ).fetchone()
         if not row:
             return None
-        return EvaluationTaskRecord(
-            report_id=row["report_id"],
-            status=row["status"],
-            message=row["message"],
-            created_at=row["created_at"],
-            updated_at=row["updated_at"],
-            results_json=row["results_json"],
-            report_path=row["report_path"],
-        )
+        return _row_to_record(row)
 
     def list_recent(self, limit: int = 50) -> List[EvaluationTaskRecord]:
         with self._connect() as conn:
@@ -116,18 +143,7 @@ class SqliteEvaluationTaskStore(EvaluationTaskStore):
                 "SELECT * FROM evaluation_tasks ORDER BY updated_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        return [
-            EvaluationTaskRecord(
-                report_id=r["report_id"],
-                status=r["status"],
-                message=r["message"],
-                created_at=r["created_at"],
-                updated_at=r["updated_at"],
-                results_json=r["results_json"],
-                report_path=r["report_path"],
-            )
-            for r in rows
-        ]
+        return [_row_to_record(r) for r in rows]
 
 
 def build_evaluation_task_store(project_root: Path) -> EvaluationTaskStore:
@@ -135,4 +151,3 @@ def build_evaluation_task_store(project_root: Path) -> EvaluationTaskStore:
     # It keeps all “app runtime state” in ./data/app_state.sqlite3 unless overridden later.
     db_path = str(project_root / "data" / "app_state.sqlite3")
     return SqliteEvaluationTaskStore(db_path=db_path)
-

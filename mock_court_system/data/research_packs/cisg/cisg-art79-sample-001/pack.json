@@ -1,0 +1,873 @@
+{
+  "schema_version": "1",
+  "dataset_id": "cisg",
+  "cluster_id": "cisg-art79-sample-001",
+  "pack_version": "0.1.0",
+  "task_type": "cisg_article79",
+  "caption": {
+    "case_name": "CISG 第七十九条出口禁令免责样例",
+    "case_number": "SAMPLE-CISG-79-001",
+    "court": "unknown",
+    "date": "unknown",
+    "source": "CISG official text + researcher hypothetical",
+    "procedure_chain": [
+      "订约",
+      "出口禁令",
+      "未交货",
+      "第79条免责主张与反驳"
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "001",
+      "title": "CISG 第七十九条正式中英文本",
+      "filename": "001.txt",
+      "source_tier": "historical",
+      "language": "zh-en",
+      "review_state": "law_reviewed",
+      "notes": "",
+      "original_ref": {
+        "raw_id": "A-CISG-79-TEXT",
+        "raw_locator": "research_packs/cisg/cisg-art79-sample-001/documents/001.txt",
+        "catalog_no": "",
+        "workbook_sheet": "03来源登记"
+      },
+      "source_form": "official_full",
+      "completeness": "excerpt"
+    },
+    {
+      "document_id": "002",
+      "title": "第79条适用事实样例（研究者拟定）",
+      "filename": "002.txt",
+      "source_tier": "researcher",
+      "language": "zh",
+      "review_state": "pending",
+      "notes": "",
+      "original_ref": {
+        "raw_id": "A-SAMPLE-001",
+        "raw_locator": "research_packs/cisg/cisg-art79-sample-001/documents/002.txt",
+        "catalog_no": "",
+        "workbook_sheet": "01记录文书"
+      },
+      "source_form": "later_restatement",
+      "completeness": "excerpt"
+    }
+  ],
+  "procedural_facts": [
+    {
+      "source_ids": [
+        "002:p1"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-fact-parties",
+      "field_key": "parties_places_of_business",
+      "value": "卖方 S 中国；买方 B 德国"
+    },
+    {
+      "source_ids": [
+        "002:p1"
+      ],
+      "source_tier": "researcher",
+      "review_state": "tech_checked",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-fact-governing-law",
+      "field_key": "governing_instrument",
+      "value": "CISG"
+    },
+    {
+      "source_ids": [
+        "002:p2"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "indirect",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-fact-impediment-event",
+      "field_key": "alleged_impediment",
+      "value": "订约后、交货前的临时出口许可禁令"
+    },
+    {
+      "source_ids": [
+        "002:p4"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "unsupported",
+      "disclosure_status": "undisclosed",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-fact-notice-date",
+      "field_key": "notice_date",
+      "value": "unknown"
+    }
+  ],
+  "party_claims": [
+    {
+      "source_ids": [
+        "002:p2",
+        "001:zh-1"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "claimant",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-claim-seller",
+      "party": "claimant",
+      "claim_text": "请求依第七十九条免除因未交货产生的损害赔偿责任。",
+      "facts": "订约后出现出口许可禁令，主张无法按期交货。",
+      "norms": "CISG 第七十九条第一款、第三款、第四款。",
+      "reasoning": "禁令构成其不能控制且订约时不能合理预期、不能避免或克服的障碍。"
+    },
+    {
+      "source_ids": [
+        "002:p3",
+        "002:p4",
+        "001:zh-1",
+        "001:zh-4"
+      ],
+      "source_tier": "researcher",
+      "review_state": "disputed",
+      "notes": "可预见性与监管风险是否属于第79条障碍，存在解释分歧。",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-claim-buyer",
+      "party": "respondent",
+      "claim_text": "反对免责：障碍可合理预期，且卖方未证明已避免、克服或及时通知。",
+      "facts": "订约前已有同类管制讨论；通知原件未收录。",
+      "norms": "CISG 第七十九条第一款、第四款。",
+      "reasoning": "可合理考虑到的监管风险不构成免责障碍；未证明通知在合理时间内到达。"
+    }
+  ],
+  "court_findings": [
+    {
+      "source_ids": [],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "教学样例无裁判结论；参照层只列可接受路径。 教学样例无裁判，故认定栏为 NA 而非法院未处理。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "unsupported",
+      "disclosure_status": null,
+      "missing_code": "NA",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-finding-outcome",
+      "finding": "unknown",
+      "reasons": "unknown"
+    }
+  ],
+  "legal_bases": [
+    {
+      "source_ids": [
+        "001:zh-1",
+        "001:en-1"
+      ],
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "cisg-basis-79",
+      "rule_id": "cisg-79",
+      "rule_version": "1980-un-official",
+      "citation": "CISG Article 79 / 公约第七十九条",
+      "application_note": "完整要素见 task_labels.elements。"
+    }
+  ],
+  "material_gaps": [
+    {
+      "gap_id": "cisg-gap-notice",
+      "description": "卖方通知原件及买方收到时间未知。",
+      "related_field": "notice",
+      "related_item_ids": [
+        "cisg-el-notice"
+      ],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "已核读公约摘录与研究者拟定事实；通知原件、知悉日期、第三方、替代履行未提供。",
+      "impact": "第79条第1款部分要素与第4款通知不能定为满足或不满足。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "cisg-gap-knowledge-date",
+      "description": "卖方知悉或理应知悉障碍的日期未知。",
+      "related_field": "notice",
+      "related_item_ids": [],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "已核读公约摘录与研究者拟定事实；通知原件、知悉日期、第三方、替代履行未提供。",
+      "impact": "第79条第1款部分要素与第4款通知不能定为满足或不满足。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "cisg-gap-third-person",
+      "description": "是否存在第79条第2款第三方履行未知。",
+      "related_field": "third_person",
+      "related_item_ids": [
+        "cisg-el-third-person"
+      ],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "已核读公约摘录与研究者拟定事实；通知原件、知悉日期、第三方、替代履行未提供。",
+      "impact": "第79条第1款部分要素与第4款通知不能定为满足或不满足。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "cisg-gap-substitute",
+      "description": "替代履行是否可得未知。",
+      "related_field": "unavoidable",
+      "related_item_ids": [],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "已核读公约摘录与研究者拟定事实；通知原件、知悉日期、第三方、替代履行未提供。",
+      "impact": "第79条第1款部分要素与第4款通知不能定为满足或不满足。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "source_anchors": [
+    {
+      "source_id": "001:zh-1",
+      "document_id": "001",
+      "locator": "zh-1",
+      "start_offset": 184,
+      "end_offset": 280,
+      "quote": "由于某种非他所能控制的障碍，而且对于这种障碍，没有理由预期他在订立合同时能考虑到或能避免或克服它或它的后果",
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": ""
+    },
+    {
+      "source_id": "001:zh-2",
+      "document_id": "001",
+      "locator": "zh-2",
+      "start_offset": 280,
+      "end_offset": 353,
+      "quote": "由于他所雇用履行合同的全部或一部分规定的第三方不履行义务所致",
+      "source_tier": "historical",
+      "review_state": "tech_checked",
+      "notes": ""
+    },
+    {
+      "source_id": "001:zh-3",
+      "document_id": "001",
+      "locator": "zh-3",
+      "start_offset": 425,
+      "end_offset": 456,
+      "quote": "本条所规定的免责对障碍存在的期间有效",
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": ""
+    },
+    {
+      "source_id": "001:zh-4",
+      "document_id": "001",
+      "locator": "zh-4",
+      "start_offset": 456,
+      "end_offset": 569,
+      "quote": "不履行义务的一方必须将障碍及其对他履行义务能力的影响通知另一方",
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": ""
+    },
+    {
+      "source_id": "001:zh-5",
+      "document_id": "001",
+      "locator": "zh-5",
+      "start_offset": 569,
+      "end_offset": 614,
+      "quote": "不妨碍任何一方行使本公约规定的要求损害赔偿以外的任何权利",
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": ""
+    },
+    {
+      "source_id": "001:en-1",
+      "document_id": "001",
+      "locator": "en-1",
+      "start_offset": 614,
+      "end_offset": 958,
+      "quote": "failure was due to an impediment beyond his control",
+      "source_tier": "historical",
+      "review_state": "tech_checked",
+      "notes": ""
+    },
+    {
+      "source_id": "001:en-4",
+      "document_id": "001",
+      "locator": "en-4",
+      "start_offset": 1443,
+      "end_offset": 1798,
+      "quote": "must give notice to the other party of the impediment",
+      "source_tier": "historical",
+      "review_state": "tech_checked",
+      "notes": ""
+    },
+    {
+      "source_id": "002:p1",
+      "document_id": "002",
+      "locator": "p1",
+      "start_offset": 143,
+      "end_offset": 243,
+      "quote": "卖方 S（营业地：中国）与买方 B（营业地：德国）订立 CIF 货物买卖合同",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:p2",
+      "document_id": "002",
+      "locator": "p2",
+      "start_offset": 243,
+      "end_offset": 321,
+      "quote": "出口国主管机关发布针对该类零件的临时出口许可禁令",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:p3",
+      "document_id": "002",
+      "locator": "p3",
+      "start_offset": 321,
+      "end_offset": 393,
+      "quote": "同类管制信号在订约前已公开讨论",
+      "source_tier": "researcher",
+      "review_state": "disputed",
+      "notes": ""
+    },
+    {
+      "source_id": "002:p4",
+      "document_id": "002",
+      "locator": "p4",
+      "start_offset": 393,
+      "end_offset": 472,
+      "quote": "本包未收录通知原件，亦未确定 B 是否在合理时间内收到",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "002:p5",
+      "document_id": "002",
+      "locator": "p5",
+      "start_offset": 472,
+      "end_offset": null,
+      "quote": "是否存在第七十九条第二款意义上的“所雇用履行合同的第三方”，保持未知",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "argument_records": [
+    {
+      "source_ids": [
+        "002:p2",
+        "001:zh-1"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "claimant",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "cisg-arg-seller",
+      "target_id": "cisg-j-1",
+      "document_id": "002",
+      "kind": "teaching",
+      "claim": "出口禁令构成第79条障碍，应免除损害赔偿。",
+      "reasoning": "禁令非其所能控制，订约时不能合理预期。",
+      "assumptions": "",
+      "rebuttal_target": "",
+      "target_part": "",
+      "action": "first_raised",
+      "fact_ids": [
+        "cisg-fact-impediment-event"
+      ],
+      "rule_ids": [
+        "cisg-79"
+      ],
+      "stage": "exemption"
+    },
+    {
+      "source_ids": [
+        "002:p3",
+        "002:p4"
+      ],
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "cisg-arg-buyer",
+      "target_id": "cisg-j-1",
+      "document_id": "002",
+      "kind": "teaching",
+      "claim": "障碍可合理预期，且卖方未证明通知。",
+      "reasoning": "订约前已有管制讨论；通知原件未收录。",
+      "assumptions": "",
+      "rebuttal_target": "cisg-arg-seller",
+      "target_part": "不可预见",
+      "action": "first_raised",
+      "fact_ids": [
+        "cisg-fact-notice-date"
+      ],
+      "rule_ids": [
+        "cisg-79"
+      ],
+      "stage": "exemption"
+    }
+  ],
+  "evidence_links": [
+    {
+      "link_id": "cisg-link-seller-fact",
+      "object_id": "cisg-arg-seller",
+      "relation": "fact_basis",
+      "evidence_id": "cisg-fact-impediment-event",
+      "field": "",
+      "purpose": "主张的障碍事实",
+      "limits": ""
+    },
+    {
+      "link_id": "cisg-link-seller-rule",
+      "object_id": "cisg-arg-seller",
+      "relation": "rule_basis",
+      "evidence_id": "cisg-79",
+      "field": "",
+      "purpose": "第七十九条",
+      "limits": ""
+    },
+    {
+      "link_id": "cisg-link-seller-src",
+      "object_id": "cisg-arg-seller",
+      "relation": "source_support",
+      "evidence_id": "002:p2",
+      "field": "",
+      "purpose": "禁令叙事",
+      "limits": ""
+    },
+    {
+      "link_id": "cisg-link-buyer-src",
+      "object_id": "cisg-arg-buyer",
+      "relation": "source_support",
+      "evidence_id": "002:p3",
+      "field": "",
+      "purpose": "可预见性争议",
+      "limits": ""
+    },
+    {
+      "link_id": "cisg-link-rebut",
+      "object_id": "cisg-arg-buyer",
+      "relation": "rebuttal_target",
+      "evidence_id": "cisg-arg-seller",
+      "field": "",
+      "purpose": "针对卖方免责主张",
+      "limits": ""
+    },
+    {
+      "link_id": "cisg-link-j",
+      "object_id": "cisg-arg-seller",
+      "relation": "other",
+      "evidence_id": "cisg-j-1",
+      "field": "target_id",
+      "purpose": "挂到判断对象",
+      "limits": ""
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "cisg-79",
+      "rule_version": "1980-un-official",
+      "title": "CISG 第七十九条",
+      "text": "因不能控制的障碍免责，附通知义务；免责期间以障碍存续为限；不排除损害赔偿以外的其他权利。",
+      "source": "United Nations Convention on Contracts for the International Sale of Goods (1980)",
+      "applicability_conditions": [
+        "公约适用的国际货物销售合同",
+        "主张免责的一方对障碍各要素负举证责任"
+      ],
+      "controversies": [
+        "经济艰难或监管风险是否构成障碍",
+        "订约时对出口管制变化的可预见程度"
+      ],
+      "usage_boundary": "本条不自动消灭对方解除、减价等非损害赔偿权利。独立于承认执行任务，勿并入 enforcement 数据集。",
+      "source_ids": [
+        "001:zh-1",
+        "001:zh-4",
+        "001:zh-5",
+        "001:en-1"
+      ],
+      "source_tier": "historical",
+      "review_state": "law_reviewed",
+      "notes": ""
+    }
+  ],
+  "task_labels": {
+    "task_type": "cisg_article79",
+    "article": "79",
+    "judgments": [
+      {
+        "judgment_id": "cisg-j-1",
+        "claimant": "卖方 S",
+        "obligation": "交付工业零件",
+        "request": "免除未交货的损害赔偿",
+        "period": "订约后、交货期届至前的临时出口禁令期间",
+        "task": "卖方 S 就未交付该批零件在禁令期间主张依第79条免除损害赔偿，是否成立。",
+        "cisg_applicable": "assumed",
+        "claim_raised": "yes",
+        "handled": "insufficient",
+        "result": "unknown",
+        "original_label": "",
+        "original_label_relation": "incomparable",
+        "notes": "研究者拟定事实，无收集者 F 列原标签，不能与 65 条校准行比较。"
+      }
+    ],
+    "elements": [
+      {
+        "source_ids": [
+          "001:zh-1",
+          "001:en-1",
+          "002:p2"
+        ],
+        "source_tier": "historical",
+        "review_state": "law_reviewed",
+        "notes": "条文用语已核；事实适用未决。",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "impediment",
+        "label": "障碍 / impediment",
+        "satisfied": "unknown",
+        "value": "卖方主张出口禁令构成障碍；是否成立待论证。",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "",
+        "opponent_view": "",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-1",
+          "001:en-1"
+        ],
+        "source_tier": "historical",
+        "review_state": "law_reviewed",
+        "notes": "",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "beyond_control",
+        "label": "非他所能控制 / beyond his control",
+        "satisfied": "unknown",
+        "value": "禁令由主管机关发布，控制性待评。",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "",
+        "opponent_view": "",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-1",
+          "002:p3"
+        ],
+        "source_tier": "researcher",
+        "review_state": "disputed",
+        "notes": "可预见性是本样例的解释分歧点。",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "unforeseeable",
+        "label": "订立合同时不能合理预期 / not reasonably expected at conclusion",
+        "satisfied": "unknown",
+        "value": "买方主张订约前已有管制讨论。",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "订约后出现临时出口许可禁令，订约时不能合理预期。",
+        "opponent_view": "订约前已有同类管制讨论。",
+        "court_result": "not_handled"
+      },
+      {
+        "source_ids": [
+          "001:zh-1",
+          "001:en-1"
+        ],
+        "source_tier": "historical",
+        "review_state": "tech_checked",
+        "notes": "定位到第1款后半句；替代履行是否可得为材料缺口。",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "unavoidable",
+        "label": "不能避免或克服 / could not avoid or overcome",
+        "satisfied": "unknown",
+        "value": "unknown",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "",
+        "opponent_view": "",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-4",
+          "001:en-4",
+          "002:p4"
+        ],
+        "source_tier": "researcher",
+        "review_state": "pending",
+        "notes": "通知是否在合理时间内到达保持未知。",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": "UV",
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "notice",
+        "label": "通知义务 / notice",
+        "satisfied": "unknown",
+        "value": "unknown",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "称曾告知存在出口障碍。",
+        "opponent_view": "未证明通知在合理时间内到达。",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-2"
+        ],
+        "source_tier": "historical",
+        "review_state": "tech_checked",
+        "notes": "",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "third_person",
+        "label": "第三方不履行 / third person",
+        "satisfied": "unknown",
+        "value": "unknown",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "",
+        "opponent_view": "",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-3"
+        ],
+        "source_tier": "historical",
+        "review_state": "law_reviewed",
+        "notes": "",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "duration",
+        "label": "免责期间 / duration of exemption",
+        "satisfied": "unknown",
+        "value": "仅对障碍存续期间有效。",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "",
+        "opponent_view": "",
+        "court_result": "insufficient"
+      },
+      {
+        "source_ids": [
+          "001:zh-5"
+        ],
+        "source_tier": "historical",
+        "review_state": "law_reviewed",
+        "notes": "",
+        "revisions": [],
+        "speaker": null,
+        "speech_type": null,
+        "support_status": null,
+        "disclosure_status": null,
+        "missing_code": null,
+        "conflict_values": [],
+        "original_ref": null,
+        "element_id": "other_remedies",
+        "label": "其他权利不受影响 / rights other than damages",
+        "satisfied": "yes",
+        "value": "即使免责损害赔偿，对方仍可主张损害赔偿以外的公约权利。",
+        "judgment_id": "cisg-j-1",
+        "claimant_view": "免责仅针对损害赔偿。",
+        "opponent_view": "对方仍可主张损害赔偿以外的公约权利。",
+        "court_result": "satisfied"
+      }
+    ],
+    "conclusion_label": "unknown",
+    "conclusion_note": "不设单一金标准。参照层列出可接受路径。",
+    "original_label": "",
+    "original_label_relation": "incomparable",
+    "review_state": "pending"
+  },
+  "reference": {
+    "reference_version": "0.1.0",
+    "gold_labels": {
+      "article": "79",
+      "conclusion_label": "unknown"
+    },
+    "acceptable_paths": [
+      {
+        "path_id": "exempt-if-unforeseeable-and-noticed",
+        "conclusion_label": "exempt",
+        "requires": [
+          "impediment",
+          "beyond_control",
+          "unforeseeable",
+          "unavoidable",
+          "notice"
+        ],
+        "requires_any": [],
+        "notes": ""
+      },
+      {
+        "path_id": "not-exempt-if-foreseeable-or-no-notice",
+        "conclusion_label": "not_exempt",
+        "requires": [],
+        "requires_any": [
+          "foreseeable",
+          "notice_failure"
+        ],
+        "notes": ""
+      },
+      {
+        "path_id": "partial-if-exemption-period-limited",
+        "conclusion_label": "partial",
+        "requires": [
+          "duration"
+        ],
+        "requires_any": [],
+        "notes": ""
+      }
+    ],
+    "notes": "评价者可读本层；角色视图必须删除 reference。"
+  },
+  "review_state": "pending",
+  "review_records": [
+    {
+      "review_state": "pending",
+      "reviewer": "tech-draft",
+      "reviewed_at": "2026-09-12",
+      "note": "假设事实与通知时点待补材料。"
+    },
+    {
+      "review_state": "tech_checked",
+      "reviewer": "tech-draft",
+      "reviewed_at": "2026-09-12",
+      "note": "第1/2/4款英文定位与第三方条款锚点已核对偏移。"
+    },
+    {
+      "review_state": "law_reviewed",
+      "reviewer": "tech-legal-pass",
+      "reviewed_at": "2026-09-12",
+      "note": "正式条文摘录已对照公约中英文本；适用结论未审。"
+    },
+    {
+      "review_state": "disputed",
+      "reviewer": "tech-legal-pass",
+      "reviewed_at": "2026-09-12",
+      "note": "监管风险可预见性是否阻却第79条免责，保留争议。"
+    }
+  ],
+  "notes": "完整第79条要素标注，用于测试共享字段与四态复核。主键为 dataset_id+cluster_id+pack_version，案号仅展示。"
+}

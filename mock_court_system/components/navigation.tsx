@@ -37,6 +37,13 @@ export function Navigation() {
               <span className="hidden sm:inline">模拟器</span>
             </Link>
             <Link
+              href="/hearing-3d"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+            >
+              <PlayCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">仲裁听证 3D</span>
+            </Link>
+            <Link
               href="/conversation"
               className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
             >

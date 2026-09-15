@@ -334,10 +334,21 @@ Renderer（判决书文本）
 - `extract_ci_reasoning_state` 携带 ledger（三路径持久化覆盖）；`_report` 增加台账摘要（claims/evidence/无证据争议清单）；
 - 测试：新增 ledger 用例 9 个，全套 **35/35 通过**。
 
-**已知待办（转入 Phase 1 余下）：**
-- 前端 UI 展示 reasoning_meta（判决语义状态徽标、未验证法条提示）；
-- IssueGraph 争点分解 + per-issue IRAC + 逐诉请 Disposition Table（Phase 1 核心，依赖 Ledger）；
-- fact_finding 引用校验（verify_facts：判决查明事实须回指 ledger F/E 编号）。
+**Phase 1 第二块已落地（同日，争点分解 + 三项校验）：**
+- `core/issue_graph.py`：IssueGraph + 争点分解（LLM 优先、规则兜底；fact_ids 严格校验过滤幻觉引用；分解结果永不为空）；Issue 可挂载 Verified RAG 法条（law_ids），支持序列化
+- 三项新校验接入 CI 判决流：`verify_dispositions`（逐诉请覆盖率，<100% 判决自动降级 degraded + 漏判清单）、`verify_fact_references`（F/E 编号幻觉引用检测）、`validate_judgment`（已有）
+- 判决提示词注入候选争点清单（as_prompt_text）
+- 已推送 PR #2（commit 89a82bf，分支累计 2 commits / 19 changed files）
+
+**Phase 1 收官块已落地（同日，per-issue IRAC）：**
+- `core/irac.py`：IssueIRACReasoner——每争点独立检索法条（库内命中即白名单）→ 台账事实绑定（附证据内容）→ IRAC 结构化输出（application/conclusion/disposition_hints）→ 批量渲染注入判决提示词；dispute_focus/legal_analysis 与逐争点分析保持一致
+- 状态语义分层：LLM 完全失败 = failed，缺字段 = degraded（render 区分"生成失败"与降级提示）
+- 已推送 PR #2（commit be6bccdf，分支累计 3 commits）
+
+**已知待办（Phase 1 收官后）：**
+- 前端 UI 展示 reasoning_meta（判决语义状态徽标、未验证法条提示、IRAC 逐争点视图）；
+- verify_facts 语义回指升级（"本院查明"文本与 ledger 的语义相似度匹配，当前只校验显式 F/E 编号引用）；
+- Phase 1 验收实验：真实 LLM 小样本量化（法条有效率 100%、诉请覆盖 ≥95%、实体一致率 ≥98%）。
 
 ## 5. 分阶段实施路线图
 

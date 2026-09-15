@@ -1,8 +1,24 @@
-# 混合方案评测指南
+# 评测指南（LexGentium 0.8）
 
-## 概述
+## 主路径（Web / API）
 
-本评测框架用于评估混合API模拟器方案的效果，支持与标准答案数据集进行比对，计算各种评测指标。
+日常复盘走工作台 **`/evaluation`** 三栏：对照、策略推演、程序合规。对照对应 **`POST /evaluate`**（Next：`POST /api/evaluate`）。后端任务执行 **`evaluation/run_evaluation.py`**，指标在 **`evaluation/lib/`**（LexEval、J1-EVAL、outcome、multi_layer、CADD 等）。
+
+有 `links.game_id` 时，复盘「策略推演」还可打 `POST /game/{id}/evaluate/*`（结果 / 综合 / LexEval / J1Eval / CADD 责任链）。
+
+```bash
+# 与 API 任务同一套评测入口（离线也可直接跑）
+cd mock_court_system
+python evaluation/run_evaluation.py
+```
+
+`main.py` 与下面的 `scripts/evaluate_hybrid_solution.py` **只用于批跑 / 混合方案实验**，不是 Web 主路径。
+
+---
+
+## 附录：混合方案批跑
+
+用于评估混合 API 模拟器与标准答案的相似度，**不**替代 `POST /evaluate`。
 
 ## 评测流程
 

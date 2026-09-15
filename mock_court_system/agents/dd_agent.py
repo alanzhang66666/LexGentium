@@ -193,6 +193,69 @@ class DDAgent(BaseAgent):
             "metadata": metadata,
         }
 
+    def _rebuild_chains(self) -> None:
+        if not self.llm.chat_model:
+            self.extraction_chain = None
+            self.strategy_chain = None
+            return
+        self.extraction_prompt = ChatPromptTemplate.from_messages([
+            ("system", "你是一个严谨的法律文书专家。请输出严格的JSON。"),
+            ("user", "{prompt}"),
+        ])
+        self.extraction_chain = self.extraction_prompt | self.llm.chat_model | RobustJsonOutputParser()
+        if hasattr(self, "strategy_prompt"):
+            self.strategy_chain = self.strategy_prompt | self.llm.chat_model | RobustJsonOutputParser()
+
+    def fork_stateless(self) -> "DDAgent":
+        child = DDAgent.__new__(DDAgent)
+        child.api_client = self.api_client
+        child.llm = self.llm
+        child.scenario = self.scenario
+        child.max_turns = self.max_turns
+        child.verbose = self.verbose
+        child.role = self.role
+        child.user_role = self.user_role
+        child.doc_name = self.doc_name
+        child.law_retriever = self.law_retriever
+        child.extraction_prompt = getattr(self, "extraction_prompt", None)
+        child.extraction_chain = getattr(self, "extraction_chain", None)
+        child.strategy_prompt = getattr(self, "strategy_prompt", None)
+        child.strategy_chain = getattr(self, "strategy_chain", None)
+        return child
+
+    def seed_case_data(self, input_json: Optional[Dict] = None, existing: Optional[CaseData] = None) -> CaseData:
+        if existing is not None:
+            return existing
+        if input_json:
+            c_info = input_json.get("case_info", {}) or {}
+            complaint = input_json.get("complaint", {}) or {}
+            return CaseData(
+                case_number=c_info.get("case_number", ""),
+                court_name=c_info.get("court", "（法院名称）"),
+                plaintiff_claims=complaint.get("plaintiff_claim", []) or [],
+                plaintiff_facts=complaint.get("plaintiff_case_description", "") or "",
+                user_role="被告",
+            )
+        return CaseData(user_role="被告")
+
+    def process_window(
+        self,
+        last_message: Dict,
+        case_data: CaseData,
+        window_history: List[Dict],
+        *,
+        total_messages: int,
+        input_json: Dict = None,
+    ) -> Tuple[str, CaseData]:
+        last_text = f"{last_message.get('role', 'Client')}: {last_message.get('message', '')}\n"
+        case_data = self._extract_info(last_text, case_data)
+        current_turn = total_messages // 2 + 1
+        history_text = "".join(f"{i.get('role')}: {i.get('message')}\n" for i in window_history)
+        should_stop, next_q = self._judge_status(case_data, current_turn, history_text)
+        if should_stop:
+            return self._render_defense(case_data, case_data.court_name), case_data
+        return enforce_single_question(next_q), case_data
+
     def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None) -> str:
         """处理单轮对话 (API 模式)"""
         # 1. 转换历史格式
@@ -200,19 +263,7 @@ class DDAgent(BaseAgent):
         dh.history = dialog_history
         history_text = self._history_to_text(dh)
         
-        # 2. 初始化 CaseData
-        if input_json:
-            c_info = input_json.get("case_info", {})
-            complaint = input_json.get("complaint", {})
-            case_data = CaseData(
-                case_number=c_info.get("case_number", ""),
-                court_name=c_info.get("court", "（法院名称）"),
-                plaintiff_claims=complaint.get("plaintiff_claim", []),
-                plaintiff_facts=complaint.get("plaintiff_case_description", ""),
-                user_role="被告"
-            )
-        else:
-            case_data = CaseData(user_role="被告")
+        case_data = self.seed_case_data(input_json)
         
         # 3. 信息抽取 (使用完整历史以确保不遗漏早期信息)
         # 注意：_extract_info 内部会调用 _build_extraction_prompt
