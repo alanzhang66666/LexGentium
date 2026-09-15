@@ -11,7 +11,6 @@ import { loadSampleEvents, createPlaybackStore } from "./playback-store"
 import { createInitialSceneState } from "./scene-reducer"
 import { conversationMessageToEvent, conversationToHearingEvents, type ConversationPayload } from "./backend-event-adapter"
 import type { HearingEvent, SceneState } from "./contracts"
-import { writeLastSessionId } from "@/lib/session/last-session"
 
 export function Hearing3DExperience() {
   const [state, setState] = useState<SceneState>(createInitialSceneState())
@@ -31,7 +30,6 @@ export function Hearing3DExperience() {
       ? null
       : new URLSearchParams(window.location.search).get("sessionId")
     setSessionId(sessionId)
-    if (sessionId) writeLastSessionId(sessionId)
     const source = sessionId
       ? fetch(`/api/conversation/${encodeURIComponent(sessionId)}`)
           .then((response) => {
@@ -122,23 +120,23 @@ export function Hearing3DExperience() {
   }, [inputMessage, isStreaming, refresh, sessionId])
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-background px-4 py-5 text-foreground md:px-6">
-      <div className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col">
+    <main className="min-h-screen bg-slate-950 px-4 py-6 text-white md:px-8">
+      <div className="mx-auto max-w-[1500px]">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[13px] text-muted-foreground">观庭 · Phase A</p>
-            <h1 className="text-[22px] font-medium tracking-tight">程序化占位听证</h1>
-            <p className="mt-1 text-sm text-muted-foreground">非正式角色模型，也不代表法律裁决。有 session 播本场；没有则播样例。</p>
+            <div className="text-xs uppercase tracking-[0.25em] text-cyan-300">LexGentium</div>
+            <h1 className="text-3xl font-semibold">仲裁听证 3D · 技术闭环 Demo</h1>
+            <p className="mt-1 text-sm text-white/55">程序化占位资产 / 人工结构样例，不代表正式角色模型或法律裁决。</p>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <button className="rounded-md border border-border px-3 py-2 hover:bg-secondary" onClick={() => setProfessional((v) => !v)}>
+            <button className="rounded border border-white/20 px-3 py-2" onClick={() => setProfessional((v) => !v)}>
               {professional ? "简明模式" : "专业模式"}
             </button>
-            <button className="rounded-md border border-border px-3 py-2 hover:bg-secondary" onClick={reset}>重置</button>
-            <button className="rounded-md border border-border px-3 py-2 hover:bg-secondary" onClick={() => setAutomaticCamera((value) => !value)}>
+            <button className="rounded border border-white/20 px-3 py-2" onClick={reset}>重置</button>
+            <button className="rounded border border-white/20 px-3 py-2" onClick={() => setAutomaticCamera((value) => !value)}>
               {automaticCamera ? "自动导播" : "手动镜头"}
             </button>
-            <select className="rounded-md border border-border bg-background px-3 py-2" value={cameraMode} onChange={(e) => { setAutomaticCamera(false); setCameraMode(e.target.value as CameraMode) }}>
+            <select className="rounded border border-white/20 bg-slate-900 px-3 py-2" value={cameraMode} onChange={(e) => { setAutomaticCamera(false); setCameraMode(e.target.value as CameraMode) }}>
               <option value="wide">全景</option>
               <option value="presiding_medium">首席中景</option>
               <option value="claimant_medium">申请方中景</option>
@@ -146,21 +144,21 @@ export function Hearing3DExperience() {
             </select>
           </div>
         </div>
-        {error && <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+        {error && <div className="mb-4 rounded border border-red-400/40 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
         {sessionId && (
-          <div className="relative mb-4 flex gap-2 rounded-lg border border-border bg-card p-3">
+          <div className="mb-4 flex gap-2 rounded-xl border border-cyan-500/20 bg-slate-900/80 p-3">
             <input
-              className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-              placeholder="向本场会话发送消息…"
+              className="min-w-0 flex-1 rounded border border-white/15 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-cyan-400"
+              placeholder="向当前 LexGentium 会话发送消息…"
               value={inputMessage}
               onChange={(event) => setInputMessage(event.target.value)}
               onKeyDown={(event) => { if (event.key === "Enter") void sendLiveMessage() }}
               disabled={isStreaming}
             />
-            <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50" onClick={() => void sendLiveMessage()} disabled={isStreaming || !inputMessage.trim()}>
+            <button className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50" onClick={() => void sendLiveMessage()} disabled={isStreaming || !inputMessage.trim()}>
               {isStreaming ? "实时生成中…" : "发送到听证"}
             </button>
-            {streamingText && <div className="absolute left-4 right-4 top-full z-10 mt-2 rounded-md border border-border bg-card p-3 text-sm">{streamingText}</div>}
+            {streamingText && <div className="absolute left-4 right-4 mt-14 rounded bg-slate-950/90 p-3 text-sm text-cyan-100">{streamingText}</div>}
           </div>
         )}
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
@@ -173,7 +171,7 @@ export function Hearing3DExperience() {
           </section>
           <MaterialPanel state={state} />
         </div>
-        <div className="mt-3 text-xs text-muted-foreground">七席已加载：{castManifest.length} · 事件总数：{events.length} · sourceType: {state.source_type ?? (sessionId ? "backend_run" : "scripted_demo")}</div>
+        <div className="mt-3 text-xs text-white/40">七席已加载：{castManifest.length} · 事件总数：{events.length} · sourceType: scripted_demo</div>
       </div>
     </main>
   )
