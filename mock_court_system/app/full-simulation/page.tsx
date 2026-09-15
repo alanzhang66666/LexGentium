@@ -247,7 +247,7 @@ function FullSimulationInner() {
 
           {status === "completed" && sessionId ? (
             <Button asChild>
-              <Link href={`/court3d/${sessionId}`}>
+              <Link href={`/hearing-3d?sessionId=${encodeURIComponent(sessionId)}`}>
                 <Box className="w-4 h-4 mr-2" />
                 去观庭
               </Link>

@@ -1,12 +1,14 @@
 # 3D 法庭角色资产规范
 
-正式模型按 `3D建模方案/涉外模拟法庭人物性转版生成档案.md` 制作后，只需替换 `public/court3d/casts/foreign_commercial.json` 里对应 `skins.*.model` 路径。运行时加载器支持 `.glb` / `.gltf` / `.vrm`；路径为空或加载失败时回退到胶囊占位人。
+产品观庭已换成 `/hearing-3d`（程序化占位）。本页只说明**旧胶囊加载器**还怎么换模型，不是现役入口。正式人模以后应接到 hearing-3d 的 cast manifest，不要再把 `/court3d` 当观庭。
+
+旧加载器：按 `3D建模方案/说明/涉外模拟法庭人物性转版生成档案.md` 做完后，可填 `public/court3d/casts/foreign_commercial.json` 的 `skins.*.model`。支持 `.glb` / `.gltf` / `.vrm`；路径为空或失败回退胶囊人。`/court3d` 页面已重定向，这条路径目前没有产品页。
 
 ## 替换流程（审判长验证）
 
 1. 将文件放到 `public/court3d/models/judge_presiding_m.vrm`（或 `.glb`）。
 2. 确认剧组 JSON 中 `roles.judge.skins.swap.model` 已指向该路径（默认已写好）。
-3. 打开 `/court3d` 进入会话。若模型合法，审判长席位显示 VRM；否则继续显示胶囊人 + 名牌。
+3. 产品观庭是 `/hearing-3d`。本加载器没有产品页；旧 `/court3d` 只重定向。要验旧胶囊人，只能本地临时恢复那三页，不要把 `/court3d` 再写成入口。
 4. 对照 `checklist` 验收：整齐短黑发、椭圆偏方脸、深红领襟、银灰签字笔、冷静直视。
 
 大体积文件不要提交进 git，使用 Git LFS 或对象存储。

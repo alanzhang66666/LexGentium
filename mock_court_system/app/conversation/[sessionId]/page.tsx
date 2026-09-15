@@ -250,7 +250,7 @@ function ConversationSessionInner() {
           ) : null}
           <div className="ml-auto flex flex-wrap items-center gap-1">
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/court3d/${sessionId}`}>
+              <Link href={`/hearing-3d?sessionId=${encodeURIComponent(sessionId)}`}>
                 <Box className="size-3.5" />
                 观庭
               </Link>

@@ -19,8 +19,8 @@ from typing import List, Dict, Any, Optional
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import settings
-from api_schemas import (
+from settings import settings
+from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
     ConversationMessageRequest, ConversationMessageResponse,
@@ -33,12 +33,12 @@ from api_schemas import (
     MediationBargainRequest, MediationCreateRequest, MediationStatementRequest,
     MultiJudgeRequest, ProgressiveRAGRequest,
 )
-from api_runtime import create_runtime, rebind_runtime_llm
+from api.runtime import create_runtime, rebind_runtime_llm
 from core.case_orchestrator import _is_ci_final as _ci_final
 from core.reasoning_state import extract_ci_reasoning_state
 from core.llm_client import LLMClient
-from core.conversation_store import build_conversation_store, ConversationRecord
-from core.evaluation_task_store import build_evaluation_task_store, EvaluationTaskRecord
+from core.store.conversation_store import build_conversation_store, ConversationRecord
+from core.store.evaluation_task_store import build_evaluation_task_store, EvaluationTaskRecord
 
 eval_logger = logging.getLogger("evaluation")
 eval_logger.setLevel(logging.INFO)
@@ -87,7 +87,7 @@ def new_session_ci_agent():
     case_info/state_machine/dialogue 互相覆盖问题。
     """
     from agents import CIAgent
-    from api_runtime import MockApiClient
+    from api.runtime import MockApiClient
 
     return CIAgent(
         MockApiClient(),
@@ -521,7 +521,7 @@ def _persist_llm_env(cfg: LLMConfigRequest):
 
 
 from core.nash_equilibrium import STRATEGY_NAMES as VALID_STRATEGIES
-from core.game_session_store import GameSessionStore
+from core.store.game_session_store import GameSessionStore
 
 game_sessions: Dict[str, Dict[str, Any]] = {}
 _game_store = GameSessionStore(str(project_root / "data" / "game_sessions.sqlite3"))
@@ -568,7 +568,7 @@ from evaluation.lib.cadd_framework import (
 
 # ========== Behavior-Liability-Statute 鎺ㄧ悊閾?API ==========
 
-from core.liability_chain import LiabilityChainExtractor
+from core.lab.liability_chain import LiabilityChainExtractor
 
 _liability_extractor: Optional[LiabilityChainExtractor] = None
 
@@ -589,6 +589,6 @@ _mediation_engine = runtime.mediation_engine
 
 # ========== P0 创新模块 API（Progressive RAG + Dual-Mode + Multi-Judge）==========
 
-from core.progressive_rag import ProgressiveRAG
-from core.dual_mode_reasoning import DualModeReasoner
-from core.multi_judge import MultiJudgeEngine
+from core.lab.progressive_rag import ProgressiveRAG
+from core.lab.dual_mode_reasoning import DualModeReasoner
+from core.lab.multi_judge import MultiJudgeEngine

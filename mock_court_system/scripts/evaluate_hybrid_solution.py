@@ -11,15 +11,10 @@ from typing import List, Dict, Optional
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import settings
-from core import (
-    CourtSimulatorClient,
-    LLMClient,
-    APIReconstructor,
-    LLMAPISimulator,
-    HybridAPISimulator,
-)
-from core.evaluator import APISimulatorEvaluator
+from settings import settings
+from core import CourtSimulatorClient, LLMClient
+from core.offline import APIReconstructor, HybridAPISimulator, LLMAPISimulator
+from core.offline.evaluator import APISimulatorEvaluator
 from utils import DataLoader
 
 

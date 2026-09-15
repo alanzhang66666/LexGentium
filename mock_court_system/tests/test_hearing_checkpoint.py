@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from agents.ci_agent import CIAgent
-from api_runtime import MockApiClient
+from api.runtime import MockApiClient
 from core.graphs.checkpoint import SqliteCheckpointStore
 from core.graphs.hearing_runtime import HearingRuntime, reset_hearing_runtime
 from core.llm_client import LLMClient

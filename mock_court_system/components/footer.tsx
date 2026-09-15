@@ -32,7 +32,7 @@ export function Footer({ compact = false }: { compact?: boolean }) {
                 </Link>
               </li>
               <li>
-                <Link href="/court3d" className="text-muted-foreground hover:text-foreground">
+                <Link href="/hearing-3d" className="text-muted-foreground hover:text-foreground">
                   观庭
                 </Link>
               </li>

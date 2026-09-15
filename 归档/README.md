@@ -1,17 +1,19 @@
 # 项目材料归档
 
-本目录只保存申报、商业计划与参考文献，**不是系统运行入口**。日常开发请使用 `mock_court_system/`（当前产品版本 **0.8.0**）。
+本目录只保存申报、商业计划、参考文献和从活文档挪出来的化石，**不是系统运行入口**。日常开发请使用 `mock_court_system/`（当前产品版本 **0.8.0**）。
 
-申请书正文的 Markdown 工作稿在 `mock_court_system/docs/申请书正文.md`，与这里的 Word 终稿对应。
+申请书正文工作稿在 `申报材料/`：`申请书正文.md`、`申请书正文.docx`、`申请书正文-含图.docx`。插图在 `申报材料/figures/`。
 
 ## 目录
 
 ```text
 归档/
-├── 申报材料/                 # 启研计划终稿与附表
+├── 申报材料/                 # 启研计划终稿、工作稿、figures/
 ├── 商业计划与市场材料/       # LegalFlow 商计及分章扩写
 ├── 参考文献/                 # 核心论文 PDF
-├── 技术报告/                 # 外仓对照稿，不是本树运行说明
+├── 技术报告/                 # 外仓对照稿 + 推理 v1 精简版
+├── 工程化石/                 # 旧 76 项表、离线 API 备选
+├── 评测化石/                 # 2026-04 旧跑数
 └── README.md
 ```
 
@@ -27,6 +29,10 @@
 | `附图-扩展式博弈树与SPNE.png` | 申请书用扩展式博弈树图 |
 | `市基金申请学科代码.pdf` | 北京市自然科学基金学科代码表 |
 | `XX——基于LexGentium模拟法庭系统的国际商事仲裁程序论证与溯源审计智能体.docx` | 课题方案文稿，不是案例包 |
+| `申请书正文.md` | 申请书 Markdown 工作稿（原 `mock_court_system/docs/`） |
+| `申请书正文.docx` | 同上的 Word 工作稿 |
+| `申请书正文-含图.docx` | 含图工作稿 |
+| `figures/` | 申请书插图（原 `mock_court_system/docs/figures/`） |
 
 ## 商业计划与市场材料
 
@@ -41,7 +47,17 @@
 
 | 文件 | 说明 |
 |------|------|
-| `LexGentium-推理优化技术报告-详细版.md` | 对照 `Hanyuan9766/LexGentium` PR #2 的推理审计。**本仓库没有**报告里的 Phase 0 质量栈，不要当成已落地说明 |
+| `LexGentium-推理优化技术报告-详细版.md` | 对照 `Hanyuan9766/LexGentium` PR #2 的外仓稿。Phase 0/1 **已在本树**（`case_bundle` / 台账 / IRAC / `reasoning_meta`），不要拿这份稿当「未落地」说明 |
+| `LEXGENTIUM_REASONING_OPTIMIZATION_REPORT.md` | 2026-09-10 v1 精简版（原 `mock_court_system/docs/`）。下一阶段清单已过时 |
+
+## 工程化石 / 评测化石
+
+| 路径 | 说明 |
+|------|------|
+| `工程化石/SYSTEM_STATUS_2026-09-11.md` | 旧 76 项表。现役是 `mock_court_system/docs/SYSTEM_STATUS.md` |
+| `工程化石/API_ALTERNATIVES.md` | 离线最近邻备选 |
+| `工程化石/API_RECONSTRUCTION.md` | 最近邻重建说明 |
+| `评测化石/results/` | 2026-04 论文跑数。新报告写 `mock_court_system/evaluation/results/` |
 
 ## 参考文献
 
@@ -60,4 +76,4 @@
 - 学信网截图（含身份证号等个人敏感信息）
 - 申请书旧稿、同内容 `.doc` 重复件、未命名空模板
 - 一次性公式修复脚本与申请书纯文本提取
-- 目录中曾列出但不存在的 `申请书正文.docx`、`执行摘要.docx`（正文工作稿在 `mock_court_system/docs/申请书正文.md`）
+- 目录中曾列出但不存在的 `执行摘要.docx`（正文工作稿现已放在本目录）

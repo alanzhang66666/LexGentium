@@ -36,7 +36,7 @@ const REST: { icon: LucideIcon; title: string; description: string; span: string
   {
     icon: Box,
     title: "3D 观庭",
-    description: "外壳与 HUD 已接同一会话；场景资产到位后即可替换画布。",
+    description: "观庭走 /hearing-3d：程序化占位 Phase A，可挂本场 session。非正式 VRM。",
     span: "md:col-span-7",
   },
 ]

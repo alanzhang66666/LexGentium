@@ -7,7 +7,7 @@
 - **前端（Next.js App Router）**：`mock_court_system/app/`
   - 开庭：`/conversation`、`/conversation/[id]`、`/full-simulation`、`/mediation`
   - 研究：`/research`、`/research/packs/[dataset]/[cluster]`（RESEARCH 标注；无研究包时民事路径不变）
-  - 观庭：`/court3d`、`/court3d/[id]`、`/court3d/replay`
+  - 观庭：`/hearing-3d`（程序化占位 Phase A）。旧 `/court3d` 三页重定向
   - 复盘：`/evaluation`（对照 / 策略 / 合规 / 研究）、`/evaluation/reports/[id]`
   - 系统：`/login` `/register`（LLM 软解锁）、`/system`（健康 + 映射表 + 实验面板）、`/settings` `/database` `/api-history` `/simulate`
   - 共享：优先 `lib/api/`；SSE 与个别调试页仍可直接 `fetch`。`lib/session/`、`lib/labels.ts`。配色 `html[data-scheme]`。
@@ -16,7 +16,7 @@
   - 业务：`api/services/`（conversation / simulation / game / evaluation / research / claims / materials / sse / cases / links）
   - `api/state.py` 为运行时与智能体入口，SSE 拼包委托 `services.sse`
   - 研究运行时：`core/research/`（材料视图、停止条件、工作簿只读）
-- **会话存储**：`core/conversation_store.py`，默认 SQLite `data/conversations.sqlite3`
+- **会话存储**：`core/store/conversation_store.py`，默认 SQLite `data/conversations.sqlite3`
 - **智能体**：`agents/`（CD/DD/CI 提示词与状态机不在本重构范围内）
 
 ## 2. 关键数据流
@@ -49,10 +49,11 @@ SSE 最小字段：`type` = `delta` | `final` | `stage_transition` | `simulation
 
 ### 4.1 开庭
 - `GET/POST /api/conversation/*` → `/conversation/*`
-- 会话页与 `/court3d/{id}` 互链
+- 会话页「观庭」进 `/hearing-3d?sessionId=`
 
 ### 4.2 观庭
-- 共用会话 list / get
+- `/hearing-3d` 用 `backend-event-adapter` 把 conversation 打成 HearingEvent；无 `sessionId` 时播 `scripted_demo`
+- 旧 `/court3d` `/court3d/[id]` `/court3d/replay` 重定向到 `/hearing-3d`
 - 禁止无 `session_id` 的全案 SSE；博弈用手填 `game_id` 已去掉，只认 `links.game_id` 或半官方 create
 
 ### 4.3 全案

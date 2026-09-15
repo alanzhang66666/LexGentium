@@ -2,7 +2,7 @@ import threading
 
 import pytest
 
-from core.dual_mode_reasoning import DualModeReasoner
+from core.lab.dual_mode_reasoning import DualModeReasoner
 from core.game_engine import GameEngine
 
 

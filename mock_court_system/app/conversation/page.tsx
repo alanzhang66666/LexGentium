@@ -165,7 +165,7 @@ export default function ConversationListPage() {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-[22px] font-medium tracking-tight">开庭</h1>
-            <p className="mt-1 text-sm text-muted-foreground">一场听证一个 session，文字记录与观庭共用。</p>
+            <p className="mt-1 text-sm text-muted-foreground">一场听证一个 session，文字记录与 3D 观庭共用。</p>
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <Select value={newScenario} onValueChange={(v) => setNewScenario(v as "CD" | "DD" | "CI")}>
@@ -383,7 +383,7 @@ export default function ConversationListPage() {
                         onClick={(e) => {
                           e.stopPropagation()
                           writeLastSessionId(conv.session_id)
-                          router.push(`/court3d/${conv.session_id}`)
+                          router.push(`/hearing-3d?sessionId=${encodeURIComponent(conv.session_id)}`)
                         }}
                       >
                         观庭

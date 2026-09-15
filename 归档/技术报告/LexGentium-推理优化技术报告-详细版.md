@@ -1,7 +1,7 @@
 # LexGentium 推理优化技术报告（详细版）
 
 > 版本：v2.0（2026-09-12）  
-> 前置版本：v1（2026-09-10，`mock_court_system/docs/LEXGENTIUM_REASONING_OPTIMIZATION_REPORT.md`，已随 PR #2 提交）  
+> 前置版本：v1（2026-09-10，`归档/技术报告/LEXGENTIUM_REASONING_OPTIMIZATION_REPORT.md`，已随 PR #2 提交后从 `docs/` 挪出）  
 > 评估对象：`github.com/Hanyuan9766/LexGentium`（原 legalflow），main + PR #2 分支 `feat/lexgentium-optimizations`  
 > 审计方法：逐文件静态审计（带行号引用）、离线契约测试（26 用例）、三批真实实验对比、运行时日志分析  
 > 基本立场：不把 LLM 输出长度、自评分数或"HTTP 200"等同于法律推理质量
@@ -429,7 +429,7 @@ def verify_amounts(j, claims) -> AmountReport                 # Phase 1
 | 交付物 | 位置 |
 |---|---|
 | 本报告 | `workspace/default/LexGentium-推理优化技术报告-详细版.md` |
-| 精简版（随 PR #2） | `mock_court_system/docs/LEXGENTIUM_REASONING_OPTIMIZATION_REPORT.md` |
+| 精简版（随 PR #2） | `归档/技术报告/LEXGENTIUM_REASONING_OPTIMIZATION_REPORT.md` |
 | PR #1（性能/安全/重构/改名，已合并） | `Hanyuan9766/LexGentium#1` |
 | PR #2（推理优化 Phase 0，16 文件，待合并） | `Hanyuan9766/LexGentium#2` |
 | 实验结果 | `mock_court_system/evaluation/results/two_step_small_sample_20260910_*` |

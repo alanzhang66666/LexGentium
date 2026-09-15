@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
 from api.services.sse import sse_event
-from api_schemas import (
+from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
     ConversationMessageRequest, ConversationMessageResponse,

@@ -1,122 +1,386 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Scale, Home, PlayCircle, BookOpen, Info, BarChart3, Database, History, MessageSquare, Activity, Swords, Settings } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { Scale } from "lucide-react"
+import { SchemePicker } from "@/components/scheme-picker"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { CommandPalette } from "@/components/command-palette"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { getConversation } from "@/lib/api/conversation"
+import { STAGE_LABELS } from "@/lib/labels"
+import {
+  NAV_ACTIONS,
+  NAV_GROUPS,
+  activeNavGroup,
+  isNavActionDisabled,
+  resolveNavHref,
+  type NavGroupId,
+} from "@/lib/nav-actions"
+import { readLastSessionId, subscribeLastSession } from "@/lib/session/last-session"
+import { clearUnlock, isUnlocked, subscribeUnlock } from "@/lib/session/unlock"
+import type { ConversationInfo } from "@/lib/conversation-types"
+import { cn } from "@/lib/utils"
 
-export function Navigation() {
+function actionsFor(group: NavGroupId) {
+  return NAV_ACTIONS.filter((action) => action.group === group)
+}
+
+function useUnlocked() {
+  const [unlocked, setUnlocked] = useState(false)
+  useEffect(() => {
+    setUnlocked(isUnlocked())
+    return subscribeUnlock(setUnlocked)
+  }, [])
+  return unlocked
+}
+
+function AuthCtas({
+  unlocked,
+  size = "lg",
+}: {
+  unlocked: boolean
+  size?: "sm" | "default" | "lg"
+}) {
+  if (unlocked) {
+    return (
+      <>
+        <span className="px-2 py-1.5 text-[13px] text-muted-foreground">已开通</span>
+        <Button type="button" variant="outline" size={size} onClick={() => clearUnlock()}>
+          退出
+        </Button>
+      </>
+    )
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/50 shadow-sm">
-      <div className="container mx-auto px-4 md:px-8 py-4 md:py-5">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-xl blur-md opacity-60 group-hover:opacity-80 transition-opacity" />
-              <div className="relative flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary to-accent shadow-lg">
-                <Scale className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-balance">
-                LexGentium｜基于扩展式博弈建模的多智能体协同模拟法庭系统
-              </h1>
-            </div>
-          </Link>
+    <>
+      <Button asChild variant="outline" size={size}>
+        <Link href="/login">登录</Link>
+      </Button>
+      <Button asChild size={size}>
+        <Link href="/register">开通</Link>
+      </Button>
+    </>
+  )
+}
 
-          <nav className="flex items-center gap-1 md:gap-2">
-            <Link
-              href="/"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">首页</span>
-            </Link>
-            <Link
-              href="/simulate"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <PlayCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">模拟器</span>
-            </Link>
-            <Link
-              href="/hearing-3d"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <PlayCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">仲裁听证 3D</span>
-            </Link>
-            <Link
-              href="/conversation"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">对话</span>
-            </Link>
-            <Link
-              href="/full-simulation"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Swords className="w-4 h-4" />
-              <span className="hidden sm:inline">博弈</span>
-            </Link>
-            <Link
-              href="/evaluation"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">评测</span>
-            </Link>
-            <Link
-              href="/database"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Database className="w-4 h-4" />
-              <span className="hidden sm:inline">数据库</span>
-            </Link>
-            <Link
-              href="/api-history"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">API历史</span>
-            </Link>
-            <Link
-              href="/system"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">系统状态</span>
-            </Link>
-            <Link
-              href="/docs"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">文档</span>
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">设置</span>
-            </Link>
-            <Link
-              href="/about"
-              className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg hover:bg-muted transition-colors text-sm font-medium"
-            >
-              <Info className="w-4 h-4" />
-              <span className="hidden sm:inline">关于</span>
-            </Link>
-          </nav>
+function NavActionRows({
+  group,
+  sessionId,
+  onNavigate,
+}: {
+  group: NavGroupId
+  sessionId: string | null
+  onNavigate?: () => void
+}) {
+  const router = useRouter()
+  return (
+    <>
+      {actionsFor(group).map((action) => {
+        const disabled = isNavActionDisabled(action, sessionId)
+        return (
+          <DropdownMenuItem
+            key={action.id}
+            disabled={disabled}
+            onSelect={() => {
+              if (disabled) return
+              router.push(resolveNavHref(action, sessionId))
+              onNavigate?.()
+            }}
+          >
+            <span className="flex min-w-0 flex-col">
+              <span className="font-medium">{action.title}</span>
+              <span className="text-[12px] font-normal text-muted-foreground">{action.description}</span>
+            </span>
+          </DropdownMenuItem>
+        )
+      })}
+    </>
+  )
+}
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-semibold text-primary">在线</span>
-            </div>
-            <ThemeToggle />
+function GroupTrigger({
+  group,
+  active,
+}: {
+  group: { id: NavGroupId; label: string }
+  active: boolean
+}) {
+  return (
+    <DropdownMenuTrigger
+      className={cn(
+        "rounded-md px-2 py-1.5 text-[13px] font-medium outline-none",
+        "focus-visible:ring-1 focus-visible:ring-ring",
+        active ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+      )}
+    >
+      {group.label}
+    </DropdownMenuTrigger>
+  )
+}
+
+function HealthDot({ ok, pending }: { ok: boolean | null; pending: boolean }) {
+  const tone = pending ? "bg-muted-foreground/50" : ok ? "bg-success" : "bg-destructive"
+  const label = pending ? "正在检查后端" : ok ? "后端可用" : "后端未连接"
+  return (
+    <span className="inline-flex size-8 items-center justify-center" title={label} aria-label={label}>
+      <span className={cn("size-2 rounded-full", tone)} />
+    </span>
+  )
+}
+
+function SessionChip({
+  sessionId,
+  info,
+  healthOk,
+}: {
+  sessionId: string | null
+  info: ConversationInfo | null
+  healthOk: boolean | null
+}) {
+  const router = useRouter()
+
+  let label = "未开场"
+  if (healthOk === false) {
+    label = "未连接"
+  } else if (sessionId) {
+    const shortId = sessionId.slice(0, 8)
+    const stage = info?.current_stage ? STAGE_LABELS[info.current_stage] || info.current_stage : null
+    const flags: string[] = []
+    if (info) {
+      if (info.links?.game_id) flags.push("策略已开")
+      if (!info.links?.report_id) flags.push("未对照")
+    }
+    label = [shortId, stage, ...flags].filter(Boolean).join(" · ")
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "max-w-[220px] truncate rounded-full border border-border px-2.5 py-1 text-left text-[12px] font-medium",
+          "font-mono tabular-nums outline-none hover:bg-secondary focus-visible:ring-1 focus-visible:ring-ring",
+        )}
+        title={label}
+      >
+        {label}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>本场</DropdownMenuLabel>
+        {!sessionId || healthOk === false ? (
+          <DropdownMenuItem disabled>
+            <span className="text-muted-foreground">{healthOk === false ? "后端未连接" : "还没有本场会话"}</span>
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem onSelect={() => router.push(`/conversation/${sessionId}`)}>
+              <span className="flex flex-col">
+                <span className="font-medium">本场听证</span>
+                <span className="text-[12px] font-normal text-muted-foreground">打开文字记录</span>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => router.push(`/hearing-3d?sessionId=${encodeURIComponent(sessionId)}`)}
+            >
+              <span className="flex flex-col">
+                <span className="font-medium">观庭</span>
+                <span className="text-[12px] font-normal text-muted-foreground">进入本场三维听证</span>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => router.push(`/evaluation?session=${encodeURIComponent(sessionId)}&pane=contrast`)}
+            >
+              <span className="flex flex-col">
+                <span className="font-medium">对照本场</span>
+                <span className="text-[12px] font-normal text-muted-foreground">用本场记录做对照</span>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => router.push(`/evaluation?session=${encodeURIComponent(sessionId)}&pane=strategy`)}
+            >
+              <span className="flex flex-col">
+                <span className="font-medium">策略推演</span>
+                <span className="text-[12px] font-normal text-muted-foreground">立场与反事实</span>
+              </span>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function MarketingBar() {
+  const pathname = usePathname() || "/"
+  const unlocked = useUnlocked()
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-[1120px] items-center justify-between gap-3 px-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
+            <Scale className="size-3.5 text-primary-foreground" />
           </div>
+          <span className="truncate text-[13px] font-medium tracking-tight">
+            <span className="hidden min-[420px]:inline">LexGentium</span>
+            <span className="ml-1.5 hidden text-muted-foreground font-normal sm:inline">国际商事仲裁听证仿真</span>
+          </span>
+        </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          <Link
+            href="/docs"
+            className={cn(
+              "rounded-md px-2 py-1.5 text-[13px] font-medium",
+              pathname.startsWith("/docs")
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            )}
+          >
+            文档
+          </Link>
+          <Link
+            href="/about"
+            className={cn(
+              "rounded-md px-2 py-1.5 text-[13px] font-medium",
+              pathname.startsWith("/about")
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            )}
+          >
+            关于
+          </Link>
+          <Button asChild variant={unlocked ? "default" : "outline"} size="lg">
+            <Link href="/conversation">开庭</Link>
+          </Button>
+          <AuthCtas unlocked={unlocked} size="lg" />
+          <SchemePicker />
+          <ThemeToggle />
         </div>
       </div>
     </header>
   )
+}
+
+function WorkbenchBar() {
+  const pathname = usePathname() || "/"
+  const currentGroup = activeNavGroup(pathname)
+  const unlocked = useUnlocked()
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [info, setInfo] = useState<ConversationInfo | null>(null)
+  const [healthOk, setHealthOk] = useState<boolean | null>(null)
+  const [healthPending, setHealthPending] = useState(true)
+
+  useEffect(() => {
+    setSessionId(readLastSessionId())
+    return subscribeLastSession(setSessionId)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const ping = async () => {
+      try {
+        const res = await fetch("/api/health", { cache: "no-store" })
+        if (!cancelled) {
+          setHealthOk(res.ok)
+          setHealthPending(false)
+        }
+      } catch {
+        if (!cancelled) {
+          setHealthOk(false)
+          setHealthPending(false)
+        }
+      }
+    }
+    void ping()
+    const timer = window.setInterval(ping, 20000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sessionId || healthOk === false) {
+      setInfo(null)
+      return
+    }
+    let cancelled = false
+    getConversation(sessionId)
+      .then((data) => {
+        if (!cancelled) setInfo(data)
+      })
+      .catch(() => {
+        if (!cancelled) setInfo(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [sessionId, healthOk])
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-12 max-w-none items-center justify-between gap-3 px-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
+            <Scale className="size-3.5 text-primary-foreground" />
+          </div>
+          <span className="truncate text-[13px] font-medium tracking-tight">LexGentium</span>
+        </Link>
+
+        <nav className="hidden items-center gap-0.5 sm:flex">
+          {NAV_GROUPS.map((group) => (
+            <DropdownMenu key={group.id}>
+              <GroupTrigger group={group} active={currentGroup === group.id} />
+              <DropdownMenuContent align="start">
+                <NavActionRows group={group.id} sessionId={healthOk === false ? null : sessionId} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1.5">
+          <div className="sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  "rounded-md px-2 py-1.5 text-[13px] font-medium outline-none",
+                  "text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring",
+                )}
+              >
+                菜单
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-[70vh] overflow-y-auto">
+                {NAV_GROUPS.map((group, index) => (
+                  <div key={group.id}>
+                    {index > 0 ? <DropdownMenuSeparator /> : null}
+                    <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                    <NavActionRows group={group.id} sessionId={healthOk === false ? null : sessionId} />
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <SessionChip sessionId={healthOk === false ? null : sessionId} info={info} healthOk={healthOk} />
+          <HealthDot ok={healthOk} pending={healthPending} />
+          <AuthCtas unlocked={unlocked} size="default" />
+          <SchemePicker />
+          <ThemeToggle />
+        </div>
+      </div>
+      <CommandPalette sessionId={healthOk === false ? null : sessionId} />
+    </header>
+  )
+}
+
+export function Navigation({ compact = false }: { compact?: boolean }) {
+  return compact ? <WorkbenchBar /> : <MarketingBar />
 }

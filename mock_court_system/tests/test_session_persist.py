@@ -1,5 +1,5 @@
 from core.game_engine import GameEngine, GameRound, GameScore
-from core.game_session_store import GameSessionStore
+from core.store.game_session_store import GameSessionStore
 from core.case_orchestrator import FullCaseResult, StageResult
 from core.mediation_engine import MediationEngine, MediationStage
 from core.llm_client import LLMClient

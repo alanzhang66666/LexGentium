@@ -79,23 +79,25 @@ export const NAV_ACTIONS: NavAction[] = [
     id: "view-session",
     group: "view",
     title: "进入本场",
-    description: "打开当前会话的三维听证",
-    href: (sessionId) => (sessionId ? `/court3d/${sessionId}` : "/court3d"),
+    description: "程序化 3D 观庭（Phase A）",
+    href: (sessionId) =>
+      sessionId ? `/hearing-3d?sessionId=${encodeURIComponent(sessionId)}` : "/hearing-3d",
     requiresSession: true,
   },
   {
     id: "view-lobby",
     group: "view",
-    title: "选场大厅",
-    description: "从已有会话进入观庭",
-    href: "/court3d",
+    title: "观庭",
+    description: "无场次时播样例；有场次挂本场会话",
+    href: (sessionId) =>
+      sessionId ? `/hearing-3d?sessionId=${encodeURIComponent(sessionId)}` : "/hearing-3d",
   },
   {
     id: "view-replay",
     group: "view",
-    title: "离线回放",
-    description: "不连后端回放记录",
-    href: "/court3d/replay",
+    title: "样例回放",
+    description: "scripted_demo，不连本场会话",
+    href: "/hearing-3d",
   },
   {
     id: "review-contrast",
@@ -202,7 +204,7 @@ export function isNavActionDisabled(action: NavAction, sessionId: string | null)
 export function activeNavGroup(pathname: string): NavGroupId | null {
   if (pathname.startsWith("/research")) return "research"
   if (pathname.startsWith("/evaluation")) return "review"
-  if (pathname.startsWith("/court3d")) return "view"
+  if (pathname.startsWith("/court3d") || pathname.startsWith("/hearing-3d")) return "view"
   if (
     pathname.startsWith("/conversation") ||
     pathname.startsWith("/full-simulation") ||

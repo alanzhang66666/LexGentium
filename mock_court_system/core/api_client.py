@@ -7,8 +7,8 @@ import json
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
-from .api_reconstructor import APIReconstructor
-from .llm_api_simulator import LLMAPISimulator, HybridAPISimulator
+from .offline.api_reconstructor import APIReconstructor
+from .offline.llm_api_simulator import HybridAPISimulator, LLMAPISimulator
 
 def is_retryable_error(e):
     """判断是否需要重试的异常"""

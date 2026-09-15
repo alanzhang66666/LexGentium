@@ -9,7 +9,7 @@
 | 步 | 做什么 | 打开 |
 |----|--------|------|
 | 1 开庭 | 申请 / 答辩 / 听证 | [`/conversation`](http://localhost:3000/conversation) |
-| 2 观庭 | 3D 听证（没模型就是胶囊人） | [`/court3d/{session_id}`](http://localhost:3000/court3d) |
+| 2 观庭 | 程序化 3D（Phase A，非正式 VRM） | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 复盘 | 对照、策略、程序合规 | [`/evaluation`](http://localhost:3000/evaluation) |
 
 **能跑的代码只在 [`mock_court_system/`](mock_court_system/)。** 从那里启动。版本 `0.8.0`。
@@ -41,7 +41,7 @@ npm run dev                        # 前端  http://localhost:3000
 
 1. 打开 [`/register`](http://localhost:3000/register) 写入模型，或 [`/login`](http://localhost:3000/login) 测通已有配置（软解锁，没有用户表）。
 2. [`/conversation`](http://localhost:3000/conversation) 开一场，记下 `session_id`。
-3. [`/court3d/{session_id}`](http://localhost:3000/court3d) 看庭。
+3. [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) 看庭（程序化占位 Phase A）。旧 `/court3d` 会转到这里。
 4. [`/evaluation?session=…`](http://localhost:3000/evaluation) 复盘。
 
 逐步排错：[`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md)。
@@ -75,8 +75,7 @@ flowchart LR
     med["/mediation"]
   end
   subgraph watch["观庭"]
-    live["/court3d/{session_id}"]
-    replay["/court3d/replay"]
+    live["/hearing-3d"]
   end
   subgraph review["复盘"]
     eval["/evaluation"]
@@ -85,7 +84,7 @@ flowchart LR
   full --> live
 ```
 
-浏览器只打 Next 的 `/api/*`。Next 当 BFF，转给 FastAPI。智能体、博弈、调解、评测都在后端。3D 只在浏览器里把 SSE 译成演出。
+浏览器只打 Next 的 `/api/*`。Next 当 BFF，转给 FastAPI。智能体、博弈、调解、评测都在后端。观庭是 `/hearing-3d`：把 conversation 或样例 JSONL 译成 HearingEvent。旧 `/court3d` 重定向过来。
 
 ```mermaid
 flowchart TB
@@ -106,7 +105,7 @@ flowchart TB
 |----|------|--------|
 | 开庭 | `/conversation` `/full-simulation` `/mediation` | 单场、全案 CD→DD→CI、独立调解 |
 | 研究 | `/research` `/research/packs/[dataset]/[cluster]` | 材料标注工作台（RESEARCH 路径） |
-| 观庭 | `/court3d` `/court3d/[id]` `/court3d/replay` | 选场、本场 3D、离线回放 |
+| 观庭 | `/hearing-3d` | 程序化占位 Phase A；可挂 `sessionId`。`/court3d` 重定向 |
 | 复盘 | `/evaluation` `/evaluation/reports/[id]` | 对照 / 策略 / 合规 / 研究量表 |
 | 系统 | `/login` `/register` `/system` `/settings` `/database` | 测 LLM、健康、法条 |
 
@@ -120,7 +119,7 @@ flowchart TB
 .
 ├── mock_court_system/     # 唯一启动入口
 ├── 法学材料/              # 指南、工作簿、原始母表。不是运行入口
-├── 3D建模方案/            # 设计稿。不要拷进 public/
+├── 3D建模方案/            # 设计稿（说明书在 说明/）。不要拷进 public/
 ├── 归档/                  # 申报、商计、论文。不是运行入口
 ├── README.md
 └── README.en.md
@@ -133,11 +132,12 @@ mock_court_system/
 ├── app/                   # 页面 + /api 代理
 ├── agents/                # CD / DD / CI / Sim
 ├── api/                   # FastAPI 路由和服务
-├── core/                  # 听证 / 书状 runtime、博弈、调解、检索
-├── evaluation/            # LexEval / J1 / CADD / AgentMed
+├── core/                  # 听证 / 书状 runtime、博弈、调解、检索；lab/ offline/ store/
+├── evaluation/            # LIVE 对照链；lab/ 论文批跑；fossil/ 旧跑数
 ├── data/                  # 运行时 SQLite（不要提交）
 ├── database/              # 法条库 + FAISS
-├── public/court3d/        # 剧组 JSON；models/ 空着就用胶囊人
+├── public/hearing-3d/     # 观庭合同 + 样例
+├── public/court3d/        # 旧胶囊剧组；页面已重定向到 /hearing-3d
 ├── api_server.py          # Web 后端
 └── main.py                # 离线批跑，不是 Web
 ```
@@ -184,7 +184,8 @@ API、BibTeX、更细的架构：[`mock_court_system/README.md`](mock_court_syst
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | 要改页面或代理 |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | 要跑复盘或离线评测 |
 | [`AGENTS.md`](AGENTS.md) | 下次开会话前先看：现役边界，避免混线 |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 2026-09-14 现役现状；旧 76 项表已归档 |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 2026-09-15 现役现状；旧 76 项表已归档 |
+| [`docs/CODEMAP.md`](mock_court_system/docs/CODEMAP.md) | 分层标签：LIVE / LAB / OFFLINE / FOSSIL / FROZEN |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | 要换 3D 角色 |
 | [`归档/README.md`](归档/README.md) | 要找申报、参考文献、外仓推理对照稿 |
 

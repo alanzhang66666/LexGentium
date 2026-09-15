@@ -10,7 +10,9 @@ export default function DocsPage() {
           <h1 className="text-[32px] font-medium tracking-tight">文档</h1>
           <p className="mt-2 text-[13px] text-muted-foreground">LexGentium 0.8</p>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-            一场听证一个会话：开庭 → 观庭 → 复盘。浏览器只打 Next{" "}
+            一场听证一个会话：开庭 → 观庭{" "}
+            <code className="font-mono text-xs">/hearing-3d</code>
+            {" "}→ 复盘。浏览器只打 Next{" "}
             <code className="font-mono text-xs">/api/*</code>。先{" "}
             <Link href="/register" className="text-primary hover:underline">
               开通

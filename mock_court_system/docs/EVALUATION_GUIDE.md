@@ -4,6 +4,8 @@
 
 日常复盘走工作台 **`/evaluation`** 三栏：对照、策略推演、程序合规。对照对应 **`POST /evaluate`**（Next：`POST /api/evaluate`）。后端任务执行 **`evaluation/run_evaluation.py`**，指标在 **`evaluation/lib/`**（LexEval、J1-EVAL、outcome、multi_layer、CADD 等）。
 
+目录（2026-09-16）：对照链留在 `evaluation/` 根上；论文脚本在 `evaluation/lab/`；2026-04 旧跑数在仓库根 `归档/评测化石/results/`。详见 [`evaluation/README.md`](../evaluation/README.md)。
+
 有 `links.game_id` 时，复盘「策略推演」还可打 `POST /game/{id}/evaluate/*`（结果 / 综合 / LexEval / J1Eval / CADD 责任链）。
 
 ```bash
@@ -238,7 +240,7 @@ python scripts/evaluate_hybrid_solution.py --hybrid-threshold 0.8 --output ./res
 ### 自定义评测器
 
 ```python
-from core.evaluator import APISimulatorEvaluator
+from core.offline.evaluator import APISimulatorEvaluator
 
 # 自定义相似度阈值
 evaluator = APISimulatorEvaluator(

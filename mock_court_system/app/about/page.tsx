@@ -28,7 +28,9 @@ export default function AboutPage() {
         <div>
           <h2 className="text-lg font-medium">观庭</h2>
           <p className="mt-3 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-            HUD 与大厅已接工作台视觉；三维场景等资产到位后再替换，不在本页承诺成片。
+            观庭是 <code className="font-mono text-xs">/hearing-3d</code>：程序化占位 Phase A，可挂本场
+            session。正式 VRM 未到，不在本页承诺成片。旧 <code className="font-mono text-xs">/court3d</code>{" "}
+            会重定向过来。
           </p>
         </div>
       </section>

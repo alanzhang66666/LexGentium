@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from api import state
 from api.services.game import GAME_NOT_FOUND, delete_game, ensure_game, persist_game
 from api.services.sse import sse_event
-from api_schemas import (
+from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
     ConversationMessageRequest, ConversationMessageResponse,
@@ -675,7 +675,7 @@ async def evaluate_progressive_benchmark(game_id: str):
         lexeval.evaluate_all, ci_result.final_document,
     )
 
-    from core.liability_chain import LiabilityChainExtractor
+    from core.lab.liability_chain import LiabilityChainExtractor
     extractor = state.LiabilityChainExtractor(state.llm_client)
     chain = await asyncio.to_thread(extractor.extract, ci_result.final_document)
     eval_results["liability_chain"] = chain.to_dict()

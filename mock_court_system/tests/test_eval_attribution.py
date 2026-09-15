@@ -24,8 +24,8 @@ if str(_CORE_DIR) not in sys.path:
 from research import EvalContract, new_report_id, new_run_id  # noqa: E402
 from research.ids import validate_report_id  # noqa: E402
 
-from core.conversation_store import MemoryConversationStore  # noqa: E402
-from core.evaluation_task_store import (  # noqa: E402
+from core.store.conversation_store import MemoryConversationStore  # noqa: E402
+from core.store.evaluation_task_store import (  # noqa: E402
     EvaluationTaskRecord,
     SqliteEvaluationTaskStore,
 )

@@ -14,7 +14,7 @@ from agents.ci_agent import CIAgent
 from core.graphs.hearing_runtime import HearingRuntime
 from core.graphs.checkpoint import SqliteCheckpointStore
 from core.llm_client import LLMClient
-from api_runtime import MockApiClient
+from api.runtime import MockApiClient
 
 
 SCRIPT = [

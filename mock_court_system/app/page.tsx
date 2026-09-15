@@ -42,7 +42,7 @@ export default function Home() {
                   <Link href="/register">开通</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <Link href="/court3d">观庭</Link>
+                  <Link href="/hearing-3d">观庭</Link>
                 </Button>
                 <Button asChild variant="ghost" size="lg">
                   <Link href="/evaluation">复盘</Link>
@@ -68,7 +68,9 @@ export default function Home() {
                     </li>
                   ))}
                 </ol>
-                <p className="mt-6 text-xs text-muted-foreground">文字记录与 3D 观庭绑定同一 session_id。</p>
+                <p className="mt-6 text-xs text-muted-foreground">
+                  文字记录与 3D 观庭绑定同一 session_id。
+                </p>
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ Version **0.8.0**. Adapted from Linear’s dark-first workbench density and Stri
 
 LexGentium is an international commercial arbitration hearing workbench. Product surfaces are dark-native: information emerges from near-black through luminance, not color. Marketing pages (home, about, docs) stay quiet—wide whitespace, one accent, no grid wallpaper, no glow logos.
 
-Ink dark is the default medium for 开庭 / 复盘 / 系统 / 观庭. Light mode is a first-class alternate. Switch palettes with `html[data-scheme="ink"|"parchment"|"seal"]`; `.dark` still flips each scheme. Do not add a fourth hue family.
+Ink dark is the default medium for 开庭 / 复盘 / 系统 / 观庭（`/hearing-3d`）. Light mode is a first-class alternate. Switch palettes with `html[data-scheme="ink"|"parchment"|"seal"]`; `.dark` still flips each scheme. Do not add a fourth hue family.
 
 **Key characteristics**
 

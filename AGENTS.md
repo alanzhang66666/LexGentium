@@ -14,8 +14,8 @@ Next.js 20 BFF + FastAPI。CD / DD / CI / Sim 智能体。听证走 `HearingRunt
 
 - `mock_court_system/` 唯一启动入口。不要把申报稿、3D 设计、法学母表拷进 `public/`。
 - `法学材料/` 指南与候选母表。不是已标完的 10–20 案。
-- `归档/` 申报、商计、论文、外仓推理对照稿。
-- `3D建模方案/` 设计稿。
+- `归档/` 申报、商计、论文、外仓推理对照稿、工程化石、评测化石。不是运行入口。
+- `3D建模方案/` 设计稿（说明书在 `说明/`）。
 
 ## 现役边界（下一轮不看到就会做错）
 
@@ -25,9 +25,11 @@ Next.js 20 BFF + FastAPI。CD / DD / CI / Sim 智能体。听证走 `HearingRunt
 4. 研究论证轮次：纽约执行 12、CISG 第 79 条 10。只计原被告发言。到上限不要再打 CI LLM。
 5. 书记员 / extract / score 用 `LLM_FAST_MAX_TOKENS`（默认 512）。判决不要截短。全案自动 CI 默认最多 30 步（`CI_MAX_AUTO_TURNS`）。
 6. 不要提交 `.env`、`*.sqlite3`、`data/session_predictions/`。没有真文件时不要建空的选案/原文/规则卡夹。
-7. Web 主路是 LLM 智能体。`api_reconstructor` / `main.py` 最近邻只给离线批跑。
-8. `归档/技术报告/LexGentium-推理优化技术报告-详细版.md` 写的是外仓 PR #2。**本树没有**那份 Phase 0 质量栈。
+7. Web 主路是 LLM 智能体。`core/offline/api_reconstructor` / `main.py` 最近邻只给离线批跑。
+8. Phase 0/1 已在本树（`core/case_bundle.py` / 事实台账 / IRAC / `reasoning_meta`）。`归档/技术报告/` 仍是外仓对照稿，不要当未落地说明。分层地图：`mock_court_system/docs/CODEMAP.md`。
 
 下一步：法学侧填正式研究包，不要先扩民事引擎。
+
+观庭产品入口是 `/hearing-3d`。旧 `/court3d` 重定向，不要再把胶囊厅当现役观庭。
 
 权威现状：`mock_court_system/docs/SYSTEM_STATUS.md`。

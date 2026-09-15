@@ -39,18 +39,18 @@ from matplotlib import rcParams
 rcParams["font.sans-serif"] = ["SimHei", "Microsoft YaHei", "DejaVu Sans"]
 rcParams["axes.unicode_minus"] = False
 
-from config import settings
+from settings import settings
 from core import LLMClient, CourtSimulatorClient
 from core.nash_equilibrium import NashEquilibriumTracker, STRATEGY_NAMES, STRATEGY_INDEX
 from core.extensive_form import ExtensiveFormGame
 from core.evolutionary_dynamics import EvolutionaryDynamics
 from core.nash_bargaining import NashBargainingEngine, BargainingOutcome
-from core.progressive_rag import ProgressiveRAG
-from core.dual_mode_reasoning import DualModeReasoner
-from core.multi_judge import MultiJudgeEngine
+from core.lab.progressive_rag import ProgressiveRAG
+from core.lab.dual_mode_reasoning import DualModeReasoner
+from core.lab.multi_judge import MultiJudgeEngine
 from core.case_orchestrator import FullCaseOrchestrator
 from core.mediation_engine import MediationEngine
-from evaluation.lib.game_eval import GameTheoreticEvaluator
+from evaluation.lab.legacy.game_eval import GameTheoreticEvaluator
 from agents import CDAgent, DDAgent, CIAgent, SimAgent
 
 OUTPUT_DIR = PROJECT_ROOT / "experiments" / "results"

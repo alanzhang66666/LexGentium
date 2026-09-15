@@ -24,7 +24,7 @@ from enum import Enum
 from typing import Dict, Any, List, Optional
 
 from core import LLMClient
-from core.mediation_session_store import MediationSessionStore
+from core.store.mediation_session_store import MediationSessionStore
 
 logger = logging.getLogger("mediation_engine")
 _DEFAULT_MEDIATION_DB = os.path.join("data", "mediation_sessions.sqlite3")

@@ -9,7 +9,7 @@ One hearing = one `session_id`. Three steps share that session:
 | Step | What you do | Open |
 |------|-------------|------|
 | 1 Hearing | Application / defence / oral hearing | [`/conversation`](http://localhost:3000/conversation) |
-| 2 Watch | 3D hearing (capsules if no VRM) | [`/court3d/{session_id}`](http://localhost:3000/court3d) |
+| 2 Watch | Procedural 3D (Phase A, not formal VRM) | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 Review | Contrast, strategy, procedural compliance | [`/evaluation`](http://localhost:3000/evaluation) |
 
 **Runnable code lives only in [`mock_court_system/`](mock_court_system/).** Start there. Version `0.8.0`.
@@ -41,7 +41,7 @@ Then:
 
 1. Open [`/register`](http://localhost:3000/register) to write a model, or [`/login`](http://localhost:3000/login) to test an existing config (soft unlock, no user table).
 2. Start a hearing at [`/conversation`](http://localhost:3000/conversation). Keep the `session_id`.
-3. Watch at [`/court3d/{session_id}`](http://localhost:3000/court3d).
+3. Watch at [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) (Phase A placeholders). Old `/court3d` redirects here.
 4. Review at [`/evaluation?session=…`](http://localhost:3000/evaluation).
 
 Step-by-step troubleshooting: [`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md).
@@ -75,8 +75,7 @@ flowchart LR
     med["/mediation"]
   end
   subgraph watch["Watch"]
-    live["/court3d/{session_id}"]
-    replay["/court3d/replay"]
+    live["/hearing-3d"]
   end
   subgraph review["Review"]
     eval["/evaluation"]
@@ -85,7 +84,7 @@ flowchart LR
   full --> live
 ```
 
-The browser talks only to Next `/api/*`. Next is the BFF in front of FastAPI. Agents, games, mediation, and evaluation run on the backend. 3D lives in the client and turns SSE frames into a performance.
+The browser talks only to Next `/api/*`. Next is the BFF in front of FastAPI. Agents, games, mediation, and evaluation run on the backend. Watch is `/hearing-3d`: conversation or sample JSONL become HearingEvents. Old `/court3d` redirects here.
 
 ```mermaid
 flowchart TB
@@ -106,7 +105,7 @@ Marketing: `/` `/about` `/docs`. Four workbench groups (`Ctrl+K` uses the same s
 |-------|--------|------|
 | Hearing | `/conversation` `/full-simulation` `/mediation` | Single hearing, full CD→DD→CI case, standalone mediation |
 | Research | `/research` `/research/packs/[dataset]/[cluster]` | Annotation workbench (RESEARCH path) |
-| Watch | `/court3d` `/court3d/[id]` `/court3d/replay` | Lobby, live 3D, offline replay |
+| Watch | `/hearing-3d` | Phase A placeholders; optional `sessionId`. `/court3d` redirects |
 | Review | `/evaluation` `/evaluation/reports/[id]` | Contrast / strategy / compliance / research rubric |
 | System | `/login` `/register` `/system` `/settings` `/database` | LLM check, health, statutes |
 
@@ -120,7 +119,7 @@ Palettes: `ink` (default) / `parchment` / `seal`. See [`DESIGN.md`](mock_court_s
 .
 ├── mock_court_system/     # Only launch entry
 ├── 法学材料/              # Guides, workbook, source tables. Not a runtime
-├── 3D建模方案/            # Design docs. Do not copy into public/
+├── 3D建模方案/            # Design docs (manuals in 说明/). Do not copy into public/
 ├── 归档/                  # Filings, business plan, papers. Not a runtime
 ├── README.md
 └── README.en.md
@@ -133,11 +132,12 @@ mock_court_system/
 ├── app/                   # Pages + /api proxies
 ├── agents/                # CD / DD / CI / Sim
 ├── api/                   # FastAPI routes and services
-├── core/                  # Hearing / plead runtimes, game, mediation, retrieval
-├── evaluation/            # LexEval / J1 / CADD / AgentMed
+├── core/                  # Hearing / plead runtimes, game, mediation; lab/ offline/ store/
+├── evaluation/            # LIVE contrast chain; lab/ paper runs; fossil/ old numbers
 ├── data/                  # Runtime SQLite (do not commit)
 ├── database/              # Statute store + FAISS
-├── public/court3d/        # Cast JSON; empty models/ → capsules
+├── public/hearing-3d/     # Watch contracts + sample
+├── public/court3d/        # Legacy capsule casts; pages redirect to /hearing-3d
 ├── api_server.py          # Web backend
 └── main.py                # Offline batch runner, not the web path
 ```
@@ -184,7 +184,8 @@ A hearing can also link `task_id` (full case), `game_id` (strategy play), and `r
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | You are changing pages or proxies |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | You are running review or offline eval |
 | [`AGENTS.md`](AGENTS.md) | Read first in a new session: live boundaries |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | Current status as of 2026-09-14; the old 76-item table is archived |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | Current status as of 2026-09-15; the old 76-item table is archived |
+| [`docs/CODEMAP.md`](mock_court_system/docs/CODEMAP.md) | Layer tags: LIVE / LAB / OFFLINE / FOSSIL / FROZEN |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | You are swapping 3D characters |
 | [`归档/README.md`](归档/README.md) | You need filings, papers, or the external inference memo |
 

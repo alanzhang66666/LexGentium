@@ -61,7 +61,7 @@ Marketing: `/` `/about` `/docs`. Four workbench groups (`Ctrl+K` matches):
 |-------|--------|
 | Hearing | `/conversation` `/conversation/[id]` `/full-simulation` `/mediation` |
 | Research | `/research` `/research/packs/[dataset]/[cluster]` (RESEARCH annotation workbench) |
-| Watch | `/court3d` `/court3d/[id]` `/court3d/replay` |
+| Watch | `/hearing-3d` |
 | Review | `/evaluation` (contrast / strategy / compliance / research) `/evaluation/reports/[id]` |
 | System | `/login` `/register` `/system` `/settings` `/database` `/api-history` `/simulate` |
 
@@ -81,25 +81,26 @@ python api_server.py          # http://localhost:8000
 npm run dev                   # http://localhost:3000
 ```
 
-`/register` or `/login` → `/conversation` → `/court3d/{session_id}` → `/evaluation`.
+`/register` or `/login` → `/conversation` → `/hearing-3d?sessionId=` → `/evaluation`.
 
-No VRM in `public/court3d/models/` means capsules. Character swap: `docs/COURT3D_ASSET_SPEC.md`. Install: `docs/INSTALL.md`. Deploy: `docs/DEPLOY.md`.
+Watch is `/hearing-3d` (Phase A placeholders, not formal VRM). Old `/court3d` redirects there. Install: `docs/INSTALL.md`. Deploy: `docs/DEPLOY.md`.
 
 ## Layout
 
 ```
 mock_court_system/
 ├── app/                        # Next pages + /api BFF
-├── components/                 # Shells, hearing UI, court3d, palettes
+├── components/                 # Shells, hearing UI, hearing-3d (Phase A)
 ├── lib/                        # API client, session, court3d director
 ├── agents/                     # CD / DD / CI / Sim
 ├── api/routers/                # Thin FastAPI routes
 ├── api/services/               # Sessions, games, eval, SSE, links
-├── core/                       # Game, mediation, retrieval, runtimes
-├── evaluation/lib/             # LexEval / J1 / CADD / AgentMed
-├── data/                       # Runtime SQLite, dataset_1000 metadata
+├── core/                       # Runtimes, game, mediation; lab/ offline/ store/; Phase 0/1 at root
+├── evaluation/                 # LIVE lib/ + lab/ paper runs. Old numbers in repo 归档/评测化石/
+├── data/                       # Runtime SQLite; dataset_1000 = meta + 100 summaries
 ├── database/                   # Statute SQLite + FAISS
-├── public/court3d/             # Casts, replay; models/ awaits VRM
+├── public/hearing-3d/          # Live watch contracts + sample events
+├── public/court3d/             # Legacy capsule casts; pages redirect
 ├── docs/
 ├── scripts/                    # Batch / bench / reindex (not the web path)
 ├── tests/

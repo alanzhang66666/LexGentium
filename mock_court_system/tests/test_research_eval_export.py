@@ -111,7 +111,7 @@ def test_export_contains_run_id_materials_hash_eval(monkeypatch, tmp_path):
     stale = [
         m
         for m in list(sys.modules)
-        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("api_runtime", "config", "settings")
+        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("settings",)
     ]
     for module_name in stale:
         sys.modules.pop(module_name, None)

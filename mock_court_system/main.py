@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from config import settings
+from settings import settings
 from core import CourtSimulatorClient, LLMClient
 from utils import DataLoader, ResultGenerator, setup_logger
 from agents import CDAgent, DDAgent, CIAgent

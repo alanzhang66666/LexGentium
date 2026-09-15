@@ -60,7 +60,7 @@ npm run dev                   # http://localhost:3000
 
 浏览器只打 Next（默认 3000）。后端路由在 `api/routers/`，`api_server.py` 只做装配。
 
-推荐入口：`/register` 或 `/login`（写入/测通 LLM，软解锁）→ `/conversation`（开庭）→ `/court3d/{session_id}`（观庭）→ `/evaluation`（复盘）。一场听证一个 `session_id`。
+推荐入口：`/register` 或 `/login`（写入/测通 LLM，软解锁）→ `/conversation`（开庭）→ `/hearing-3d?sessionId=`（观庭）→ `/evaluation`（复盘）。一场听证一个 `session_id`。旧 `/court3d` 会转到 `/hearing-3d`。
 
 可选环境旗见 `.env.example`：`CI_USE_GRAPH`、`PLEAD_USE_RUNTIME`、`LLM_CACHE`、`API_TOKEN`。配色三套（ink / parchment / seal）在工作台顶栏切换。
 

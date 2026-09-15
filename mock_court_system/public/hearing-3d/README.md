@@ -1,6 +1,6 @@
 # 仲裁听证 3D 第一阶段资产与事件说明
 
-当前页面是 LexGentium 的第一阶段技术闭环 Demo：
+当前页面是 LexGentium 的现役观庭（Phase A 程序化占位）：
 
 - 房间和角色使用程序化 placeholder，不是正式 VRM/GLB；
 - 事件来源是 `scripted_demo`，来自交付包中的结构样例，不是真实案件运行；

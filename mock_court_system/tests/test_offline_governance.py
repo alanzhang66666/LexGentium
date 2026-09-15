@@ -7,8 +7,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from core.conversation_store import SqliteConversationStore
-from core.evaluation_task_store import EvaluationTaskRecord, SqliteEvaluationTaskStore
+from core.store.conversation_store import SqliteConversationStore
+from core.store.evaluation_task_store import EvaluationTaskRecord, SqliteEvaluationTaskStore
 
 
 def _runtime_path(name: str) -> Path:
@@ -28,7 +28,7 @@ def _load_api_server(monkeypatch, db_path):
     # 丢弃 api 包（含 state 与全部 routers）及相关配置模块，让 stores 按新环境重建
     stale = [
         m for m in list(sys.modules)
-        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("api_runtime", "config", "settings")
+        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("settings",)
     ]
     for module_name in stale:
         sys.modules.pop(module_name, None)

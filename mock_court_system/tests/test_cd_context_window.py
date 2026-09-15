@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from agents.cd_agent import CDAgent
-from api_runtime import MockApiClient
+from api.runtime import MockApiClient
 from core.graphs.checkpoint import SqliteCheckpointStore
 from core.graphs.plead_runtime import DEFAULT_WINDOW, PleadRuntime, reset_plead_runtime
 from core.llm_client import LLMClient

@@ -51,7 +51,7 @@ def _load_api_server(monkeypatch, db_path, claims_path=None):
     stale = [
         m
         for m in list(sys.modules)
-        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("api_runtime", "config", "settings")
+        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("settings",)
     ]
     for module_name in stale:
         sys.modules.pop(module_name, None)

@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from api import state
 from api.services.conversation import bind_session_link
-from api_schemas import GameCreateRequest
+from api.schemas import GameCreateRequest
 
 GAME_NOT_FOUND = "博弈局不存在。后端重启后若存档缺失，请重新开局。"
 

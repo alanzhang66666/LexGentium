@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
 from api.services.evaluation import EvaluationAttributionError, start_evaluation_task
-from api_schemas import (
+from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
     ConversationMessageRequest, ConversationMessageResponse,

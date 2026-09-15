@@ -62,7 +62,7 @@ def test_missing_critical_fields_are_reported_not_silently_defaulted():
 def test_real_dataset_sample_passes_contract():
     """真实数据集首行样本必须通过完整契约。"""
     import json
-    row = json.loads(open("data/dataset_1000/small_sample_100_three_causes.jsonl").readline())
+    row = json.loads(open("data/dataset_1000/small_sample_100_three_causes.jsonl", encoding="utf-8").readline())
     b = normalize_case_payload(row)
     assert b.case_id == row["case_id"]
     assert b.plaintiff.name == row["plaintiff_name"]
@@ -291,7 +291,7 @@ def test_run_stage_ci_threads_reasoning_state_across_turns():
 def test_new_session_ci_agent_returns_isolated_instances_with_shared_retriever():
     """工厂每次返回独立 CIAgent（并发隔离），law_retriever 仍是共享单例。"""
     os.environ.setdefault("LLM_API_KEY", "")
-    for mod in ("api_server", "api", "api.state", "api_runtime", "config", "settings"):
+    for mod in ("api_server", "api", "api.state", "settings"):
         sys.modules.pop(mod, None)
     from api import state
     a1 = state.new_session_ci_agent()
