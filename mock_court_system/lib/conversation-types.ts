@@ -1,22 +1,9 @@
 export type Scenario = "CD" | "DD" | "CI"
 
-export interface SessionLinks {
-  task_id?: string
-  game_id?: string
-  report_id?: string
-}
-
 export interface ConversationStartRequest {
   scenario: Scenario
   case_id: string
   input_json?: Record<string, unknown>
-  dataset_id?: string
-  cluster_id?: string
-  pack_version?: string
-  derived_from?: string
-  visible_materials?: Record<string, unknown>
-  experiment_conditions?: Record<string, unknown>
-  model_config_snapshot?: Record<string, unknown>
 }
 
 export interface ConversationStartResponse {
@@ -24,12 +11,6 @@ export interface ConversationStartResponse {
   scenario: string
   case_id: string
   created_at: string
-  run_id?: string
-  dataset_id?: string
-  cluster_id?: string
-  pack_version?: string
-  derived_from?: string
-  materials_hash?: string
 }
 
 export interface ConversationMessageRequest {
@@ -47,14 +28,16 @@ export interface ConversationMessageResponse {
   is_finished: boolean
   /** True 表示回复由离线兜底模板生成（未调用真实 LLM） */
   degraded?: boolean
-  current_stage?: CourtStage | null
-  current_sub_stage?: CourtSubStage | null
-  next_speaker?: string | null
-  available_actions?: string[]
+  /** CI 场景推理元数据（判决语义状态/法条回查/数据契约告警） */
+  reasoning_meta?: {
+    judgment_status: "ok" | "degraded" | "failed"
+    citation_report?: { checked: number; verified: number; unverified: string[] } | null
+    case_warnings: string[]
+  } | null
 }
 
 export interface DialogEntry {
-  turn?: number | null
+  turn: number
   role: string
   message: string
 }
@@ -170,11 +153,6 @@ export interface ConversationInfo {
   available_actions?: string[]
   is_finished?: boolean
   turn_count?: number
-  links?: SessionLinks
-  research?: import("@/lib/research").ResearchSessionMeta | null
-  claim_chain?: import("@/lib/research").ResearchClaimNode[]
-  task_protocol?: Record<string, unknown> | null
-  stop_reason?: string | null
 }
 
 export interface ConversationSummary {
@@ -185,7 +163,6 @@ export interface ConversationSummary {
   updated_at: string
   message_count: number
   is_finished?: boolean
-  links?: SessionLinks
 }
 
 export interface ConversationListResponse {

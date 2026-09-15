@@ -1,0 +1,90 @@
+{
+  "version": "1.1",
+  "status": "proposed_reference_mapping_not_confirmed_identity",
+  "characters": [
+    {
+      "actor_id": "judge",
+      "label": "首席仲裁员",
+      "english": "Presiding Arbitrator",
+      "name": "周岚",
+      "variant": "original",
+      "reference": "人物9.png",
+      "basis": "深蓝西装、短发、细框眼镜，外观候选",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/judge.vrm"
+    },
+    {
+      "actor_id": "clerk",
+      "label": "仲裁庭秘书",
+      "english": "Tribunal Secretary",
+      "name": "林泽",
+      "variant": "original",
+      "reference": "人物6.png",
+      "basis": "年轻男性、炭灰西装、浅蓝衬衫，外观候选",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/clerk.vrm"
+    },
+    {
+      "actor_id": "plaintiff_counsel",
+      "label": "申请人代理",
+      "english": "Counsel for Claimant",
+      "name": "顾清衡",
+      "variant": "swap",
+      "reference": "人物1.png",
+      "basis": "灰色西装、灰蓝领带、短发男性，外观候选",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/plaintiff_counsel.vrm"
+    },
+    {
+      "actor_id": "plaintiff_party",
+      "label": "申请人企业代表",
+      "english": "Claimant Representative",
+      "name": "陆玮",
+      "variant": "original",
+      "reference": null,
+      "basis": "按原文字设定补造型图：44岁、藏蓝西装、淡蓝衬衫",
+      "status": "明确参考图待补；模型待制作",
+      "model": "assets/characters/plaintiff_party.vrm"
+    },
+    {
+      "actor_id": "defendant_counsel",
+      "label": "被申请人代理",
+      "english": "Counsel for Respondent",
+      "name": "沈嘉树",
+      "variant": "original",
+      "reference": "人物4.png",
+      "basis": "细黑框眼镜、墨绿领带，外观候选",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/defendant_counsel.vrm"
+    },
+    {
+      "actor_id": "defendant_party",
+      "label": "被申请人企业代表",
+      "english": "Respondent Representative",
+      "name": "Elena Rossi",
+      "variant": "original",
+      "reference": "人物3.png",
+      "basis": "深棕齐肩发、深蓝西装；单侧耳机须按文字补充",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/defendant_party.vrm"
+    },
+    {
+      "actor_id": "interpreter",
+      "label": "口译员",
+      "english": "Interpreter",
+      "name": "唐雯",
+      "variant": "original",
+      "reference": "人物5.png",
+      "basis": "低马尾、灰色西装、速记本；耳机按文字补充",
+      "status": "参考候选；模型待制作",
+      "model": "assets/characters/interpreter.vrm"
+    }
+  ],
+  "unselected_references": [
+    "人物2.png",
+    "人物7.png",
+    "人物8.png"
+  ],
+  "runtime_assets_included": false,
+  "root_calibration": "Each model must supply seat_to_root, forward_axis and scale; currently unset."
+}

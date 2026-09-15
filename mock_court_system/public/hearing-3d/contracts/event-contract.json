@@ -1,0 +1,177 @@
+{
+  "protocol_version": "1.1",
+  "status": "proposed_not_implemented",
+  "not_json_schema": true,
+  "source_types": [
+    "backend_run",
+    "scripted_demo"
+  ],
+  "event_types": [
+    "session_started",
+    "stage_changed",
+    "issue_opened",
+    "utterance_committed",
+    "claim_status_changed",
+    "playback_policy_changed",
+    "session_finished"
+  ],
+  "common_fields": [
+    [
+      "schema_version",
+      "版本",
+      "必填；本草案为 1.1"
+    ],
+    [
+      "event_id",
+      "稳定唯一编号",
+      "必填；用于去重及回应关联，不复用旧 ID"
+    ],
+    [
+      "run_id / session_id",
+      "运行与会话",
+      "必填；不能跨运行拼接事件"
+    ],
+    [
+      "seq",
+      "后端顺序",
+      "必填；会话内连续递增整数，不能用到达顺序代替"
+    ],
+    [
+      "type",
+      "事件种类",
+      "必填；驱动对应状态更新"
+    ],
+    [
+      "occurred_at",
+      "记录时刻",
+      "必填；带时区，不等于音频播放时间"
+    ],
+    [
+      "source_type / provenance",
+      "来源及版本",
+      "必填；区分实际后端运行、人工脚本及降级情况"
+    ],
+    [
+      "issue_id",
+      "关联争点",
+      "未进入争点时可为 null；发言段须明确关联或注明程序性发言"
+    ],
+    [
+      "payload",
+      "事件数据",
+      "必填；按 type 解释"
+    ],
+    [
+      "supersedes_event_id",
+      "修订关系",
+      "无修订时为 null；更正以新事件追加"
+    ]
+  ],
+  "payloads": {
+    "session_started": {
+      "required": [
+        "procedure_type",
+        "cast_id",
+        "manifest_version",
+        "materials"
+      ],
+      "notes": "materials 为可引用材料目录；来源、权限和版本需可回查"
+    },
+    "stage_changed": {
+      "required": [
+        "stage_id",
+        "label"
+      ],
+      "notes": "按后端程序配置，不固定映射所有法域"
+    },
+    "issue_opened": {
+      "required": [
+        "label",
+        "description"
+      ],
+      "notes": "issue_id 必填；不是事实结论"
+    },
+    "utterance_committed": {
+      "required": [
+        "actor_id",
+        "utterance_id",
+        "segment_index",
+        "is_final_segment",
+        "text",
+        "claim_ids",
+        "reply_to_event_ids",
+        "material_refs",
+        "claims",
+        "audio"
+      ],
+      "notes": "text 含 zh 与可选 en；audio 可为 null；claims 仅声明后端主张归属，确认文本不表示事实成立"
+    },
+    "claim_status_changed": {
+      "required": [
+        "claim_id",
+        "evidence_status",
+        "review_control",
+        "reason",
+        "material_refs"
+      ],
+      "notes": "对象级状态；不得自动全局禁言"
+    },
+    "playback_policy_changed": {
+      "required": [
+        "target_event_ids",
+        "policy",
+        "reason",
+        "effective_at"
+      ],
+      "notes": "明确的后端播放授权规则；策略立即生效，历史保留占位"
+    },
+    "session_finished": {
+      "required": [
+        "outcome",
+        "note"
+      ],
+      "notes": "运行结束状态，不默认构成法律裁决"
+    }
+  },
+  "evidence_statuses": [
+    "supported",
+    "unknown",
+    "unsupported",
+    "excluded"
+  ],
+  "review_controls": [
+    "active",
+    "frozen"
+  ],
+  "playback_policies": [
+    "allow",
+    "blocked",
+    "redacted"
+  ],
+  "material_reference_required": [
+    "material_id",
+    "version",
+    "anchor"
+  ],
+  "claim_required": [
+    "claim_id",
+    "owner_actor_id",
+    "text",
+    "evidence_status",
+    "review_control"
+  ],
+  "audio_if_present": {
+    "required": [
+      "asset_id",
+      "duration_ms",
+      "segments"
+    ],
+    "notes": "音频与该发言段绑定，时间范围不重叠；运行提供商未指定"
+  },
+  "display_only_actions": [
+    "idle_breath",
+    "listen_gaze",
+    "gentle_nod",
+    "camera_cut"
+  ]
+}
