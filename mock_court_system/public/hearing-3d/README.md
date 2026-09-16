@@ -30,14 +30,14 @@
 - 缺失 seq 会显示等待事件编号，连接中断保留已接收内容并展示断线状态；
 - `pending_gap` 与 `skipped_seqs` 会进入专业模式和时间线提示。
 
-## 角色立牌（sprite 模式）
+## 角色渲染（procedural 3D 人偶）
 
-当前七席使用 P0 交付包的人物参考图作为 billboard 立牌：
+当前七席默认使用程序化 3D 坐姿人偶（`ProceduralCharacter.tsx`）：真 3D 几何体（躯干/头/手臂/腿部），按席位配色，带呼吸、点头、发言抬手动画；材质全部不透明，避免透明排序闪烁。
 
-- 立牌贴图取自 `reference/char-*-web.jpg`（原图压缩版，单张约 40KB）；
-- 映射关系集中在 `components/hearing-3d/asset-adapter.ts`：judge=char-9、clerk=char-6、plaintiff=char-1、defendant_counsel=char-4、defendant_party=char-3、interpreter=char-5；
-- 加载失败会自动降级为胶囊体，不会出现隐形角色；
-- 正式 VRM/GLB 到位后，在 asset-adapter 中把 `mode` 改为 `vrm`/`glb` 并填 `model_url`，场景代码无需改动；
+- `asset-adapter.ts` 统一管理四种模式：`procedural`（默认）/ `vrm` / `glb` / `sprite`；
+- `sprite` 模式保留 P0 交付包人像 billboard（`reference/char-*-web.jpg`，~40KB/张），映射关系同样在 asset-adapter；
+- 纹理加载失败自动降级胶囊体，不会出现隐形角色；
+- 正式 VRM/GLB 到位后，把 `mode` 改为 `vrm`/`glb` 并填 `model_url`，场景代码无需改动；
 - `reference/` 内的 SVG（平面/立面/剖面/HUD/色票/双语名牌）与 `roles.json`、`p0-design-spec.html` 来自 P0 设计交付包；原始大尺寸 PNG 未入库（每张 1.5-2MB），仅保留本地。
 
-已知渲染注意点：R3F v9 对已挂载材质后设置 `map` 不会触发 shader 重编译，异步加载的纹理必须通过 `key={texture.uuid}` 强制重挂材质，否则显示为黑色（PlaceholderCharacter 已处理，纹理加载失败自动回退胶囊体）。
+已知渲染注意点：R3F v9 对已挂载材质后设置 `map` 不会触发 shader 重编译，异步加载的纹理必须通过 `key={texture.uuid}` 强制重挂材质，否则显示为黑色（PlaceholderCharacter 已处理）。透明材质参与排序是画面闪烁的常见来源——立牌/台座均已改为不透明材质。Next.js dev 对 `public/` 是启动时快照，新增/改名静态文件后必须重启 dev server。

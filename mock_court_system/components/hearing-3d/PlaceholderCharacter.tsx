@@ -67,14 +67,15 @@ export function PlaceholderCharacter({ member, mode, isSpeaking }: { member: Cas
 
   return (
     <group position={[x, y, z]} scale={member.scale}>
-      {/* 台座 */}
+      {/* 台座：不透明，避免透明排序闪烁 */}
       <mesh position={[0, 0.01, 0]}>
         <cylinderGeometry args={[0.3, 0.35, 0.02, 24]} />
-        <meshStandardMaterial color={color} transparent opacity={0.25} />
+        <meshStandardMaterial color="#3a4656" />
       </mesh>
 
       {showBillboard ? (
         /* Billboard sprite：高质量参考图面板（始终面向相机）
+         * 照片是不透明矩形：transparent=false 走不透明通道，深度写入正常，消除排序闪烁；
          * key 绑定纹理 uuid：R3F v9 对已创建材质设置 map 不会触发 shader 重编译，
          * 必须强制重挂材质，否则纹理显示为黑色。 */
         <mesh ref={meshRef} position={[0, height / 2, 0]}>
@@ -82,7 +83,6 @@ export function PlaceholderCharacter({ member, mode, isSpeaking }: { member: Cas
           <meshStandardMaterial
             key={spriteTexture?.uuid ?? "no-texture"}
             map={spriteTexture}
-            transparent
             alphaTest={0.1}
             side={2 /* DoubleSide */}
             toneMapped={false}

@@ -1,16 +1,17 @@
 /**
- * 资产适配器：管理 VRM/GLB/Reference 三级加载。
+ * 资产适配器：管理 procedural/VRM/GLB/sprite 四级加载。
  *
- * 三种模式：
- * - "vrm"    : @pixiv/three-vrm 加载 VRM 模型（正式角色模型，需要 .vrm 文件）
- * - "glb"    : GLTFLoader 加载 GLB 模型（房间/道具/替代角色）
- * - "sprite" : Billboard sprite（使用参考图 PNG 作为高质量 2D 面板）
+ * 模式：
+ * - "procedural" : 程序化 3D 坐姿人偶（默认，真 3D 几何体，无需模型文件）
+ * - "vrm"        : @pixiv/three-vrm 加载 VRM 模型（正式角色模型，需要 .vrm 文件）
+ * - "glb"        : GLTFLoader 加载 GLB 模型（房间/道具/替代角色）
+ * - "sprite"     : Billboard 照片立牌（参考图 PNG/JPG 作为 2D 面板）
  *
  * 正式 VRM/GLB 文件放入 public/hearing-3d/models/ 后，
- * 只需在 ASSET_MANIFEST 中更新 model_url 即可切换，不改 3D 场景代码。
+ * 只需在 CHARACTER_ASSETS 中改 mode 并填 model_url，场景代码不变。
  */
 
-export type AssetMode = "vrm" | "glb" | "sprite"
+export type AssetMode = "procedural" | "vrm" | "glb" | "sprite"
 
 export interface CharacterAsset {
   actor_id: string
@@ -29,14 +30,18 @@ export interface CharacterAsset {
  *  正式模型到位后，将 mode 改为 "vrm" 或 "glb" 并填入 model_url。
  *  例：{ actor_id:"judge", mode:"vrm", model_url:"/hearing-3d/models/judge.vrm", ... }
  */
+/** 当前资产清单：默认程序化 3D 人偶；sprite_url 保留参考图映射供切回。
+ *  正式模型到位后，将 mode 改为 "vrm" 或 "glb" 并填入 model_url。
+ *  例：{ actor_id:"judge", mode:"vrm", model_url:"/hearing-3d/models/judge.vrm", ... }
+ */
 export const CHARACTER_ASSETS: Record<string, CharacterAsset> = {
-  judge:             { actor_id:"judge",             mode:"sprite", sprite_url:"/hearing-3d/reference/char-9-web.jpg" },
-  clerk:             { actor_id:"clerk",             mode:"sprite", sprite_url:"/hearing-3d/reference/char-6-web.jpg" },
-  plaintiff_counsel: { actor_id:"plaintiff_counsel", mode:"sprite", sprite_url:"/hearing-3d/reference/char-1-web.jpg" },
-  plaintiff_party:   { actor_id:"plaintiff_party",   mode:"sprite", sprite_url:"/hearing-3d/reference/char-1-web.jpg" },
-  defendant_counsel: { actor_id:"defendant_counsel", mode:"sprite", sprite_url:"/hearing-3d/reference/char-4-web.jpg" },
-  defendant_party:   { actor_id:"defendant_party",   mode:"sprite", sprite_url:"/hearing-3d/reference/char-3-web.jpg" },
-  interpreter:       { actor_id:"interpreter",       mode:"sprite", sprite_url:"/hearing-3d/reference/char-5-web.jpg" },
+  judge:             { actor_id:"judge",             mode:"procedural", sprite_url:"/hearing-3d/reference/char-9-web.jpg" },
+  clerk:             { actor_id:"clerk",             mode:"procedural", sprite_url:"/hearing-3d/reference/char-6-web.jpg" },
+  plaintiff_counsel: { actor_id:"plaintiff_counsel", mode:"procedural", sprite_url:"/hearing-3d/reference/char-1-web.jpg" },
+  plaintiff_party:   { actor_id:"plaintiff_party",   mode:"procedural", sprite_url:"/hearing-3d/reference/char-1-web.jpg" },
+  defendant_counsel: { actor_id:"defendant_counsel", mode:"procedural", sprite_url:"/hearing-3d/reference/char-4-web.jpg" },
+  defendant_party:   { actor_id:"defendant_party",   mode:"procedural", sprite_url:"/hearing-3d/reference/char-3-web.jpg" },
+  interpreter:       { actor_id:"interpreter",       mode:"procedural", sprite_url:"/hearing-3d/reference/char-5-web.jpg" },
 }
 
 /** 房间环境资产 */
