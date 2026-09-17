@@ -14,7 +14,7 @@
 | 运行时 | HearingRuntime + PleadRuntime 默认开 | 无研究包时民事 CD/DD/CI 不改 |
 | 研究工程 | 角色材料过滤、主张链、派生 `run_id`、六维量表、导出 | 不是已标完的 10–20 案 |
 | 研究数据 | SAMPLE：`enf-cn-notice-001`、`cisg-art79-sample-001` | 正式 pack = 0 |
-| 法学材料 | `法学材料/指南与工作簿/` + 原始母表 | 候选 ≠ 已标注 |
+| 法学材料 | 指南 + 原始母表 + `案例材料/`（67 份素材、15 份已填标注） | 15 份均未完成独立复核；不是正式 pack |
 | 民事数据 | `dataset_1000/` 只有 meta + 100 条摘要 | **没有** train/val/test jsonl |
 | 3D | 观庭 = `/hearing-3d`（程序化占位 Phase A）。旧 `/court3d` 重定向 | 非正式 VRM。胶囊渲染已删；留下 parseSse / labels / gameStream |
 | 推理 | Phase 0/1 已合并：`case_bundle` / 台账 / IRAC / `reasoning_meta`；clerk/extract/score ≤512 token；自动 CI ≤30；研究 10/12 轮停 | LAB（P-RAG / Dual-Mode / Multi-Judge）不经听证 SSE |
@@ -34,6 +34,7 @@
 ## 明确未做（法学内容）
 
 - 正式研究包、规则卡、原文锚点回填
+- `案例材料/` 中 15 份标注的独立复核（案例 25 仍是 AI 辅助初标待确认）
 - `RESEARCH_PROTOCOL.md` 独立成文（约束写在根目录 `AGENTS.md`）
 - 3D VRM（观庭仍是程序化占位，非正式模型）
 - 完整 1000 条民事 jsonl（需 `scripts/build_dataset.py`）
