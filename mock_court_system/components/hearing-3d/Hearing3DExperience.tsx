@@ -124,7 +124,7 @@ export function Hearing3DExperience() {
       <div className="mx-auto max-w-[1500px]">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.25em] text-cyan-300">LexGentium</div>
+            <img src="/branding/lexgentium-logo-dark.png" alt="法序智演 LexGentium" className="h-7 w-auto" />
             <h1 className="text-3xl font-semibold">仲裁听证 3D · 技术闭环 Demo</h1>
             <p className="mt-1 text-sm text-white/55">程序化占位资产 / 人工结构样例，不代表正式角色模型或法律裁决。</p>
           </div>
