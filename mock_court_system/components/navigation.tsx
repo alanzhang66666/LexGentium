@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Scale } from "lucide-react"
 import { SchemePicker } from "@/components/scheme-picker"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CommandPalette } from "@/components/command-palette"
@@ -227,13 +226,11 @@ function MarketingBar() {
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-[1120px] items-center justify-between gap-3 px-4">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
-            <Scale className="size-3.5 text-primary-foreground" />
-          </div>
-          <span className="truncate text-[13px] font-medium tracking-tight">
-            <span className="hidden min-[420px]:inline">LexGentium</span>
-            <span className="ml-1.5 hidden text-muted-foreground font-normal sm:inline">国际商事仲裁听证仿真</span>
+          <span className="flex shrink-0 items-center rounded-md bg-white px-1.5 py-1 shadow-sm ring-1 ring-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/branding/lexgentium-logo.png" alt="法序智演 LexGentium" className="h-5 w-auto" />
           </span>
+          <span className="hidden truncate text-[13px] font-normal text-muted-foreground sm:inline">国际商事仲裁听证仿真</span>
         </Link>
         <div className="flex shrink-0 items-center gap-1">
           <Link
@@ -330,10 +327,10 @@ function WorkbenchBar() {
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-none items-center justify-between gap-3 px-4">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
-            <Scale className="size-3.5 text-primary-foreground" />
-          </div>
-          <span className="truncate text-[13px] font-medium tracking-tight">LexGentium</span>
+          <span className="flex shrink-0 items-center rounded-md bg-white px-1.5 py-1 shadow-sm ring-1 ring-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/branding/lexgentium-logo.png" alt="法序智演 LexGentium" className="h-5 w-auto" />
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-0.5 sm:flex">
