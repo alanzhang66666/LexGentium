@@ -4,7 +4,7 @@ import { WorkbenchShell } from "@/components/shell"
 
 export const metadata: Metadata = {
   title: "仲裁听证 3D · 法序智演 LexGentium",
-  description: "LexGentium 3D 观庭（程序化占位 Phase A）。可挂本场 session，非正式 VRM。",
+  description: "LexGentium 3D 观庭（供应商 OBJ 角色资产与 PBR 贴图）。可挂本场 session。",
 }
 
 export default function Hearing3DPage() {

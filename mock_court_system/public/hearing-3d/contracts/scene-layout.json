@@ -129,6 +129,38 @@
         -2.6
       ],
       "note": "保留"
+    },
+    {
+      "id": "prosecutor",
+      "actor_id": "prosecutor",
+      "label": "公诉人",
+      "position": [
+        -4.0,
+        0.45,
+        -2.35
+      ],
+      "look_at": [
+        0,
+        1.35,
+        -2.35
+      ],
+      "note": "新增供应商 OBJ 角色"
+    },
+    {
+      "id": "fact_witness",
+      "actor_id": "fact_witness",
+      "label": "外籍事实证人",
+      "position": [
+        4.0,
+        0.45,
+        -2.35
+      ],
+      "look_at": [
+        0,
+        1.35,
+        -2.35
+      ],
+      "note": "新增供应商 OBJ 角色"
     }
   ],
   "desks": [
