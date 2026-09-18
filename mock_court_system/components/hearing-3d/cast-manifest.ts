@@ -8,16 +8,20 @@ const seats: Record<string, { position: [number, number, number]; look_at: [numb
   defendant_counsel: { position: [2.9, 0.45, 0.65], look_at: [0, 1.35, 0.65] },
   defendant_party: { position: [2.9, 0.45, -1.15], look_at: [0, 1.35, -1.15] },
   interpreter: { position: [2.9, 0.45, -2.6], look_at: [0, 1.35, -2.6] },
+  prosecutor: { position: [-4.0, 0.45, -2.35], look_at: [0, 1.35, -2.35] },
+  fact_witness: { position: [4.0, 0.45, -2.35], look_at: [0, 1.35, -2.35] },
 }
 
 const labels: Record<string, [string, string, string]> = {
-  judge: ["首席仲裁员", "Presiding Arbitrator", "周岚"],
-  clerk: ["仲裁庭秘书", "Tribunal Secretary", "林泽"],
-  plaintiff_counsel: ["申请人代理", "Counsel for Claimant", "顾清衡"],
-  plaintiff_party: ["申请人企业代表", "Claimant Representative", "陆玮"],
-  defendant_counsel: ["被申请人代理", "Counsel for Respondent", "沈嘉树"],
-  defendant_party: ["被申请人企业代表", "Respondent Representative", "Elena Rossi"],
-  interpreter: ["口译员", "Interpreter", "唐雯"],
+  judge: ["审判长", "Presiding Judge", "周岚"],
+  clerk: ["书记员", "Court Clerk", "林泽"],
+  plaintiff_counsel: ["中方代理律师", "China Counsel", "顾清衡"],
+  plaintiff_party: ["外籍被告人", "Foreign Defendant", "被告人"],
+  defendant_counsel: ["外方代理律师", "Foreign Counsel", "沈嘉树"],
+  defendant_party: ["外方企业代表", "Foreign Company Representative", "Elena Rossi"],
+  interpreter: ["法庭口译员", "Court Interpreter", "唐雯"],
+  prosecutor: ["公诉人", "Prosecutor", "公诉人"],
+  fact_witness: ["外籍事实证人", "Foreign Fact Witness", "证人"],
 }
 
 export const castManifest: CastMember[] = Object.keys(seats).map((actor_id) => {
@@ -27,8 +31,8 @@ export const castManifest: CastMember[] = Object.keys(seats).map((actor_id) => {
     label,
     english,
     name,
-    status: "placeholder",
-    asset_kind: "procedural",
+    status: "reference",
+    asset_kind: "reference",
     reference: null,
     seat_id: actor_id,
     position: seats[actor_id].position,
