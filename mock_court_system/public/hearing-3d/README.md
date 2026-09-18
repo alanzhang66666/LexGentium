@@ -32,9 +32,9 @@
 
 ## OBJ 角色资产
 
-`models/judicial-police/` 保存供应商交付的浏览器运行用轻量化 OBJ、MTL 和四张 PBR 贴图。`JudicialPoliceModel.tsx` 使用 Three.js `OBJLoader` 读取轻量化网格，并显式绑定 base color、metallic、roughness、normal 贴图；`/hearing-3d` 会将其作为独立的司法警察角色显示在入口前侧。运行用 OBJ 保留 UV 和材质并降到约 18 万顶点、37 万三角面，避免浏览器加载超大原始文件。
+`models/judicial-police/` 保存供应商交付的浏览器运行用轻量化 OBJ、MTL 和四张 PBR 贴图。`JudicialPoliceModel.tsx` 使用 Three.js `OBJLoader` 读取轻量化网格，并显式绑定 base color、metallic、roughness、normal 贴图；`/hearing-3d` 会将其作为独立的司法警察角色显示在入口前侧。运行用 OBJ 保留 UV 和材质并聚合顶点、减少退化面，避免浏览器加载超大原始文件。
 
-`models/roles/` 保存本次新增的 9 个角色运行资产：审判长、书记员、中方代理律师、外方代理律师、外方企业代表、外籍被告人、法庭口译员、公诉人、外籍事实证人。每个角色目录包含降面后的 `model-optimized.obj`、`material.mtl` 和四张 PBR 贴图；`ObjCharacterModel.tsx` 显式绑定 PBR 贴图并按席位校准根节点。8 个高模原始 OBJ 约 75 万顶点、150 万三角面，运行版使用 `scripts/optimize-obj.mjs` 保留 UV、聚合位置顶点并减少退化面，避免九个高模同时解析时阻塞首屏。
+`models/roles/` 保存本次新增的 9 个角色运行资产：审判长、书记员、中方代理律师、外方代理律师、外方企业代表、外籍被告人、法庭口译员、公诉人、外籍事实证人。每个角色目录包含降面后的 `model-optimized.obj`、`material.mtl` 和四张 PBR 贴图；`ObjCharacterModel.tsx` 显式绑定 PBR 贴图并按席位校准根节点。运行版使用 `scripts/optimize-obj.mjs` 保留 UV、聚合位置顶点并减少退化面，避免九个高模同时解析时阻塞首屏。
 
 角色模型按席位逐个进入渲染树；等待后续模型解析时先显示程序化 3D 回退，因此页面不会因为某个大 OBJ 尚未完成解析而出现空 Canvas。
 
