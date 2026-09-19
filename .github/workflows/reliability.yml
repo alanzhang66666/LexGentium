@@ -55,6 +55,8 @@ jobs:
           tests/test_civil_identity.py
           tests/test_session_links.py
           tests/test_conversation_stream.py
+          tests/test_game_score_degraded.py
+          tests/test_session_persist.py
           tests/test_research_runtime.py
           tests/test_visibility_allowlists.py
           tests/test_research_eval_export.py

@@ -164,11 +164,14 @@ class NashEquilibriumTracker:
         score: Dict[str, Any],
     ):
         """记录一轮博弈结果并更新收益矩阵。"""
+        if not isinstance(score, dict) or score.get("degraded") is True:
+            logger.info("Skip degraded game score for %s/%s", plaintiff_strategy, defendant_strategy)
+            return False
         i = STRATEGY_INDEX.get(plaintiff_strategy)
         j = STRATEGY_INDEX.get(defendant_strategy)
         if i is None or j is None:
             logger.warning(f"Unknown strategy pair: {plaintiff_strategy}/{defendant_strategy}")
-            return
+            return False
 
         p_pay, d_pay = _compute_payoff(score)
         n = self._counts[i][j]
@@ -183,6 +186,7 @@ class NashEquilibriumTracker:
             "plaintiff_payoff": round(p_pay, 4),
             "defendant_payoff": round(d_pay, 4),
         })
+        return True
 
     def best_response(self, player: str, opponent_strategy: str) -> str:
         """给定对手策略，返回玩家的纯策略最佳响应。"""
