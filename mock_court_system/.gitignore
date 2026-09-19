@@ -26,3 +26,9 @@ public/court3d/models/*.glb
 public/court3d/models/*.gltf
 public/court3d/models/*.vrm
 public/court3d/models/*.bin
+data/evaluation_inputs/
+data/operations.sqlite3*
+data/*.db*
+data/evidence/
+test-results/
+.kiro-validate-*.cmd

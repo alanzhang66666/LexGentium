@@ -36,6 +36,23 @@ def is_degraded_json(result: Any) -> bool:
 
 
 @dataclass
+class LLMCallContext:
+    """一次 LLM 调用的关联/身份上下文（Req 9.7–9.11）。
+
+    记录全部非秘密关联身份；绝不包含 raw prompt 或 Secret。
+    """
+
+    purpose: str = "chat"
+    tier: str = "fast"
+    operation_id: Optional[str] = None
+    request_id: Optional[str] = None
+    session_id: Optional[str] = None
+    configuration_identity: Optional[str] = None
+    prompt_version: Optional[str] = None
+    deadline: Optional[float] = None  # time.monotonic() 绝对截止时间
+
+
+@dataclass
 class LLMCallRecord:
     purpose: str
     model: str
@@ -43,6 +60,16 @@ class LLMCallRecord:
     tokens: Optional[int]
     tier: str
     cached: bool = False
+    operation_id: Optional[str] = None
+    request_id: Optional[str] = None
+    configuration_identity: Optional[str] = None
+    prompt_version: Optional[str] = None
+    degraded: bool = False
+    replayed: bool = False
+
+
+class LLMDeadlineExceeded(RuntimeError):
+    """响应到达时已越过绝对 deadline：不得再作为有效结果 commit。"""
 
 
 def is_retryable_error(e):
@@ -135,6 +162,9 @@ class LLMClient:
         self._stream_local = threading.local()
         self._metrics: List[LLMCallRecord] = []
         self._metrics_lock = threading.Lock()
+        # operation_id → committed 结果：同 Operation 重试直接回放，不再发起 provider 请求
+        self._committed: Dict[str, Any] = {}
+        self._committed_lock = threading.Lock()
         self._cache_enabled = os.getenv("LLM_CACHE", "1") != "0"
         self._cache_path = cache_path or os.path.join("data", "llm_cache.sqlite3")
         self._cache_lock = threading.Lock()
@@ -222,13 +252,111 @@ class LLMClient:
             "by_purpose": {p: sum(1 for r in rows if r.purpose == p) for p in {r.purpose for r in rows}},
         }
 
-    def _record_call(self, purpose: str, tier: str, model: str, latency_ms: float, tokens=None, cached=False) -> None:
-        rec = LLMCallRecord(purpose=purpose, model=model, latency_ms=latency_ms, tokens=tokens, tier=tier, cached=cached)
+    def _record_call(
+        self,
+        purpose: str,
+        tier: str,
+        model: str,
+        latency_ms: float,
+        tokens=None,
+        cached: bool = False,
+        ctx: Optional[LLMCallContext] = None,
+        degraded: bool = False,
+        replayed: bool = False,
+    ) -> None:
+        rec = LLMCallRecord(
+            purpose=purpose,
+            model=model,
+            latency_ms=latency_ms,
+            tokens=tokens,
+            tier=tier,
+            cached=cached,
+            operation_id=ctx.operation_id if ctx else None,
+            request_id=ctx.request_id if ctx else None,
+            configuration_identity=(
+                ctx.configuration_identity if ctx and ctx.configuration_identity else self.configuration_identity
+            ),
+            prompt_version=(ctx.prompt_version if ctx and ctx.prompt_version else self._prompt_version(purpose)),
+            degraded=degraded,
+            replayed=replayed,
+        )
         with self._metrics_lock:
             self._metrics.append(rec)
 
-    def _cache_key(self, model: str, messages: List[Dict[str, str]], temperature: float) -> str:
-        payload: Dict[str, Any] = {"m": model, "msg": messages, "t": temperature}
+    def record_external_call(
+        self,
+        purpose: str,
+        tier: str,
+        latency_ms: float,
+        ctx: Optional[LLMCallContext] = None,
+        degraded: bool = False,
+    ) -> None:
+        """LangChain chain 等绕过 chat/chat_json 的调用手工记账。"""
+        self._record_call(
+            purpose,
+            tier,
+            self.model_for_tier(tier),
+            latency_ms,
+            ctx=ctx,
+            degraded=degraded,
+        )
+
+    @staticmethod
+    def _prompt_version(purpose: str) -> str:
+        from core.prompt_registry import prompt_version
+
+        return prompt_version(purpose)
+
+    @property
+    def configuration_identity(self) -> str:
+        """LLM 配置身份 digest（模型/端点/预算），不含密钥。"""
+        blob = json.dumps(
+            {
+                "model": self.model,
+                "fast_model": self.fast_model,
+                "base_url": self.base_url,
+                "max_tokens": self.max_tokens,
+                "fast_max_tokens": self.fast_max_tokens,
+                "provider": self.provider,
+            },
+            sort_keys=True,
+        )
+        return "llmcfg_" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:24]
+
+    def _past_deadline(self, ctx: Optional[LLMCallContext]) -> bool:
+        return ctx is not None and ctx.deadline is not None and time.monotonic() > ctx.deadline
+
+    def _committed_get(self, ctx: Optional[LLMCallContext]) -> Any:
+        if ctx is None or not ctx.operation_id:
+            return None, False
+        with self._committed_lock:
+            if ctx.operation_id in self._committed:
+                return self._committed[ctx.operation_id], True
+        return None, False
+
+    def _committed_set(self, ctx: Optional[LLMCallContext], result: Any) -> None:
+        if ctx is None or not ctx.operation_id:
+            return
+        with self._committed_lock:
+            self._committed.setdefault(ctx.operation_id, result)
+
+    def _cache_key(
+        self,
+        model: str,
+        messages: List[Dict[str, str]],
+        temperature: float,
+        purpose: str = "",
+        ctx: Optional[LLMCallContext] = None,
+    ) -> str:
+        """缓存身份：purpose/model/config/prompt-version/确定性输入 digest 全等才命中。"""
+        payload: Dict[str, Any] = {
+            "m": model,
+            "msg": messages,
+            "t": temperature,
+            "p": purpose,
+            "cfg": (ctx.configuration_identity if ctx and ctx.configuration_identity else self.configuration_identity),
+            "pv": (ctx.prompt_version if ctx and ctx.prompt_version else self._prompt_version(purpose)),
+        }
         try:
             from core.research.runtime import research_cache_namespace
 
@@ -300,6 +428,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         purpose: str = "chat",
         tier: str = "strong",
+        context: Optional[LLMCallContext] = None,
         **kwargs
     ) -> str:
         """
@@ -308,6 +437,7 @@ class LLMClient:
         Args:
             messages: 消息列表，格式 [{"role": "user", "content": "..."}]
             temperature: 温度参数
+            context: 关联身份/deadline 上下文（不含 raw prompt）
             **kwargs: 其他参数
         
         Returns:
@@ -315,9 +445,18 @@ class LLMClient:
         """
         model_name = self.model_for_tier(tier)
         t0 = time.perf_counter()
+        committed, hit_committed = self._committed_get(context)
+        if hit_committed:
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                ctx=context, replayed=True,
+            )
+            return committed
         cached = False
         if self._maybe_cache(purpose, temperature):
-            hit = self._cache_get(self._cache_key(model_name, messages, temperature or self.temperature))
+            hit = self._cache_get(
+                self._cache_key(model_name, messages, temperature or self.temperature, purpose, context)
+            )
             if hit is not None:
                 cached = True
                 text = hit
@@ -334,8 +473,25 @@ class LLMClient:
             else:
                 text = self._chat_with_api(messages, temperature)
             if self._maybe_cache(purpose, temperature) and text:
-                self._cache_set(self._cache_key(model_name, messages, temperature or self.temperature), text)
-        self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=cached)
+                self._cache_set(
+                    self._cache_key(model_name, messages, temperature or self.temperature, purpose, context),
+                    text,
+                )
+        # 绝对 deadline：迟到响应不可 commit
+        if self._past_deadline(context):
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                tokens=None, cached=cached, ctx=context, degraded=True,
+            )
+            raise LLMDeadlineExceeded("llm response arrived past absolute deadline")
+        # 空白响应不伪成功：标 degraded
+        degraded = not isinstance(text, str) or not text.strip()
+        self._record_call(
+            purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+            cached=cached, ctx=context, degraded=degraded,
+        )
+        if not degraded:
+            self._committed_set(context, text)
         return text
 
     # ---------- 流式支持 ----------
@@ -429,6 +585,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         purpose: str = "json",
         tier: str = "fast",
+        context: Optional[LLMCallContext] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -438,14 +595,26 @@ class LLMClient:
         """
         model_name = self.model_for_tier(tier)
         t0 = time.perf_counter()
+        committed, hit_committed = self._committed_get(context)
+        if hit_committed:
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                ctx=context, replayed=True,
+            )
+            return committed
         cached = False
         if self._maybe_cache(purpose, temperature):
-            hit = self._cache_get(self._cache_key(model_name, messages, temperature or self.temperature))
+            hit = self._cache_get(
+                self._cache_key(model_name, messages, temperature or self.temperature, purpose, context)
+            )
             if hit is not None:
                 cached = True
                 try:
                     parsed = json.loads(hit)
-                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=True)
+                    self._record_call(
+                        purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                        cached=True, ctx=context, degraded=is_degraded_json(parsed),
+                    )
                     return parsed
                 except Exception:
                     cached = False
@@ -454,7 +623,27 @@ class LLMClient:
         # Mock mode: return simple heuristic JSON based on prompt keywords
         if self.mock_mode:
             def _mock_done(obj: Dict[str, Any]) -> Dict[str, Any]:
-                self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                if self._past_deadline(context):
+                    self._record_call(
+                        purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                        cached=False, ctx=context, degraded=True,
+                    )
+                    return degraded_json("late_response")
+                degraded = is_degraded_json(obj)
+                if not degraded and self._maybe_cache(purpose, temperature):
+                    self._cache_set(
+                        self._cache_key(
+                            model_name, messages, temperature or self.temperature,
+                            purpose, context,
+                        ),
+                        json.dumps(obj, ensure_ascii=False),
+                    )
+                self._record_call(
+                    purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                    cached=False, ctx=context, degraded=degraded,
+                )
+                if not degraded:
+                    self._committed_set(context, obj)
                 return obj
 
             content = messages[-1].get("content", "") if messages else ""
@@ -542,10 +731,16 @@ class LLMClient:
                     "next_instruction": None,
                 })
             # Default mock: no keyword match — caller must treat as degraded, not real scores
-            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                cached=False, ctx=context, degraded=True,
+            )
             return degraded_json("mock_empty")
         if not self.api_key:
-            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                cached=False, ctx=context, degraded=True,
+            )
             return degraded_json("missing_api_key")
 
         url = f"{self.base_url}/chat/completions"
@@ -566,9 +761,25 @@ class LLMClient:
 
         try:
             parsed = self._send_json_request(url, headers, payload)
+            # 绝对 deadline：迟到响应不 commit，按降级处理
+            if self._past_deadline(context):
+                self._record_call(
+                    purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                    cached=cached, ctx=context, degraded=True,
+                )
+                return degraded_json("late_response")
             if self._maybe_cache(purpose, temperature):
-                self._cache_set(self._cache_key(model_name, messages, temperature or self.temperature), json.dumps(parsed, ensure_ascii=False))
-            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=cached)
+                self._cache_set(
+                    self._cache_key(model_name, messages, temperature or self.temperature, purpose, context),
+                    json.dumps(parsed, ensure_ascii=False),
+                )
+            degraded = is_degraded_json(parsed)
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                cached=cached, ctx=context, degraded=degraded,
+            )
+            if not degraded:
+                self._committed_set(context, parsed)
             return parsed
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 400:
@@ -577,19 +788,31 @@ class LLMClient:
                     del payload["response_format"]
                 try:
                     parsed = self._send_json_request(url, headers, payload)
-                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                    self._record_call(
+                        purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                        cached=False, ctx=context, degraded=is_degraded_json(parsed),
+                    )
                     return parsed
                 except Exception as retry_e:
                     print(f"[ERROR] 重试也失败: {retry_e}")
-                    self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                    self._record_call(
+                        purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                        cached=False, ctx=context, degraded=True,
+                    )
                     return degraded_json("json_mode_retry_failed")
             else:
                 print(f"[ERROR] HTTP 错误: {e.response.status_code}, {e.response.text}")
-                self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+                self._record_call(
+                    purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                    cached=False, ctx=context, degraded=True,
+                )
                 return degraded_json("http_error")
         except Exception as e:
             print(f"[ERROR] 未知错误: {e}")
-            self._record_call(purpose, tier, model_name, (time.perf_counter() - t0) * 1000, cached=False)
+            self._record_call(
+                purpose, tier, model_name, (time.perf_counter() - t0) * 1000,
+                cached=False, ctx=context, degraded=True,
+            )
             return degraded_json("request_error")
 
     @retry(
