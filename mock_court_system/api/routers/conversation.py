@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
+from api.services.conversation import _with_session_id
 from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
@@ -26,26 +27,26 @@ router = APIRouter()
 
 @router.post("/conversation/start", response_model=ConversationStartResponse)
 async def start_conversation(req: ConversationStartRequest):
+    from api.services.conversation import start_session
     try:
-        session_id = state.generate_session_id()
+        values = req.model_dump(by_alias=True)
         scenario = req.scenario.upper()
-        
-        if scenario not in ["CD", "DD", "CI"]:
-            raise HTTPException(status_code=400, detail=f"Invalid scenario: {scenario}")
-
-        record = state.conversation_store.create(
-            session_id=session_id,
+        result = start_session(
             scenario=scenario,
             case_id=req.case_id,
-            input_json=req.input_json or {},
+            input_json=req.input_json,
+            dataset_id=req.dataset_id,
+            cluster_id=req.cluster_id,
+            pack_version=req.pack_version,
+            derived_from=req.derived_from,
+            visible_materials=req.visible_materials,
+            experiment_conditions=req.experiment_conditions,
+            model_config=values.get("model_config"),
+            visibility_grants=req.visibility_grants,
         )
-        
-        return ConversationStartResponse(
-            session_id=session_id,
-            scenario=scenario,
-            case_id=req.case_id,
-            created_at=record.created_at
-        )
+        return ConversationStartResponse(**result)
+    except HTTPException:
+        raise
     except Exception as e:
         state.eval_logger.error(f"启动会话失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"启动会话失败: {str(e)}")
@@ -141,7 +142,7 @@ async def send_message(session_id: str, req: ConversationMessageRequest):
             scenario=scenario,
             case_id=case_id,
             dialog_history=dialog_history,
-            input_json=input_json,
+            input_json=_with_session_id(record, user_role),
             reasoning_state=reasoning_state,
             ci_agent=session_ci,
         )
@@ -188,17 +189,10 @@ async def send_message(session_id: str, req: ConversationMessageRequest):
 @router.get("/conversation/list")
 async def list_conversations(limit: int = 50, offset: int = 0):
     try:
-        # 清理过期会话
-        state.cleanup_old_sessions()
-
-        result, total = state.conversation_store.list(limit=limit, offset=offset)
-
-        return {
-            "sessions": result,
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        }
+        from api.services.conversation import list_sessions
+        return list_sessions(limit=limit, offset=offset)
+    except HTTPException:
+        raise
     except Exception as e:
         state.eval_logger.error(f"获取会话列表失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取会话列表失败: {str(e)}")
@@ -207,22 +201,8 @@ async def list_conversations(limit: int = 50, offset: int = 0):
 @router.get("/conversation/{session_id}")
 async def get_conversation(session_id: str):
     try:
-        record = state.conversation_store.get(session_id)
-        if not record:
-            raise HTTPException(status_code=404, detail="error")
-
-        meta = state._infer_conversation_meta(record.scenario, list(record.dialog_history))
-
-        return {
-            "session_id": session_id,
-            "scenario": record.scenario,
-            "case_id": record.case_id,
-            "created_at": record.created_at,
-            "updated_at": record.updated_at,
-            "message_count": record.message_count,
-            "dialog_history": list(record.dialog_history),
-            **meta,
-        }
+        from api.services.conversation import get_session
+        return get_session(session_id)
     except HTTPException:
         raise
     except Exception as e:
@@ -270,7 +250,7 @@ async def auto_advance_conversation(session_id: str, req: AutoAdvanceRequest):
                 scenario=scenario,
                 case_id=case_id,
                 dialog_history=dialog_history,
-                input_json=input_json,
+                input_json=_with_session_id(record, dialog_history[-1].get("role") if dialog_history else None),
             )
 
             turn = len(dialog_history)
@@ -295,7 +275,7 @@ async def auto_advance_conversation(session_id: str, req: AutoAdvanceRequest):
                 state.sim_agent.simulate_role,
                 sim_role,
                 dialog_history,
-                input_json,
+                _with_session_id(record, sim_role),
                 scenario,
             )
 
@@ -389,6 +369,8 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
         "message": req.message,
     })
 
+    session_ci = state.new_session_ci_agent() if scenario == "CI" else None
+
     async def event_stream():
         import queue as _queue
         import threading as _threading
@@ -402,14 +384,13 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
         def _run():
             try:
                 state.llm_client.set_stream_hook(_hook)
-                session_ci = state.new_session_ci_agent() if scenario == "CI" else None
                 try:
                     rs = state.ci_reasoning_state_from_record(record)
                     role, text, finished = state.run_agent_turn(
                         scenario=scenario,
                         case_id=case_id,
                         dialog_history=dialog_history,
-                        input_json=input_json,
+                        input_json=_with_session_id(record, user_role),
                         reasoning_state=rs,
                         ci_agent=session_ci,
                     )

@@ -7,9 +7,10 @@ import { EventTimeline } from "./EventTimeline"
 import { Hearing3DScene } from "./Hearing3DScene"
 import { HearingHUD } from "./HearingHUD"
 import { MaterialPanel } from "./MaterialPanel"
-import { loadSampleEvents, createPlaybackStore } from "./playback-store"
+import { loadSampleEvents, createPlaybackStore, appendAndConsume } from "./playback-store"
 import { createInitialSceneState } from "./scene-reducer"
-import { conversationMessageToEvent, conversationToHearingEvents, type ConversationPayload } from "./backend-event-adapter"
+import { conversationFinishedToEvent, conversationMessageToEvent, conversationToHearingEvents, type ConversationPayload } from "./backend-event-adapter"
+import { streamSessionMessage } from "@/lib/api/conversation"
 import type { HearingEvent, SceneState } from "./contracts"
 import { writeLastSessionId } from "@/lib/session/last-session"
 
@@ -74,52 +75,56 @@ export function Hearing3DExperience() {
     setStreamingText("")
     setError(null)
     try {
-      const response = await fetch(`/api/conversation/${encodeURIComponent(sessionId)}/message/stream`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: inputMessage, role: "Client" }),
-      })
-      if (!response.ok || !response.body) throw new Error(`实时会话请求失败（${response.status}）`)
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder("utf-8")
-      let buffer = ""
       let text = ""
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const chunks = buffer.split("\\n\\n")
-        buffer = chunks.pop() ?? ""
-        for (const chunk of chunks) {
-          const line = chunk.split("\\n").find((item) => item.startsWith("data:"))
-          if (!line) continue
-          const event = JSON.parse(line.slice(5).trim()) as Record<string, unknown>
-          if (event.type === "delta") {
-            text += String(event.text ?? "")
-            setStreamingText(text)
-          }
-          if (event.type === "final") {
-            const finalText = String((event.response as Record<string, unknown> | undefined)?.message ?? text)
-            const payload: ConversationPayload = {
-              session_id: sessionId, scenario: "CI", case_id: sessionId,
-              dialog_history: [], is_finished: Boolean(event.is_finished),
-            }
-            const liveEvent = conversationMessageToEvent(payload, finalText, "Judge", storeRef.current.getLatestSeq() + 1, `${sessionId}-live-${Date.now()}`, (event.reasoning_meta as Record<string, unknown> | null) ?? null)
-            storeRef.current.append([liveEvent])
-            storeRef.current.consumeNext()
-            setState(storeRef.current.getState())
-            setEvents((previous) => [...previous, liveEvent])
-            setInputMessage("")
-            setStreamingText("")
-          }
+      let finalized = false
+      await streamSessionMessage(sessionId, { message: inputMessage, role: "Client" }, (event) => {
+        if (event.type === "delta") {
+          text += String(event.text ?? "")
+          setStreamingText(text)
+          return
         }
-      }
+        if (event.type === "finish") {
+          if (!finalized) {
+            finalized = true
+            const payload: ConversationPayload = { session_id: sessionId, scenario: "CI", case_id: sessionId, dialog_history: [], is_finished: true }
+            const finishedEvent = conversationFinishedToEvent(payload, storeRef.current.getLatestSeq() + 1)
+            appendAndConsume(storeRef.current, [finishedEvent])
+            setState(storeRef.current.getState())
+            setEvents((previous) => [...previous, finishedEvent])
+          }
+          return
+        }
+        if (event.type === "error" || (event.type === "final" && event.error)) {
+          throw new Error(String(event.error ?? "实时生成失败"))
+        }
+        if (event.type !== "final" || finalized) return
+        finalized = true
+        const response = event.response && typeof event.response === "object"
+          ? event.response as Record<string, unknown>
+          : {}
+        const finalText = String(response.message ?? text)
+        const role = String(response.role ?? "Judge")
+        const payload: ConversationPayload = {
+          session_id: sessionId, scenario: "CI", case_id: sessionId,
+          dialog_history: [], is_finished: Boolean(event.is_finished),
+        }
+        const nextSeq = storeRef.current.getLatestSeq() + 1
+        const liveEvent = conversationMessageToEvent(payload, finalText, role, nextSeq, `${sessionId}-live-${Date.now()}`, (event.reasoning_meta as Record<string, unknown> | null) ?? null)
+        const appended = [liveEvent]
+        if (event.is_finished) appended.push(conversationFinishedToEvent(payload, nextSeq + 1))
+        appendAndConsume(storeRef.current, appended)
+        setState(storeRef.current.getState())
+        setEvents((previous) => [...previous, ...appended])
+        setInputMessage("")
+        setStreamingText("")
+      })
+      if (!finalized) throw new Error("实时会话已断开，未收到完成事件")
     } catch (err) {
       setError(err instanceof Error ? err.message : "实时发送失败")
     } finally {
       setIsStreaming(false)
     }
-  }, [inputMessage, isStreaming, refresh, sessionId])
+  }, [inputMessage, isStreaming, sessionId])
 
   return (
     <main className="flex min-h-0 flex-1 flex-col bg-background px-4 py-5 text-foreground md:px-6">

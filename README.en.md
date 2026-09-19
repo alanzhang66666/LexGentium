@@ -18,7 +18,7 @@ One hearing = one `session_id`. Three steps share that session:
 
 ## Run it in 5 minutes
 
-You need **Python 3.9+**, **Node.js 20+**, and an OpenAI-compatible LLM key.
+You need **Python 3.10+**, **Node.js 20+**, and an OpenAI-compatible LLM key.
 
 Two terminals, both inside `mock_court_system`:
 
@@ -156,7 +156,7 @@ Paths are relative to `mock_court_system/`.
 | Evaluation tasks | `data/app_state.sqlite3` |
 | Games / mediation | `data/game_sessions.sqlite3`, `data/mediation_sessions.sqlite3` |
 | Statutes + vectors | `database/legal_articles.db` and the `.index` beside it |
-| Case picker | `data/dataset_1000/` (in-repo: metadata + 100 summaries only) |
+| Case picker | `data/dataset_1000/` (train / val / test: 600 / 200 / 200 cases with corresponding GT) |
 
 **Do not commit** `.env` or SQLite. Rebuild the full 1000-case set from ClaimGen-CN with `scripts/build_dataset.py`.
 

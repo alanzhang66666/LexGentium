@@ -97,7 +97,7 @@ mock_court_system/
 ├── api/services/               # Sessions, games, eval, SSE, links
 ├── core/                       # Runtimes, game, mediation; lab/ offline/ store/; Phase 0/1 at root
 ├── evaluation/                 # LIVE lib/ + lab/ paper runs. Old numbers in repo 归档/评测化石/
-├── data/                       # Runtime SQLite; dataset_1000 = meta + 100 summaries
+├── data/                       # Runtime SQLite; dataset_1000 = metadata + 600/200/200 cases and GT
 ├── database/                   # Statute SQLite + FAISS
 ├── public/hearing-3d/          # Live watch contracts + sample events
 ├── public/court3d/             # Legacy capsule casts; pages redirect
@@ -178,7 +178,7 @@ Web contrast path is **`POST /evaluate`**. Aliases: `/api/evaluation/status|resu
 
 `input_json.links`: `task_id` / `game_id` / `report_id`. Standalone `med_*` is not in those keys. Frontend current hearing: `lexgentium.lastSessionId`.
 
-`data/dataset_1000/` in-repo is `dataset_meta.json` plus a 100-case three-cause summary — **no** full train/val/test jsonl. Case picking uses `GET /reference/cases`. Rebuild 1000 rows from ClaimGen-CN with `scripts/build_dataset.py`.
+`data/dataset_1000/` includes `dataset_meta.json`, a 100-case summary, and train/val/test JSONL with 600/200/200 cases and matching GT. Case picking uses `GET /reference/cases`. Rebuild 1000 rows from ClaimGen-CN with `scripts/build_dataset.py`.
 
 ## Flags
 

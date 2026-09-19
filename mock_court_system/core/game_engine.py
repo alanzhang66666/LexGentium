@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 import random
@@ -20,7 +21,8 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, List, Optional, Callable
 
 from core import LLMClient
-from core.case_orchestrator import FullCaseOrchestrator, FullCaseResult
+from core.case_orchestrator import FullCaseOrchestrator, FullCaseResult, StageResult
+from core.llm_client import is_degraded_json
 from core.nash_bargaining import NashBargainingEngine
 from core.nash_equilibrium import (
     NashEquilibriumTracker,
@@ -39,9 +41,75 @@ class GameScore:
     reasoning_quality: float = 0.0
     evidence_strength: float = 0.0
     details: Dict[str, Any] = field(default_factory=dict)
+    degraded: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    @classmethod
+    def offline(cls, reason: str = "llm_unavailable") -> "GameScore":
+        """Return an explicit non-score that cannot be mistaken for real output."""
+        return cls(details={"reason": reason or "llm_unavailable"}, degraded=True)
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "GameScore":
+        """Restore current and legacy score payloads with bounded numeric fields."""
+        if not isinstance(payload, dict):
+            return cls.offline("invalid_score_snapshot")
+        try:
+            values = {
+                key: float(payload[key]) if not isinstance(payload[key], bool) else float("nan")
+                for key in (
+                    "plaintiff_win_rate",
+                    "defendant_win_rate",
+                    "reasoning_quality",
+                    "evidence_strength",
+                )
+            }
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return cls.offline("invalid_score_snapshot")
+        if any(not math.isfinite(value) or value < 0.0 or value > 1.0 for value in values.values()):
+            return cls.offline("invalid_score_snapshot")
+        details = payload.get("details")
+        if not isinstance(details, dict):
+            details = {}
+        degraded = bool(payload.get("degraded", False))
+        if degraded and not details.get("reason"):
+            details = {**details, "reason": "degraded_score"}
+        return cls(**values, details=dict(details), degraded=degraded)
+
+
+def _stage_result_from_dict(payload: Any) -> Optional[StageResult]:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        raise ValueError("invalid stage result in game snapshot")
+    history = payload.get("dialog_history")
+    if not isinstance(history, list):
+        history = []
+    extracted = payload.get("extracted_info")
+    metadata = payload.get("metadata")
+    return StageResult(
+        scenario=str(payload.get("scenario") or ""),
+        dialog_history=[dict(item) for item in history if isinstance(item, dict)],
+        final_document=str(payload.get("final_document") or ""),
+        extracted_info=dict(extracted) if isinstance(extracted, dict) else {},
+        metadata=dict(metadata) if isinstance(metadata, dict) else {},
+    )
+
+
+def _case_result_from_dict(payload: Any) -> FullCaseResult:
+    if not isinstance(payload, dict):
+        raise ValueError("invalid case result in game snapshot")
+    judgment_score = payload.get("judgment_score")
+    return FullCaseResult(
+        case_id=str(payload.get("case_id") or ""),
+        cd_result=_stage_result_from_dict(payload.get("cd_result")),
+        dd_result=_stage_result_from_dict(payload.get("dd_result")),
+        ci_result=_stage_result_from_dict(payload.get("ci_result")),
+        judgment_score=(dict(judgment_score) if isinstance(judgment_score, dict) else None),
+        elapsed_seconds=float(payload.get("elapsed_seconds") or 0.0),
+    )
 
 
 @dataclass
@@ -66,6 +134,26 @@ class GameRound:
             "equilibrium_snapshot": self.equilibrium_snapshot,
             "strategy_switch_log": self.strategy_switch_log,
         }
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "GameRound":
+        if not isinstance(payload, dict):
+            raise ValueError("invalid round in game snapshot")
+        equilibrium = payload.get("equilibrium_snapshot")
+        switches = payload.get("strategy_switch_log")
+        return cls(
+            round_index=int(payload.get("round_index", 0)),
+            cd_strategy=payload.get("cd_strategy"),
+            dd_strategy=payload.get("dd_strategy"),
+            case_result=_case_result_from_dict(payload.get("case_result")),
+            score=GameScore.from_dict(payload.get("score")),
+            elapsed_seconds=float(payload.get("elapsed_seconds") or 0.0),
+            equilibrium_snapshot=(dict(equilibrium) if isinstance(equilibrium, dict) else None),
+            strategy_switch_log=(
+                [dict(item) for item in switches if isinstance(item, dict)]
+                if isinstance(switches, list) else None
+            ),
+        )
 
 
 @dataclass
@@ -283,6 +371,81 @@ class GameEngine:
         """获取策略演化历史。"""
         return list(self._evolution_log)
 
+    def export_snapshot(self) -> Dict[str, Any]:
+        """Serialize the state required to continue a game after process restart."""
+        return {
+            "snapshot_version": 1,
+            "strategies": {
+                "plaintiff": {
+                    "type": self._plaintiff_strategy_type,
+                    "instruction": self._plaintiff_strategy_text,
+                },
+                "defendant": {
+                    "type": self._defendant_strategy_type,
+                    "instruction": self._defendant_strategy_text,
+                },
+            },
+            "dispute": {
+                "cause": self._dispute_cause,
+                "detail": self._dispute_cause_detail,
+            },
+            "ess_seed": self._ess_seed,
+            "evolution_log": [dict(item) for item in self._evolution_log],
+            "nash_tracker": self.nash_tracker.export_state(),
+            "rounds": [item.to_dict() for item in self.strategy_history],
+        }
+
+    def import_snapshot(self, snapshot: Dict[str, Any]) -> None:
+        """Restore a v1 snapshot; accept the old rounds-only shape for compatibility."""
+        if not isinstance(snapshot, dict):
+            raise ValueError("game snapshot must be an object")
+        version = snapshot.get("snapshot_version")
+        if version not in (None, 1):
+            raise ValueError(f"unsupported game snapshot version: {version}")
+
+        strategies = snapshot.get("strategies")
+        if isinstance(strategies, dict):
+            for party in ("plaintiff", "defendant"):
+                entry = strategies.get(party)
+                if not isinstance(entry, dict):
+                    continue
+                strategy_type = entry.get("type")
+                if strategy_type not in STRATEGY_NAMES:
+                    raise ValueError(f"invalid {party} strategy in game snapshot")
+                instruction = entry.get("instruction")
+                if instruction is not None and not isinstance(instruction, str):
+                    raise ValueError(f"invalid {party} instruction in game snapshot")
+                if party == "plaintiff":
+                    self._plaintiff_strategy_type = strategy_type
+                    self._plaintiff_strategy_text = instruction
+                else:
+                    self._defendant_strategy_type = strategy_type
+                    self._defendant_strategy_text = instruction
+
+        dispute = snapshot.get("dispute")
+        if isinstance(dispute, dict):
+            self._dispute_cause = dispute.get("cause")
+            self._dispute_cause_detail = dispute.get("detail")
+
+        seed = snapshot.get("ess_seed")
+        if seed is not None:
+            self._ess_seed = int(seed)
+        evolution = snapshot.get("evolution_log")
+        if evolution is not None:
+            if not isinstance(evolution, list):
+                raise ValueError("invalid evolution log in game snapshot")
+            self._evolution_log = [dict(item) for item in evolution if isinstance(item, dict)]
+        tracker = snapshot.get("nash_tracker")
+        if tracker is not None:
+            if not isinstance(tracker, dict):
+                raise ValueError("invalid Nash state in game snapshot")
+            self.nash_tracker.import_state(tracker)
+        rounds = snapshot.get("rounds", [])
+        if not isinstance(rounds, list):
+            raise ValueError("invalid rounds in game snapshot")
+        self.strategy_history = [GameRound.from_dict(item) for item in rounds]
+        self._nbs_engine.refresh_spne_disagreement_point()
+
     def get_nash_bargaining_engine(self) -> NashBargainingEngine:
         """供调解 API 等外部模块读取与当前收益矩阵一致的 NBS 引擎。"""
         return self._nbs_engine
@@ -340,8 +503,8 @@ class GameEngine:
         case_info: Optional[Dict[str, Any]] = None,
     ) -> GameScore:
         """从判决书中提取博弈评分；若提供 case_info 则与诉请覆盖规则分混合。"""
-        if not ci_result or not ci_result.final_document:
-            return GameScore()
+        if not ci_result or not ci_result.final_document or not ci_result.final_document.strip():
+            return GameScore.offline("missing_judgment")
 
         judgment_text = ci_result.final_document[:3000]
 
@@ -354,15 +517,28 @@ class GameEngine:
             )
         except Exception as e:
             logger.warning(f"评分 LLM 调用失败: {e}")
-            result = {}
+            return GameScore.offline("scoring_request_failed")
 
-        if not isinstance(result, dict):
-            result = {}
+        if is_degraded_json(result):
+            reason = result.get("reason") if isinstance(result, dict) else None
+            return GameScore.offline(str(reason or "invalid_score_payload"))
 
-        p_win = float(result.get("plaintiff_win_rate", 0.5))
-        d_win = float(result.get("defendant_win_rate", 0.5))
-        q = float(result.get("reasoning_quality", 0.5))
-        e = float(result.get("evidence_strength", 0.5))
+        required = (
+            "plaintiff_win_rate",
+            "defendant_win_rate",
+            "reasoning_quality",
+            "evidence_strength",
+        )
+        if any(key not in result for key in required):
+            return GameScore.offline("incomplete_score_payload")
+        if any(isinstance(result[key], bool) for key in required):
+            return GameScore.offline("invalid_score_payload")
+        try:
+            p_win, d_win, q, e = (float(result[key]) for key in required)
+        except (TypeError, ValueError, OverflowError):
+            return GameScore.offline("invalid_score_payload")
+        if any(not math.isfinite(value) or value < 0.0 or value > 1.0 for value in (p_win, d_win, q, e)):
+            return GameScore.offline("invalid_score_payload")
 
         align = None
         if case_info:
@@ -398,6 +574,8 @@ class GameEngine:
         method: str = "llm_reflection",
     ) -> str:
         """策略进化，支持多种方法。"""
+        if last_round.score.degraded:
+            return self._plaintiff_strategy_type if party == "plaintiff" else self._defendant_strategy_type
         if method == "best_response":
             return self._evolve_best_response(party)
         elif method == "fictitious_play":
@@ -640,6 +818,9 @@ class GameEngine:
         parts = [f"上一轮博弈（第{last.round_index + 1}轮）结果摘要："]
         parts.append(f"原告策略: {_STRATEGY_LABELS.get(last.cd_strategy, last.cd_strategy)}")
         parts.append(f"被告策略: {_STRATEGY_LABELS.get(last.dd_strategy, last.dd_strategy)}")
+        if last.score.degraded:
+            parts.append("上一轮评分不可用，不作为收益或策略调整依据。")
+            return "\n".join(parts)
         parts.append(f"原告胜率: {last.score.plaintiff_win_rate:.0%}")
         parts.append(f"被告胜率: {last.score.defendant_win_rate:.0%}")
         analysis = last.score.details.get("analysis", "")
@@ -675,17 +856,18 @@ class GameEngine:
         score = self.evaluate_judgment(case_result.ci_result, case_info)
         case_result.judgment_score = score.to_dict()
 
-        # 更新纳什均衡追踪器
-        self.nash_tracker.record_round(
-            self._plaintiff_strategy_type,
-            self._defendant_strategy_type,
-            score.to_dict(),
-        )
+        # 只有真实评分可更新收益矩阵；降级结果仅供界面说明。
+        if not score.degraded:
+            self.nash_tracker.record_round(
+                self._plaintiff_strategy_type,
+                self._defendant_strategy_type,
+                score.to_dict(),
+            )
 
-        try:
-            self._nbs_engine.refresh_spne_disagreement_point()
-        except Exception as e:
-            logger.debug("SPNE 破裂点刷新跳过: %s", e)
+            try:
+                self._nbs_engine.refresh_spne_disagreement_point()
+            except Exception as e:
+                logger.debug("SPNE 破裂点刷新跳过: %s", e)
 
         eq_snapshot = self.nash_tracker.analyze(
             self._plaintiff_strategy_type,
@@ -741,12 +923,12 @@ class GameEngine:
 
             # 检查收敛
             conv = self.nash_tracker.compute_convergence()
-            if conv >= (1 - convergence_threshold) and i >= 1:
+            if not game_round.score.degraded and conv >= (1 - convergence_threshold) and i >= 1:
                 logger.info(f"策略已收敛（收敛率={conv:.2f}），提前终止")
                 break
 
             # 策略进化（最后一轮不需要进化）
-            if i < rounds - 1:
+            if i < rounds - 1 and not game_round.score.degraded:
                 self.evolve_both_strategies(game_round, method=evolution_method)
                 logger.info(
                     f"第 {i + 1} 轮策略进化完成 -> "

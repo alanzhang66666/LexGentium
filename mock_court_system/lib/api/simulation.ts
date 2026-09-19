@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api/http"
+import type { PackSummary } from "@/lib/research/packs"
 
 export function startFullSimulation(body: {
   case_info: Record<string, unknown>
@@ -37,7 +38,7 @@ export function getCaseFull(caseId: string, split?: string) {
 
 export function listResearchPacks(dataset?: string) {
   const query = dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""
-  return apiFetch<{ packs: Array<Record<string, unknown>>; total: number }>(
+  return apiFetch<{ packs: PackSummary[]; total: number }>(
     `/api/reference/research-packs${query}`,
   )
 }

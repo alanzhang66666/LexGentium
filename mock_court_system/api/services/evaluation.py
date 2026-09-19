@@ -10,6 +10,7 @@ run_id 绑定顺序：
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -32,8 +33,10 @@ from evaluation.run_evaluation import (
     EmptyEvaluationBodyError,
     EvaluationAttributionError,
     MissingReferenceError,
+    MissingFinalOutputError,
     WrongClusterOrCaseError,
 )
+from evaluation.bodies import dialog_text, final_document, prediction_document
 
 
 def resolve_evaluation_run_id(
@@ -85,32 +88,26 @@ def load_research_pack_for_eval(
 
 
 def _dialog_text(dialog_history: Optional[List[Dict[str, Any]]]) -> str:
-    parts: List[str] = []
-    for msg in dialog_history or []:
-        if not isinstance(msg, dict):
-            continue
-        text = msg.get("message") or msg.get("content") or msg.get("text") or ""
-        if str(text).strip():
-            parts.append(str(text).strip())
-    return "\n".join(parts)
+    return dialog_text(dialog_history)
 
 
 def has_evaluation_body(
     dialog_history: Optional[List[Dict[str, Any]]] = None,
     prediction: Optional[Dict[str, Any]] = None,
 ) -> bool:
-    if prediction:
-        for key in ("model_output", "generated_doc"):
-            if str(prediction.get(key) or "").strip():
-                return True
-        if _dialog_text(prediction.get("dialog_history")):
-            return True
-    return bool(_dialog_text(dialog_history))
+    return bool(prediction_document(prediction or {}) or final_document(dialog_history))
 
 
 def _require_session_body(record) -> None:
-    if not has_evaluation_body(record.dialog_history, None):
+    if not _dialog_text(record.dialog_history):
         raise EmptyEvaluationBodyError("evaluation body is empty")
+    if not _is_research_session(record) and not final_document(record.dialog_history):
+        raise MissingFinalOutputError("本场尚无已确认的最终文书，不能对用户发言或过程对话评分")
+
+
+def _is_research_session(record) -> bool:
+    research = _research_block(record.input_json)
+    return bool(research.get("dataset_id") or research.get("cluster_id"))
 
 
 def _require_research_reference(record) -> None:
@@ -137,14 +134,14 @@ def _write_session_predictions(
     report_id: str,
     run_id: str,
 ) -> Dict[str, str]:
-    out_dir = state.project_root / "data" / "session_predictions"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = state.project_root / "data" / "session_predictions" / report_id
+    out_dir.mkdir(parents=True, exist_ok=False)
     files: Dict[str, str] = {}
     history = list(record.dialog_history)
-    body = _dialog_text(history)
+    body = _dialog_text(history) if _is_research_session(record) else final_document(history)
     research = _research_block(record.input_json)
     for scenario in scenarios:
-        path = out_dir / f"{record.session_id}_{scenario}.jsonl"
+        path = out_dir / f"{scenario}.jsonl"
         if research.get("dataset_id") and research.get("cluster_id"):
             pred_id = str(research["cluster_id"])
         else:
@@ -159,13 +156,19 @@ def _write_session_predictions(
             "report_id": report_id,
             "model_output": body,
             "generated_doc": body,
+            "output_source": "research_transcript" if _is_research_session(record) else "session_final",
         }
+        if isinstance((record.input_json or {}).get("civil_case"), dict):
+            row["civil_case"] = record.input_json["civil_case"]
         if research.get("dataset_id"):
             row["dataset_id"] = research["dataset_id"]
         if research.get("cluster_id"):
             row["cluster_id"] = research["cluster_id"]
         if research.get("pack_version"):
             row["pack_version"] = research["pack_version"]
+        row["input_hash"] = hashlib.sha256(
+            json.dumps(row, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
         path.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
         files[scenario] = str(path)
     return files
@@ -178,11 +181,16 @@ def start_evaluation_task(
     use_default_predictions: bool,
     run_id: Optional[str] = None,
 ) -> tuple:
+    if not scenarios or any(s not in {"CD", "DD", "CI"} for s in scenarios):
+        raise HTTPException(status_code=400, detail="select at least one valid scenario")
+    scenarios = list(dict.fromkeys(scenarios))
     record = None
     if session_id:
         record = state.conversation_store.get(session_id)
         if not record:
             raise HTTPException(status_code=404, detail=f"session not found: {session_id}")
+        if scenarios != [record.scenario]:
+            raise HTTPException(status_code=400, detail="session evaluation must use its own scenario")
         _require_session_body(record)
         _require_research_reference(record)
 
@@ -204,7 +212,9 @@ def start_evaluation_task(
         )
         bind_session_link(session_id, report_id=report_id)
     elif use_default_predictions:
-        files = files or None
+        files = files or _default_prediction_files(scenarios)
+    if not files:
+        raise HTTPException(status_code=400, detail="evaluation requires prediction files or a session")
 
     state.evaluation_tasks[report_id] = {
         "status": "running",
@@ -270,7 +280,7 @@ def execute_evaluation_task(
                 status=status,
                 message=message,
                 created_at=created_at,
-                updated_at=created_at,
+                updated_at=datetime.now().isoformat(),
                 results_json=json.dumps(results, ensure_ascii=False) if results is not None else None,
                 report_path=report_path,
                 session_id=session_id,
@@ -288,7 +298,7 @@ def execute_evaluation_task(
                 raise EmptyEvaluationBodyError(
                     "session evaluation is missing prediction files; refusing default paper"
                 )
-            files = _default_prediction_files(scenarios)
+            raise EmptyEvaluationBodyError("evaluation is missing prediction files")
 
         config_path = state.project_root / "evaluation" / "eval_config.yaml"
         config = load_config(str(config_path))
@@ -301,6 +311,8 @@ def execute_evaluation_task(
         )
         report_path = payload["report_path"]
         results = attach_evaluation_results(Path(report_path).parent, report_id)
+        if results.get("report_id") != report_id or results.get("run_id") != run_id:
+            raise EvaluationAttributionError("report identity does not match this task")
         _persist(status="completed", message="评测完成", results=results, report_path=str(report_path))
     except EvaluationAttributionError as exc:
         state.eval_logger.error(f"评测归属失败: {exc}", exc_info=True)

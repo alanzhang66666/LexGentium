@@ -41,15 +41,20 @@ def _load_api_server(monkeypatch, db_path):
     def fake_run_agent_turn(*, scenario, case_id, dialog_history, input_json):
         return "Lawyer", f"offline reply for {scenario}:{case_id}", False
 
-    state.run_agent_turn = fake_run_agent_turn
+    monkeypatch.setattr(state, "run_agent_turn", fake_run_agent_turn)
     return api_server
 
 
 def _write_civil_row(root: Path, row: dict, split: str = "test") -> None:
     split_dir = root / "data" / "dataset_1000" / split
     split_dir.mkdir(parents=True, exist_ok=True)
-    path = split_dir / "case_info.jsonl"
-    path.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
+    (root / "data" / "dataset_1000" / "dataset_meta.json").write_text("{}", encoding="utf-8")
+    (split_dir / "case_info.jsonl").write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
+    facts = row["case_description"]
+    claims = row["plaintiff_claims"]
+    for scenario, fact_key, id_prefix in (("CD", "case_details", "CD"), ("DD", "plaintiff_facts", "DD"), ("CI", "case_facts", "CI")):
+        record = {"id": f"{id_prefix}-0001", "scenario": scenario, "cause": row["cause"], fact_key: facts}
+        (split_dir / f"{scenario}_ground_truth.jsonl").write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 CIVIL_ROW = {
@@ -143,6 +148,28 @@ def test_civil_case_id_hydrates_full_text(monkeypatch, tmp_path):
     assert "research" not in record.input_json
 
 
+
+def test_selected_namespaced_case_uses_start_route_and_round_trips(monkeypatch):
+    api_server = _load_api_server(monkeypatch, _runtime_path("route-civil"))
+    client = TestClient(api_server.app)
+    from api import state
+    from api.services.cases import list_case_index
+
+    selected = list_case_index(limit=1, split="train")[0]
+    response = client.post("/conversation/start", json={"scenario": "CI", "case_id": selected["case_id"]})
+    assert response.status_code == 200
+    session_id = response.json()["session_id"]
+    record = state.conversation_store.get(session_id)
+    assert record.input_json["civil_case"]["split"] == "train"
+    assert record.input_json["civil_case"]["source_case_id"] == selected["source_case_id"]
+    listed = client.get("/conversation/list")
+    assert listed.status_code == 200
+    assert any(item["session_id"] == session_id for item in listed.json()["sessions"])
+    detail = client.get(f"/conversation/{session_id}")
+    assert detail.status_code == 200
+    assert detail.json()["case_id"] == selected["case_id"]
+
+
 def test_bad_cluster_id_errors(monkeypatch):
     api_server = _load_api_server(monkeypatch, _runtime_path("hydrate-bad-cluster"))
     client = TestClient(api_server.app)
@@ -228,3 +255,11 @@ def test_reference_endpoints_list_and_get_pack(monkeypatch, tmp_path):
     assert found.status_code == 200
     assert "借款未还" in found.json()["case"]["case_description"]
     assert client.get("/reference/cases/missing-case").status_code == 404
+
+
+def test_missing_namespaced_civil_case_errors(monkeypatch):
+    api_server = _load_api_server(monkeypatch, _runtime_path("hydrate-missing-civil"))
+    response = TestClient(api_server.app).post(
+        "/conversation/start", json={"scenario": "CI", "case_id": "dataset_1000:test:CASE-missing"}
+    )
+    assert response.status_code == 404

@@ -37,7 +37,7 @@ def _load_api_server(monkeypatch, db_path):
     def fake_run_agent_turn(*, scenario, case_id, dialog_history, input_json):
         return "Lawyer", f"offline reply for {scenario}:{case_id}", False
 
-    state.run_agent_turn = fake_run_agent_turn
+    monkeypatch.setattr(state, "run_agent_turn", fake_run_agent_turn)
     return api_server
 
 
@@ -56,10 +56,9 @@ def test_get_conversation_expands_bound_links(monkeypatch):
     session_id = started.json()["session_id"]
 
     from api.services.conversation import bind_session_link
-    from api.services.simulation import create_simulation_task
-
-    task_id = create_simulation_task("single", session_id)
-    bind_session_link(session_id, game_id="game_bound_1")
+    # Test link storage and HTTP expansion independently of simulation execution.
+    task_id = "sim_bound_1"
+    bind_session_link(session_id, task_id=task_id, game_id="game_bound_1")
 
     detail = client.get(f"/conversation/{session_id}")
     assert detail.status_code == 200

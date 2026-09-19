@@ -194,13 +194,17 @@ async def run_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
         sess["rounds_completed"] = round_idx + 1
 
         # 未收敛则按进化方法更新双方策略
-        if sess["rounds_completed"] < max_rounds and config.get("enable_dynamic_strategy", True):
+        if (
+            not game_round.score.degraded
+            and sess["rounds_completed"] < max_rounds
+            and config.get("enable_dynamic_strategy", True)
+        ):
             await asyncio.to_thread(engine.evolve_both_strategies, game_round, method)
 
         # 检查收敛
         conv = engine.nash_tracker.compute_convergence()
         threshold = config.get("convergence_threshold", 0.05)
-        converged = conv >= (1 - threshold) and round_idx >= 1
+        converged = not game_round.score.degraded and conv >= (1 - threshold) and round_idx >= 1
 
         sess["status"] = "converged" if converged else "in_progress"
         persist_game(game_id)
@@ -220,7 +224,7 @@ async def run_game_round(game_id: str, req: Optional[GameRoundRequest] = None):
         }
     except Exception as e:
         sess["status"] = "failed"
-        state._game_store.update_status(game_id, "failed", sess["rounds_completed"])
+        persist_game(game_id)
         state.eval_logger.error(f"博弈轮次执行失败: {e}", exc_info=True)
         raise HTTPException(500, f"博弈轮次执行失败: {str(e)}")
 
@@ -342,7 +346,11 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
                 "equilibrium": game_round.equilibrium_snapshot,
             }))
 
-            if sess["rounds_completed"] < max_rounds and config.get("enable_dynamic_strategy", True):
+            if (
+                not game_round.score.degraded
+                and sess["rounds_completed"] < max_rounds
+                and config.get("enable_dynamic_strategy", True)
+            ):
                 old_p = engine._plaintiff_strategy_type
                 old_d = engine._defendant_strategy_type
 
@@ -364,7 +372,7 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
 
             conv = engine.nash_tracker.compute_convergence()
             threshold = config.get("convergence_threshold", 0.05)
-            converged = conv >= (1 - threshold) and round_idx >= 1
+            converged = not game_round.score.degraded and conv >= (1 - threshold) and round_idx >= 1
             sess["status"] = "converged" if converged else "in_progress"
             persist_game(game_id)
 
@@ -837,4 +845,3 @@ async def run_game_multi_judge(game_id: str, req: Optional[MultiJudgeRequest] = 
         engine.run, case_facts, claims, "", num_judges, aggregation,
     )
     return {"game_id": game_id, **result.to_dict()}
-

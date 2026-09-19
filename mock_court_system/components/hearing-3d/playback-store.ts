@@ -103,6 +103,14 @@ export function createPlaybackStore(initial = createInitialSceneState()): Playba
   }
 }
 
+/** Apply a live event batch immediately so terminal markers follow their utterance even with autoplay off. */
+export function appendAndConsume(store: Pick<PlaybackStore, "append" | "consumeNext">, events: HearingEvent[]) {
+  store.append(events)
+  for (let index = 0; index < events.length; index += 1) {
+    if (!store.consumeNext()) break
+  }
+}
+
 export async function loadSampleEvents(url = "/hearing-3d/contracts/sample-events.jsonl"): Promise<HearingEvent[]> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`Unable to load hearing events (${response.status})`)

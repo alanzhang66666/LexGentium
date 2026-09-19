@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
-from api.services.evaluation import EvaluationAttributionError, start_evaluation_task
+from api.services.evaluation import EvaluationAttributionError, execute_evaluation_task, start_evaluation_task
 from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
@@ -38,7 +38,7 @@ async def start_evaluation(
             request.use_default_predictions,
             run_id=request.run_id,
         )
-        background_tasks.add_task(state.run_evaluation_task, report_id, request.scenarios, files)
+        background_tasks.add_task(execute_evaluation_task, report_id, request.scenarios, files)
         rec = state.evaluation_task_store.get(report_id)
         return EvaluationResponse(
             report_id=report_id,
@@ -92,7 +92,7 @@ async def list_evaluation_results():
     results_dir = state.project_root / "evaluation" / "results"
     if not results_dir.exists():
         return {"reports": []}
-    report_files = sorted(results_dir.glob("evaluation_report_*.json"), reverse=True)
+    report_files = sorted(results_dir.glob("evaluation_report_*.json"), key=lambda p: p.stat().st_mtime_ns, reverse=True)
     reports = []
     for report_file in report_files[:20]:
         try:
@@ -101,12 +101,12 @@ async def list_evaluation_results():
             stem_id = report_file.stem.replace("evaluation_report_", "")
             scenarios = []
             if isinstance(data, dict):
-                scenarios = [k for k in data.keys() if k not in {"report_id", "run_id", "eval_contract"}]
+                scenarios = [k for k in ("CD", "DD", "CI") if isinstance(data.get(k), list)]
             reports.append({
                 "report_id": data.get("report_id", stem_id) if isinstance(data, dict) else stem_id,
                 "file_name": report_file.name,
                 "file_path": str(report_file),
-                "created_at": stem_id,
+                "created_at": data.get("created_at") or datetime.fromtimestamp(report_file.stat().st_mtime).isoformat(),
                 "scenarios": scenarios,
             })
         except Exception as e:
@@ -131,4 +131,3 @@ async def get_evaluation_report(report_id: str):
             results = json.load(f)
         return {"report_id": report_id, "status": "completed", "results": results, "report_path": str(report_file)}
     raise HTTPException(status_code=404, detail="evaluation report not found")
-

@@ -5,14 +5,14 @@ import json
 import logging
 import uuid
 import yaml
+from datetime import datetime, timezone
 from pathlib import Path
-from tqdm import tqdm
 
 # 允许以脚本方式运行：python evaluation/run_evaluation.py
 if __package__ is None and __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from evaluation.adapters.output_adapter import CDOutputAdapter, DDOutputAdapter, CIOutputAdapter
+from evaluation.bodies import dialog_text, prediction_document
 from evaluation.evaluators.evaluator_wrapper import EvaluatorWrapper
 
 # Setup logging
@@ -32,6 +32,18 @@ class EmptyEvaluationBodyError(EvaluationAttributionError):
     code = "empty_body"
 
 
+class MissingFinalOutputError(EvaluationAttributionError):
+    code = "missing_final_output"
+
+
+class MissingPredictionError(EvaluationAttributionError):
+    code = "missing_prediction"
+
+
+class ScoringFailedError(EvaluationAttributionError):
+    code = "scoring_failed"
+
+
 class WrongClusterOrCaseError(EvaluationAttributionError):
     code = "wrong_cluster_or_case"
 
@@ -42,7 +54,14 @@ class MissingReferenceError(EvaluationAttributionError):
 
 def load_config(config_path="evaluation/eval_config.yaml"):
     with open(config_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+        config = yaml.safe_load(f)
+    project = Path(config_path).resolve().parent.parent
+    paths = config.get("evaluation", {}).get("paths", {})
+    for section in ("ground_truth", "output"):
+        for key, value in paths.get(section, {}).items():
+            if isinstance(value, str) and not Path(value).is_absolute():
+                paths[section][key] = str(project / value)
+    return config
 
 def load_jsonl(path):
     data = []
@@ -65,10 +84,7 @@ def _dialog_text(dialog_history):
 
 
 def prediction_body(pred) -> str:
-    for key in ("model_output", "generated_doc"):
-        if str(pred.get(key) or "").strip():
-            return str(pred.get(key)).strip()
-    return _dialog_text(pred.get("dialog_history"))
+    return prediction_document(pred)
 
 
 def _research_identity(pred):
@@ -112,7 +128,7 @@ def _reference_payload(reference):
 def _evaluate_research_pred(pred, identity):
     if not identity.get("dataset_id") or not identity.get("cluster_id"):
         raise WrongClusterOrCaseError("research dataset_id/cluster_id incomplete")
-    if not prediction_body(pred):
+    if not (prediction_body(pred) or dialog_text(pred.get("dialog_history"))):
         raise EmptyEvaluationBodyError("evaluation body is empty")
     pack = _load_research_pack(
         identity["dataset_id"],
@@ -148,139 +164,95 @@ def _civil_lookup(pred, gt_map, scenario):
 
 
 def run_evaluation(config, scenarios=None, prediction_files=None, report_id=None, run_id=None):
-    # Set API Env vars from config
-    if config.get('evaluation', {}).get('api'):
-        api_conf = config['evaluation']['api']
-        if 'base_url' in api_conf:
-            os.environ['OPENAI_BASE_URL'] = api_conf['base_url']
-            os.environ['LLM_BASE_URL'] = api_conf['base_url']
-        if 'api_key' in api_conf:
-            os.environ['OPENAI_API_KEY'] = api_conf['api_key']
-            os.environ['LLM_API_KEY'] = api_conf['api_key']
-        if 'model' in api_conf:
-            os.environ['EVAL_MODEL_NAME'] = api_conf['model']
-
-    root_output = config['evaluation']['paths']['output']['root']
-    os.makedirs(root_output, exist_ok=True)
-
-    if report_id:
-        try:
-            report_id = str(uuid.UUID(str(report_id)))
-        except (TypeError, ValueError) as exc:
-            raise ValueError("report_id must be a UUID string") from exc
-    else:
-        report_id = str(uuid.uuid4())
-
-    report_file = os.path.join(root_output, f"evaluation_report_{report_id}.json")
-
-    results = {}
-
+    # The structure evaluator is local. Never overwrite process-wide LLM credentials.
+    root_output = config["evaluation"]["paths"]["output"]["root"]
+    report_id = str(uuid.UUID(str(report_id))) if report_id else str(uuid.uuid4())
+    scenarios = ["CD", "DD", "CI"] if scenarios is None else list(dict.fromkeys(scenarios))
     if not scenarios:
-        scenarios = ['CD', 'DD', 'CI']
-
+        raise EmptyEvaluationBodyError("no scenarios selected")
+    results = {}
     for scenario in scenarios:
-        if not config['evaluation']['scenarios'].get(scenario, {}).get('enabled', False):
-            continue
-
-        logger.info(f"Starting evaluation for {scenario}...")
-
-        pred_path = prediction_files.get(scenario) if prediction_files else \
-                    os.path.join("data", "output", f"{scenario}_prediction.jsonl")
-
-        if not os.path.exists(pred_path):
-             pred_path = os.path.join(f"{scenario}_prediction.jsonl")
-
-        if not os.path.exists(pred_path):
-            logger.warning(f"Prediction file not found: {pred_path}")
-            continue
-
+        if scenario not in {"CD", "DD", "CI"} or not config["evaluation"]["scenarios"].get(scenario, {}).get("enabled", False):
+            raise EvaluationAttributionError(f"scenario is invalid or disabled: {scenario}")
+        pred_path = (prediction_files.get(scenario) if prediction_files is not None
+                     else str(Path("data/output") / f"{scenario}_prediction.jsonl"))
+        if not pred_path or not Path(pred_path).is_file():
+            raise MissingPredictionError(f"prediction file missing for {scenario}")
         try:
             pred_data = load_jsonl(pred_path)
-            logger.info(f"Loaded {len(pred_data)} predictions for {scenario}")
-        except Exception as e:
-            logger.error(f"Failed to load predictions: {e}")
-            continue
-
+        except (OSError, ValueError) as exc:
+            raise MissingPredictionError(f"prediction file unreadable for {scenario}: {exc}") from exc
         if not pred_data:
-            raise EmptyEvaluationBodyError("evaluation body is empty")
-
-        research_rows = []
-        civil_rows = []
+            raise EmptyEvaluationBodyError(f"no predictions for {scenario}")
+        scenario_results = []
+        legacy_gt_map = None
         for pred in pred_data:
+            if not isinstance(pred, dict):
+                raise EvaluationAttributionError("prediction must be an object")
+            if pred.get("scenario") and pred["scenario"] != scenario:
+                raise WrongClusterOrCaseError("prediction scenario does not match requested scenario")
             identity = _research_identity(pred)
             if identity:
-                research_rows.append((pred, identity))
-            else:
-                civil_rows.append(pred)
-
-        scenario_results = []
-
-        for pred, identity in research_rows:
-            scenario_results.append(_evaluate_research_pred(pred, identity))
-
-        if civil_rows:
-            gt_path = config['evaluation']['paths']['ground_truth'][scenario.lower()]
-            try:
-                gt_data = load_jsonl(gt_path)
-                gt_map = {item['id']: item for item in gt_data}
-                logger.info(f"Loaded {len(gt_data)} ground truth records for {scenario}")
-            except Exception as e:
-                logger.error(f"Failed to load GT for {scenario}: {e}")
-                raise WrongClusterOrCaseError(f"civil ground truth missing for {scenario}") from e
-
-            try:
-                wrapper = EvaluatorWrapper(scenario, gt_path, root_output)
-            except Exception as e:
-                logger.error(f"Failed to initialize evaluator for {scenario}: {e}")
+                scenario_results.append(_evaluate_research_pred(pred, identity))
                 continue
-
-            if scenario == 'CD':
-                adapter = CDOutputAdapter()
-            elif scenario == 'DD':
-                adapter = DDOutputAdapter()
-            else:
-                adapter = CIOutputAdapter()
-
-            for pred in tqdm(civil_rows, desc=f"Evaluating {scenario}"):
-                if not prediction_body(pred):
-                    raise EmptyEvaluationBodyError("evaluation body is empty")
-                case_id = pred.get('id') or pred.get('case_id')
-                gt = _civil_lookup(pred, gt_map, scenario)
-                if not gt:
-                    raise WrongClusterOrCaseError(
-                        f"civil case not found in ground truth: {case_id}"
-                    )
-
-                adapted_pred = adapter.adapt(pred)
-                if not adapted_pred.get("model_output"):
-                    adapted_pred["model_output"] = prediction_body(pred)
+            body = prediction_body(pred)
+            if not body:
+                raise EmptyEvaluationBodyError("generated document is empty; user dialogue cannot be scored")
+            civil_identity = pred.get("civil_case") or (pred.get("input_json") or {}).get("civil_case")
+            if civil_identity:
+                from core.civil_identity import get_civil_ground_truth
                 try:
-                    score = wrapper.evaluate_one(adapted_pred, gt)
-                    scenario_results.append({
-                        "case_id": case_id,
-                        "score": score,
-                        "model_output": prediction_body(pred),
-                    })
-                except Exception as e:
-                    logger.error(f"Error evaluating {case_id}: {e}")
-
+                    gt = get_civil_ground_truth(civil_identity, scenario)
+                    source_id = civil_identity["source_case_id"]
+                    qualified_id = f"{civil_identity['dataset_id']}:{civil_identity['split']}:{source_id}"
+                    valid_ids = {source_id, qualified_id, gt["id"]}
+                    row_ids = [pred[key] for key in ("case_id", "id") if pred.get(key)]
+                    if not row_ids or any(value not in valid_ids for value in row_ids):
+                        raise ValueError("prediction case ID differs from frozen civil identity")
+                except (ValueError, OSError, KeyError) as exc:
+                    raise WrongClusterOrCaseError(f"civil dataset identity mismatch: {exc}") from exc
+            else:
+                gt_path = config["evaluation"]["paths"]["ground_truth"][scenario.lower()]
+                if legacy_gt_map is None:
+                    try:
+                        gt_data = load_jsonl(gt_path)
+                        legacy_gt_map = {row["id"]: row for row in gt_data}
+                        if len(legacy_gt_map) != len(gt_data):
+                            raise ValueError("duplicate reference IDs")
+                    except (OSError, ValueError, KeyError) as exc:
+                        raise WrongClusterOrCaseError(f"civil ground truth invalid for {scenario}") from exc
+                gt = _civil_lookup(pred, legacy_gt_map, scenario)
+                if gt is None:
+                    raise WrongClusterOrCaseError(f"civil case not found in ground truth: {pred.get('id') or pred.get('case_id')}")
+            adapted = dict(pred, model_output=body, generated_doc=body)
+            wrapper = EvaluatorWrapper(scenario, "", root_output)
+            try:
+                score = wrapper.evaluate_one(adapted, gt)
+            except Exception as exc:
+                raise ScoringFailedError(f"scoring failed for {scenario}: {exc}") from exc
+            scenario_results.append({
+                "case_id": pred.get("case_id") or pred.get("id"),
+                "reference_id": gt["id"],
+                "civil_case": civil_identity,
+                "score": score,
+                "model_output": body,
+                "input_hash": pred.get("input_hash"),
+            })
         results[scenario] = scenario_results
-
+    count = sum(len(rows) for rows in results.values())
+    if not count:
+        raise EmptyEvaluationBodyError("no valid samples were evaluated")
     report_payload = {
         "report_id": report_id,
         "run_id": run_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "summary": {"evaluated_samples": count},
         **results,
     }
-    with open(report_file, 'w', encoding='utf-8') as f:
-        json.dump(report_payload, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"Evaluation complete. Report saved to {report_file}")
-    return {
-        "report_id": report_id,
-        "run_id": run_id,
-        "report_path": report_file,
-        "results": results,
-    }
+    Path(root_output).mkdir(parents=True, exist_ok=True)
+    report_file = Path(root_output) / f"evaluation_report_{report_id}.json"
+    report_file.write_text(json.dumps(report_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"report_id": report_id, "run_id": run_id, "report_path": str(report_file), "results": results}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -3,6 +3,7 @@ export interface EvaluationRequest {
   prediction_files?: Record<string, string>
   use_default_predictions?: boolean
   session_id?: string
+  run_id?: string
 }
 
 export interface EvaluationResponse {
@@ -11,6 +12,8 @@ export interface EvaluationResponse {
   message: string
   results?: Record<string, unknown>
   report_path?: string
+  session_id?: string | null
+  run_id?: string | null
 }
 
 export interface EvaluationReport {
@@ -24,4 +27,3 @@ export interface EvaluationReport {
 export interface EvaluationReportsList {
   reports: EvaluationReport[]
 }
-

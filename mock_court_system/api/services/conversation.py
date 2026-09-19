@@ -132,7 +132,7 @@ def _hydrate_start_input(
             case_id = cluster_id
         return case_id, payload, run_id
 
-    if case_id.strip() and get_case_full(case_id):
+    if case_id.strip() and (case_id.startswith("dataset_1000:") or get_case_full(case_id)):
         payload = hydrate_civil_input(case_id, payload)
     return case_id, payload, run_id
 
