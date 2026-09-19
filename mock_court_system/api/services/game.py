@@ -20,7 +20,7 @@ def persist_game(game_id: str) -> None:
         return
     try:
         engine = sess["engine"]
-        snapshot = engine.export_snapshot() if hasattr(engine, "export_snapshot") else None
+        snapshot = engine.export_snapshot()
         state._game_store.save(
             game_id,
             sess["config"],
@@ -50,11 +50,14 @@ def restore_game(game_id: str) -> Optional[Dict[str, Any]]:
         engine._dispute_cause_detail = config.get("dispute_cause_detail")
     if row.get("result"):
         engine.import_snapshot(row["result"])
+    rounds_completed = int(row.get("rounds_completed") or 0)
+    if len(engine.strategy_history) != rounds_completed:
+        raise ValueError("博弈存档缺失或轮次不一致，无法恢复；请重新开局。")
     sess = {
         "engine": engine,
         "config": config if isinstance(config, dict) else {},
         "case_info": row.get("case_info") or {},
-        "rounds_completed": int(row.get("rounds_completed") or 0),
+        "rounds_completed": rounds_completed,
         "created_at": row.get("created_at") or state._utcnow_iso(),
         "status": row.get("status") or "created",
         "session_id": (config.get("session_id") if isinstance(config, dict) else None),
