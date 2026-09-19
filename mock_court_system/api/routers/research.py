@@ -1,6 +1,7 @@
 """Research pack listing, source lookup, and annotation overlays."""
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +11,8 @@ from api.services import annotation
 from api.services.materials import PackNotFoundError, PackVersionMismatchError, ResearchPackError
 
 router = APIRouter()
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class FieldPatchRequest(BaseModel):
@@ -48,11 +51,43 @@ def _http_error(exc: Exception) -> HTTPException:
     raise exc
 
 
+def _governance_summary(packs: list[dict[str, Any]]) -> dict[str, Any]:
+    """分类标注 + 治理计数（Task 7.4）：fixture 永远不计入 formal。"""
+    from core.research.governance import summarize_pack_inventory
+
+    return summarize_pack_inventory(packs)
+
+
 @router.get("/research/packs")
 async def list_annotated_research_packs(dataset: Optional[str] = None):
     try:
         packs = annotation.list_annotated_packs(dataset)
-        return {"packs": packs, "total": len(packs)}
+        return {"packs": packs, "total": len(packs), "governance": _governance_summary(packs)}
+    except Exception as exc:
+        raise _http_error(exc)
+
+
+@router.get("/research/inventory")
+async def research_inventory():
+    """研究治理清单：formal=0、夹具、未复核标注、case 25 状态（inventory.yaml 权威）。"""
+    try:
+        import yaml
+
+        inventory = yaml.safe_load(
+            (_REPO_ROOT / "release" / "inventory.yaml").read_text(encoding="utf-8")
+        ) or {}
+        declared = inventory.get("research") or {}
+        packs = annotation.list_annotated_packs()
+        governance = _governance_summary(packs)
+        return {
+            "formal_pack_count": declared.get("formal_pack_count", governance["formal_pack_count"]),
+            "formal_status": "ok" if declared.get("formal_pack_count") else "no_formal_pack",
+            "technical_fixtures": declared.get("technical_fixtures") or [],
+            "unreviewed_annotations": declared.get("unreviewed_annotations") or {},
+            "case_25": declared.get("case_25") or {},
+            "live_classification": governance,
+            "disclaimer": "正式研究包 = 0；SAMPLE 仅为技术夹具，不计入正式库存。",
+        }
     except Exception as exc:
         raise _http_error(exc)
 

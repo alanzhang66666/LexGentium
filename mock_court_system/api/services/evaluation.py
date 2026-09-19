@@ -14,7 +14,7 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from fastapi import HTTPException
 
@@ -37,6 +37,24 @@ from evaluation.run_evaluation import (
     WrongClusterOrCaseError,
 )
 from evaluation.bodies import dialog_text, final_document, prediction_document
+
+
+EvaluationTaskStatus = Literal["running", "completed", "failed"]
+EvaluationFiles = Optional[Dict[str, str]]
+
+
+def evaluation_error(status: EvaluationTaskStatus, message: str) -> Optional[Dict[str, str]]:
+    """Return the stable public error fields for a failed task status."""
+    if status != "failed":
+        return None
+    prefix, separator, _ = message.partition(":")
+    code = prefix.strip() if separator and prefix.strip() in {
+        "attribution",
+        "empty_body",
+        "wrong_cluster_or_case",
+        "missing_reference",
+    } else "evaluation_failed"
+    return {"code": code, "message": message}
 
 
 def resolve_evaluation_run_id(
@@ -133,45 +151,96 @@ def _write_session_predictions(
     *,
     report_id: str,
     run_id: str,
+    inputs=None,
 ) -> Dict[str, str]:
-    out_dir = state.project_root / "data" / "session_predictions" / report_id
-    out_dir.mkdir(parents=True, exist_ok=False)
-    files: Dict[str, str] = {}
-    history = list(record.dialog_history)
-    body = _dialog_text(history) if _is_research_session(record) else final_document(history)
-    research = _research_block(record.input_json)
-    for scenario in scenarios:
-        path = out_dir / f"{scenario}.jsonl"
-        if research.get("dataset_id") and research.get("cluster_id"):
-            pred_id = str(research["cluster_id"])
-        else:
-            pred_id = record.case_id
-        row: Dict[str, Any] = {
-            "id": pred_id,
-            "scenario": scenario,
-            "dialog_history": history,
-            "input_json": record.input_json or {},
-            "case_id": record.case_id,
-            "run_id": run_id,
-            "report_id": report_id,
-            "model_output": body,
-            "generated_doc": body,
-            "output_source": "research_transcript" if _is_research_session(record) else "session_final",
-        }
-        if isinstance((record.input_json or {}).get("civil_case"), dict):
-            row["civil_case"] = record.input_json["civil_case"]
-        if research.get("dataset_id"):
-            row["dataset_id"] = research["dataset_id"]
-        if research.get("cluster_id"):
-            row["cluster_id"] = research["cluster_id"]
-        if research.get("pack_version"):
-            row["pack_version"] = research["pack_version"]
-        row["input_hash"] = hashlib.sha256(
-            json.dumps(row, ensure_ascii=False, sort_keys=True).encode("utf-8")
-        ).hexdigest()
-        path.write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
-        files[scenario] = str(path)
+    """经 EvaluationInputBuilder 构造受管输入并落 task-scoped 临时文件。
+
+    不再读写 ``data/session_predictions/``；文件位于 runtime data root 的
+    ``evaluation_inputs/<report_id>/``，由 ``execute_evaluation_task`` 结束清理。
+    """
+    from api.services.evaluation_input import (
+        EvaluationInputBuilder,
+        materialize_legacy_files,
+    )
+
+    if inputs is None:
+        inputs = EvaluationInputBuilder().build_from_session(record, scenarios, run_id=run_id)
+    files, _cleanup = materialize_legacy_files(inputs, report_id)
     return files
+
+
+def _begin_provenance(
+    *,
+    report_id: str,
+    record,
+    scenarios: List[str],
+    prediction_files: Optional[Dict[str, str]],
+    session_id: Optional[str],
+    run_id: str,
+    inputs,
+) -> None:
+    """评分前事务性写 provenance + running report（Task 8.3）。
+
+    namespace: research（有 research block）/ civil（LexEval/J1/CADD）。
+    degraded 输入标 affected_metrics；重试回放既有 identity。
+    """
+    from core.release.version import VERSION_ID
+    from evaluation.lib.research_rubric import RUBRIC_VERSION
+
+    research = _research_block(record.input_json) if record else {}
+    namespace = "research" if research.get("dataset_id") else "civil"
+    inputs = inputs or []
+    degraded = any(getattr(i, "degraded", False) for i in inputs)
+    affected = sorted({m for i in inputs for m in (getattr(i, "affected_metrics", ()) or ())})
+    if inputs:
+        prediction_identity = inputs[0].prediction_identity
+    else:
+        from core.store.operation_store import canonical_digest
+
+        prediction_identity = canonical_digest(
+            {"files": sorted((prediction_files or {}).keys()), "session": session_id}
+        )
+    state.evaluation_provenance_store.begin_evaluation(
+        operation_id=f"eval:{report_id}",
+        input_payload={
+            "session_id": session_id,
+            "run_id": run_id,
+            "scenarios": list(scenarios),
+            "prediction_files": sorted((prediction_files or {}).keys()),
+        },
+        prediction_identity=prediction_identity,
+        evaluator_version=VERSION_ID,
+        rubric_namespace=namespace,
+        rubric_version=RUBRIC_VERSION if namespace == "research" else f"lexeval-j1-cadd@{VERSION_ID}",
+        configuration_identity=state.configuration_manager.identity,
+        model_identity=getattr(state.llm_client, "model", "") or "",
+        session_id=session_id,
+        run_id=run_id,
+        degraded=degraded,
+        affected_metrics=affected,
+        report_id=report_id,
+    )
+
+
+def evaluation_provenance_view(report_id: str) -> Dict[str, Any]:
+    """report_id → provenance 视图（API/UI 关联上下文）。"""
+    found = state.evaluation_provenance_store.get_by_operation(f"eval:{report_id}")
+    if not found:
+        return {}
+    provenance, report = found
+    return {
+        "provenance_id": provenance.provenance_id,
+        "namespace": provenance.rubric_namespace,
+        "rubric_version": provenance.rubric_version,
+        "evaluator_version": provenance.evaluator_version,
+        "configuration_identity": provenance.configuration_identity,
+        "model_identity": provenance.model_identity,
+        "input_digest": provenance.input_digest,
+        "degraded": provenance.degraded,
+        "affected_metrics": list(provenance.affected_metrics or []),
+        "report_status": report.status if report else None,
+        "result_digest": report.result_digest if report else None,
+    }
 
 
 def start_evaluation_task(
@@ -180,7 +249,7 @@ def start_evaluation_task(
     session_id: Optional[str],
     use_default_predictions: bool,
     run_id: Optional[str] = None,
-) -> tuple:
+) -> Tuple[str, EvaluationFiles]:
     if not scenarios or any(s not in {"CD", "DD", "CI"} for s in scenarios):
         raise HTTPException(status_code=400, detail="select at least one valid scenario")
     scenarios = list(dict.fromkeys(scenarios))
@@ -203,18 +272,35 @@ def start_evaluation_task(
     created_at = datetime.now().isoformat()
 
     files = prediction_files
+    inputs = None
     if record is not None:
+        from api.services.evaluation_input import EvaluationInputBuilder
+
+        inputs = EvaluationInputBuilder().build_from_session(
+            record, scenarios, run_id=resolved_run_id
+        )
         files = _write_session_predictions(
             record,
             scenarios,
             report_id=report_id,
             run_id=resolved_run_id,
+            inputs=inputs,
         )
         bind_session_link(session_id, report_id=report_id)
     elif use_default_predictions:
         files = files or _default_prediction_files(scenarios)
     if not files:
         raise HTTPException(status_code=400, detail="evaluation requires prediction files or a session")
+
+    _begin_provenance(
+        report_id=report_id,
+        record=record,
+        scenarios=scenarios,
+        prediction_files=files,
+        session_id=session_id,
+        run_id=resolved_run_id,
+        inputs=inputs,
+    )
 
     state.evaluation_tasks[report_id] = {
         "status": "running",
@@ -224,6 +310,7 @@ def start_evaluation_task(
         "created_at": created_at,
         "session_id": session_id,
         "run_id": resolved_run_id,
+        "error": None,
     }
     state.evaluation_task_store.upsert(
         state.EvaluationTaskRecord(
@@ -266,10 +353,18 @@ def execute_evaluation_task(
     run_id = (rec.run_id if rec else None) or memory.get("run_id")
     created_at = memory.get("created_at") or (rec.created_at if rec else datetime.now().isoformat())
 
-    def _persist(*, status: str, message: str, results: Any = None, report_path: Optional[str] = None) -> None:
+    def _persist(
+        *,
+        status: EvaluationTaskStatus,
+        message: str,
+        results: Any = None,
+        report_path: Optional[str] = None,
+    ) -> None:
+        error = evaluation_error(status, message)
         if report_id in state.evaluation_tasks:
             state.evaluation_tasks[report_id]["status"] = status
             state.evaluation_tasks[report_id]["message"] = message
+            state.evaluation_tasks[report_id]["error"] = error
             if results is not None:
                 state.evaluation_tasks[report_id]["results"] = results
             if report_path is not None:
@@ -314,9 +409,29 @@ def execute_evaluation_task(
         if results.get("report_id") != report_id or results.get("run_id") != run_id:
             raise EvaluationAttributionError("report identity does not match this task")
         _persist(status="completed", message="评测完成", results=results, report_path=str(report_path))
+        try:
+            state.evaluation_provenance_store.complete_report(report_id, results=results)
+        except Exception:
+            state.eval_logger.warning(f"provenance complete_report failed for {report_id}", exc_info=True)
     except EvaluationAttributionError as exc:
         state.eval_logger.error(f"评测归属失败: {exc}", exc_info=True)
         _persist(status="failed", message=f"{exc.code}: {exc}")
+        try:
+            state.evaluation_provenance_store.fail_report(report_id, message=str(exc))
+        except Exception:
+            pass
     except Exception as exc:
         state.eval_logger.error(f"评测任务失败: {exc}", exc_info=True)
         _persist(status="failed", message=f"评测失败: {str(exc)}")
+        try:
+            state.evaluation_provenance_store.fail_report(report_id, message=str(exc))
+        except Exception:
+            pass
+    finally:
+        # task-scoped legacy 输入文件结束即清（不碰 data/session_predictions）
+        try:
+            from api.services.evaluation_input import cleanup_evaluation_inputs
+
+            cleanup_evaluation_inputs(report_id)
+        except Exception:
+            pass

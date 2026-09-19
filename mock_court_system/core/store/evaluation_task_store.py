@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
@@ -149,5 +150,7 @@ class SqliteEvaluationTaskStore(EvaluationTaskStore):
 def build_evaluation_task_store(project_root: Path) -> EvaluationTaskStore:
     # Reuse the same sqlite file as conversation store by default for simplicity.
     # It keeps all “app runtime state” in ./data/app_state.sqlite3 unless overridden later.
-    db_path = str(project_root / "data" / "app_state.sqlite3")
+    db_path = os.getenv("EVALUATION_TASK_DB", "").strip() or str(
+        project_root / "data" / "app_state.sqlite3"
+    )
     return SqliteEvaluationTaskStore(db_path=db_path)

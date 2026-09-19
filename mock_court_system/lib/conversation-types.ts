@@ -155,6 +155,20 @@ export interface MultiLayerEvaluation {
   }
 }
 
+export interface SessionLinks {
+  task_id?: string | null
+  game_id?: string | null
+  report_id?: string | null
+  [key: string]: string | null | undefined
+}
+
+export interface SessionResearch {
+  run_id?: string | null
+  derived_from?: string | null
+  materials_hash?: string | null
+  [key: string]: unknown
+}
+
 export interface ConversationInfo {
   session_id: string
   scenario: string

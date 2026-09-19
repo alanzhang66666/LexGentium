@@ -134,6 +134,16 @@ from .runtime import (
     strip_hidden_fields,
 )
 from .packs import SIX_COLUMN_FIELDS, PackSummary, ResearchPack
+from .governance import (
+    FormalReviewRecordV2,
+    GovernanceError,
+    PackCodec,
+    TECHNICAL_FIXTURE_CLUSTER_IDS,
+    classify_pack,
+    formal_pack_count,
+    is_formal_eligible,
+    pack_content_digest,
+)
 from .shared import (
     AcceptablePath,
     AnnotatedValue,
@@ -222,6 +232,8 @@ __all__ = [
     "ExperimentConditions",
     "FACT_FIELD_KEYS_BY_TASK",
     "FORBIDDEN_DATASET_IDS",
+    "FormalReviewRecordV2",
+    "GovernanceError",
     "GAP_RELATED_FIELDS",
     "HANDLED_LABELS",
     "HandledLabel",
@@ -239,6 +251,7 @@ __all__ = [
     "OriginalRef",
     "PROTOCOL_BASES",
     "ProtocolBasis",
+    "PackCodec",
     "PackIdentity",
     "PackNotFoundError",
     "PackSummary",
@@ -272,6 +285,11 @@ __all__ = [
     "RunContract",
     "RunIdentity",
     "RunUtterance",
+    "TECHNICAL_FIXTURE_CLUSTER_IDS",
+    "classify_pack",
+    "formal_pack_count",
+    "is_formal_eligible",
+    "pack_content_digest",
     "SATISFIED_LABELS",
     "SIX_COLUMN_FIELDS",
     "SOURCE_FORMS",

@@ -4,6 +4,7 @@ CI 场景智能体 - 法庭判决
 """
 import re
 import json
+import time
 from typing import Dict, Any, Tuple, List, Optional
 from dataclasses import asdict
 from datetime import datetime
@@ -124,6 +125,147 @@ class CIAgent(BaseAgent):
             self.judgment_chain = None
             self.extraction_chain = None
             self.summary_chain = None
+
+    def fork_stateless(self) -> "CIAgent":
+        """派生一个共享 LLM/检索器/Chain 但持有独立会话状态的实例。
+
+        每个会话一份 state_machine / dialogue / ledger / issue_graph，
+        并发会话之间不串状态；LawRetriever 单例与 LangChain Chain 为
+        无状态共享。与 ``CDAgent.fork_stateless`` / ``DDAgent.fork_stateless``
+        同约定。
+        """
+        child = CIAgent.__new__(CIAgent)
+        child.api_client = self.api_client
+        child.llm = self.llm
+        child.scenario = self.scenario
+        child.max_turns = self.max_turns
+        child.verbose = self.verbose
+        child.instruction_mode = self.instruction_mode
+        child.role = self.role
+        child.law_retriever = self.law_retriever
+        child.irac_reasoner = self.irac_reasoner
+        child.analysis_chain = getattr(self, "analysis_chain", None)
+        child.instruction_chain = getattr(self, "instruction_chain", None)
+        child.judgment_chain = getattr(self, "judgment_chain", None)
+        child.extraction_chain = getattr(self, "extraction_chain", None)
+        child.summary_chain = getattr(self, "summary_chain", None)
+        child.max_cross_exam_rounds = self.max_cross_exam_rounds
+        child.max_cross_exam_retries = self.max_cross_exam_retries
+
+        # 每会话独立的可变状态
+        child.state_machine = StateMachine()
+        child.dialogue = []
+        child.evidences = []
+        child.extracted = {"plaintiff_claim": {}, "defendant_defense": {}, "summary": ""}
+        child.judgment_json = None
+        child.judgment_status = "failed"
+        child.fact_ledger = FactLedger()
+        child.issue_graph = IssueGraph()
+        child.citation_report = None
+        child.case_warnings = []
+        child.finished = False
+        child.name_confirmed_by_dialogue = {"plaintiff": False, "defendant": False}
+        return child
+
+    # ------------------------------------------------------------------
+    # HearingRuntime 会话快照接口：restore_state / snapshot_state /
+    # process_incremental。snapshot 形状与 HearingState 对齐（sm/messages/
+    # extracted/evidences/case_info/finished + 推理产物身份），供
+    # checkpoint 存取与并发会话隔离。
+    # ------------------------------------------------------------------
+    def snapshot_state(self) -> Dict[str, Any]:
+        """导出当前会话可变状态为可持久化 dict。"""
+        out: Dict[str, Any] = {
+            "sm": self.state_machine.to_dict(),
+            "messages": [m.to_dict() for m in self.dialogue],
+            "extracted": dict(self.extracted),
+            "evidences": [e.to_dict() for e in self.evidences],
+            "finished": bool(self.finished),
+            "name_confirmed_by_dialogue": dict(self.name_confirmed_by_dialogue),
+        }
+        case_info = getattr(self, "case_info", None)
+        if case_info is not None:
+            try:
+                out["case_info"] = case_info.to_dict()
+            except Exception:
+                out["case_info"] = asdict(case_info)
+        if getattr(self, "fact_ledger", None) is not None:
+            out["fact_ledger"] = self.fact_ledger.to_dict()
+        if getattr(self, "issue_graph", None) is not None:
+            out["issue_graph"] = self.issue_graph.to_dict()
+        if self.judgment_json is not None:
+            out["judgment_json"] = self.judgment_json
+            out["judgment_status"] = self.judgment_status
+        if self.citation_report is not None:
+            out["citation_report"] = self.citation_report
+        if self.case_warnings:
+            out["case_warnings"] = list(self.case_warnings)
+        return out
+
+    def restore_state(self, snap: Optional[Dict[str, Any]]) -> None:
+        """从 snapshot 恢复会话状态；None/空 snapshot → 全新状态。"""
+        self._reset_replay_state()
+        if not snap:
+            return
+        sm = snap.get("sm")
+        if isinstance(sm, dict) and sm:
+            try:
+                self.state_machine = StateMachine.from_dict(sm)
+            except Exception as e:
+                self.log(f"restore_state: bad sm, keeping fresh state machine: {e}")
+        self.dialogue = [Message.from_dict(m) for m in snap.get("messages") or [] if m]
+        self.evidences = [Evidence.from_dict(e) for e in snap.get("evidences") or [] if e]
+        extracted = snap.get("extracted")
+        if isinstance(extracted, dict):
+            base = {"plaintiff_claim": {}, "defendant_defense": {}, "summary": ""}
+            base.update(extracted)
+            self.extracted = base
+        case_info = snap.get("case_info")
+        if isinstance(case_info, dict) and case_info:
+            try:
+                self.case_info = CaseInfo.from_dict(case_info)
+            except Exception as e:
+                self.log(f"restore_state: bad case_info ignored: {e}")
+        if isinstance(snap.get("fact_ledger"), dict):
+            try:
+                self.fact_ledger = FactLedger.from_dict(snap["fact_ledger"])
+            except Exception as e:
+                self.log(f"restore_state: bad fact_ledger ignored: {e}")
+        if isinstance(snap.get("issue_graph"), dict):
+            try:
+                self.issue_graph = IssueGraph.from_dict(snap["issue_graph"])
+            except Exception as e:
+                self.log(f"restore_state: bad issue_graph ignored: {e}")
+        if isinstance(snap.get("judgment_json"), dict):
+            self.judgment_json = snap["judgment_json"]
+            self.judgment_status = snap.get("judgment_status", "ok")
+        if isinstance(snap.get("citation_report"), dict):
+            self.citation_report = snap["citation_report"]
+        if isinstance(snap.get("case_warnings"), list):
+            self.case_warnings = list(snap["case_warnings"])
+        nc = snap.get("name_confirmed_by_dialogue")
+        if isinstance(nc, dict):
+            self.name_confirmed_by_dialogue = {
+                "plaintiff": bool(nc.get("plaintiff", False)),
+                "defendant": bool(nc.get("defendant", False)),
+            }
+        self.finished = bool(snap.get("finished", False))
+
+    def process_incremental(
+        self,
+        role: str,
+        content: str,
+        case_id: str = "",
+        input_json: Optional[Dict] = None,
+    ) -> str:
+        """增量处理一条当事人发言并生成审判长回复（HearingRuntime live 路径）。"""
+        if input_json and (not getattr(self, "case_info", None) or not getattr(self.case_info, "case_id", "")):
+            self.case_info = self._build_case_info(input_json)
+            if case_id:
+                self.case_info.case_id = case_id
+        elif not getattr(self, "case_info", None):
+            self.case_info = CaseInfo(case_id=case_id)
+        return self._step(self._map_role(role), content)
 
     def process_turn(self, dialog_history: List[Dict], case_id: str, input_json: Dict = None,
                      reasoning_state: Dict = None) -> str:
@@ -433,10 +575,11 @@ class CIAgent(BaseAgent):
         return resp
 
     def _step(self, role: PartyRole, content: str) -> str:
-        """处理一轮对话"""
+        """处理一轮对话：每轮至多一次 LLM 书记员分析，抽取与阶段更新共用结果。"""
         self._add_msg(role, content)
-        self._extract_info(role, content)
-        self._update_phase(role, content)
+        analysis = self._analyze_state_with_llm(role, content)
+        self._extract_info(role, content, analysis)
+        self._update_phase(role, content, analysis)
         self.state_machine.try_transition()
 
         if self.state_machine.current_state == CourtState.JUDGMENT:
@@ -558,63 +701,28 @@ class CIAgent(BaseAgent):
             )
         )
 
-    def _update_case_info_from_content(self, role: PartyRole, content: str):
-        """从对话内容中更新案件信息 (LLM based)"""
-        # 仅在开庭阶段或法庭调查初期关注身份信息，避免每轮都调用 LLM
-        if self.state_machine.current_state not in [CourtState.OPENING, CourtState.INVESTIGATION]:
+    def _update_case_info_from_analysis(self, analysis: Optional[Dict]):
+        """从书记员统一分析结果中回填当事人姓名（不额外调用 LLM）。"""
+        if not analysis or not getattr(self, "case_info", None):
             return
-        
-        # 仅当发言中包含可能涉及身份的关键词时才触发
-        if not any(k in content for k in ["我是", "本人", "代理人", "被告", "原告", "姓名", "身份"]):
-            return
-
-        prompt = f"""
-你是一个法庭书记员。请根据发言内容提取关键案件信息。
-
-当前记录：
-原告姓名：{self.case_info.plaintiff_name}
-被告姓名：{self.case_info.defendant_name}
-
-发言人：{role.value}
-发言内容：{content}
-
-任务：
-1. 判断发言中是否明确提及了原告或被告的准确姓名（用于修正当前记录）。
-2. 注意区分“代理人姓名”和“当事人姓名”。我们只需要“当事人姓名”。
-   - 例如：“我是被告张三的代理人李四” -> 被告是“张三”。
-   - 例如：“我是被告张三” -> 被告是“张三”。
-   - 例如：“我是原告代理人” -> 无法提取原告姓名。
-
-请返回 JSON 格式：
-{{
-    "plaintiff_name": "提取到的原告当事人姓名" or null,
-    "defendant_name": "提取到的被告当事人姓名" or null
-}}
-"""
         try:
-            data = self.llm.chat_json([{"role": "user", "content": prompt}])
-            
-            if data:
-                p_name = data.get("plaintiff_name")
-                d_name = data.get("defendant_name")
-                
-                if p_name and p_name != self.case_info.plaintiff_name and p_name != "null":
-                    self.log(f"Updating plaintiff name from dialogue: {p_name}")
-                    self.case_info.plaintiff_name = p_name
-                    self.name_confirmed_by_dialogue["plaintiff"] = True
-                    
-                if d_name and d_name != self.case_info.defendant_name and d_name != "null":
-                    self.log(f"Updating defendant name from dialogue: {d_name}")
-                    self.case_info.defendant_name = d_name
-                    self.name_confirmed_by_dialogue["defendant"] = True
-                    
+            p_name = analysis.get("plaintiff_name")
+            d_name = analysis.get("defendant_name")
+            if p_name and p_name != self.case_info.plaintiff_name and p_name != "null":
+                self.log(f"Updating plaintiff name from dialogue: {p_name}")
+                self.case_info.plaintiff_name = p_name
+                self.name_confirmed_by_dialogue["plaintiff"] = True
+            if d_name and d_name != self.case_info.defendant_name and d_name != "null":
+                self.log(f"Updating defendant name from dialogue: {d_name}")
+                self.case_info.defendant_name = d_name
+                self.name_confirmed_by_dialogue["defendant"] = True
         except Exception as e:
-            self.log(f"Failed to update case info from content: {e}")
+            self.log(f"Failed to update case info from analysis: {e}")
 
-    def _extract_info(self, role: PartyRole, content: str):
-        """信息抽取"""
+    def _extract_info(self, role: PartyRole, content: str, analysis: Optional[Dict] = None):
+        """信息抽取（复用本轮统一 LLM 分析结果）。"""
         # 尝试从对话中更新案件信息（如姓名）
-        self._update_case_info_from_content(role, content)
+        self._update_case_info_from_analysis(analysis)
 
         state = self.state_machine.current_state
         if state == CourtState.INVESTIGATION:
@@ -637,7 +745,23 @@ class CIAgent(BaseAgent):
                     self.evidences.append(ev)
 
     def _analyze_state_with_llm(self, role: PartyRole, content: str) -> Dict:
-        """使用 LLM 分析当前发言对状态机的影响"""
+        """书记员分析入口（兼容别名，规范名 _clerk_analyze）。"""
+        return self._clerk_analyze(role, content).model_dump()
+
+    def _clerk_analyze(self, role: PartyRole, content: str) -> "TurnAnalysis":
+        """使用 LLM 分析当前发言对状态机的影响，返回结构化 TurnAnalysis。"""
+        raw = self._clerk_analyze_dict(role, content)
+        from core.graphs.turn_analysis import TurnAnalysis
+
+        try:
+            return TurnAnalysis(
+                **{k: v for k, v in raw.items() if k in TurnAnalysis.model_fields}
+            )
+        except Exception:
+            return TurnAnalysis()
+
+    def _clerk_analyze_dict(self, role: PartyRole, content: str) -> Dict:
+        """书记员原始 LLM 调用（单次 JSON），产出 dict 供 schema 校验。"""
         state = self.state_machine.current_state
         
         if state == CourtState.OPENING:
@@ -652,13 +776,17 @@ class CIAgent(BaseAgent):
 2. "rights_acknowledged": 听清/明白/知晓诉讼权利义务。
 3. "recusal_response": 回答是否申请回避（无论申请还是不申请，只要回答了就算）。
 4. "absence_acknowledged": 听清/明白/知晓缺席审理后果。
+5. "plaintiff_name": 发言中明确提及的原告当事人姓名（区分代理人与当事人），未提及为 null。
+6. "defendant_name": 同上，被告当事人姓名，未提及为 null。
 
 请返回 JSON 格式：
 {{
     "identity_confirmed": true/false,
     "rights_acknowledged": true/false,
     "recusal_response": true/false,
-    "absence_acknowledged": true/false
+    "absence_acknowledged": true/false,
+    "plaintiff_name": "...",
+    "defendant_name": "..."
 }}
 """
         elif state == CourtState.INVESTIGATION:
@@ -684,6 +812,8 @@ class CIAgent(BaseAgent):
    - 如果发言是提出新事实/抗辩（如“已付款”、“不可抗力”），举证责任在**发言人**（plaintiff/defendant）。
    - 如果是 no_proof，则为 null。
    - 如果是 accept，则为 null。
+7. "plaintiff_name": 发言中明确提及的原告当事人姓名（区分代理人与当事人），未提及为 null。
+8. "defendant_name": 同上，被告当事人姓名，未提及为 null。
 
 请返回 JSON 格式：
 {{
@@ -692,7 +822,9 @@ class CIAgent(BaseAgent):
     "fact_supplement_response": true/false,
     "cross_exam_intent": "objection" / "question" / "accept" / "no_proof" / "none",
     "key_point": "...",
-    "burden_holder": "plaintiff" / "defendant" / null
+    "burden_holder": "plaintiff" / "defendant" / null,
+    "plaintiff_name": "...",
+    "defendant_name": "..."
 }}
 """
         elif state == CourtState.DEBATE:
@@ -748,20 +880,29 @@ class CIAgent(BaseAgent):
             return {}
 
         if self.analysis_chain:
+            t0 = time.perf_counter()
             try:
-                return self.analysis_chain.invoke({"prompt": prompt})
+                result = self.analysis_chain.invoke({"prompt": prompt})
+                # chain 路径绕过 LLMClient.chat_json：手动记账 clerk 调用
+                self.llm.record_external_call(
+                    "clerk", "fast", (time.perf_counter() - t0) * 1000
+                )
+                return result
             except Exception as e:
+                self.llm.record_external_call(
+                    "clerk", "fast", (time.perf_counter() - t0) * 1000, degraded=True
+                )
                 self.log(f"Analysis Chain Error: {e}. Falling back to chat_json.")
-                return self.llm.chat_json([{"role": "user", "content": prompt}])
+                return self.llm.chat_json([{"role": "user", "content": prompt}], purpose="clerk")
         else:
-            return self.llm.chat_json([{"role": "user", "content": prompt}])
+            return self.llm.chat_json([{"role": "user", "content": prompt}], purpose="clerk")
 
-    def _update_phase(self, role: PartyRole, content: str):
-        """更新阶段状态 (LLM 增强版)"""
+    def _update_phase(self, role: PartyRole, content: str, analysis: Optional[Dict] = None):
+        """更新阶段状态 (LLM 增强版)；analysis 缺省时自行调用 LLM 分析。"""
         s = self.state_machine.current_state
-        
+
         # 调用 LLM 分析意图
-        result = self._analyze_state_with_llm(role, content)
+        result = analysis if analysis is not None else self._analyze_state_with_llm(role, content)
         
         if s == CourtState.OPENING:
             p = self.state_machine.opening_phase

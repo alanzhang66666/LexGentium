@@ -803,15 +803,27 @@ def count_argument_turns(
     dialog_history: Optional[Iterable[dict[str, Any]]],
     task_type: Optional[str] = None,
 ) -> int:
-    """Party argument utterances only. Judge / auditor / lawyer-openers do not count."""
+    """Party argument utterances only, deduplicated by Operation ID.
+
+    Judge / auditor / lawyer-openers do not count. An utterance carrying an
+    ``operation_id`` counts once per unique value, so a retried operation
+    replaying the same ID cannot inflate the research budget.
+    """
     del task_type
     total = 0
+    seen_operations: set[str] = set()
     for item in dialog_history or []:
         if not isinstance(item, dict):
             continue
         role = str(item.get("role") or "")
-        if role in PARTY_ARGUMENT_RAW:
-            total += 1
+        if role not in PARTY_ARGUMENT_RAW:
+            continue
+        operation_id = str(item.get("operation_id") or "")
+        if operation_id:
+            if operation_id in seen_operations:
+                continue
+            seen_operations.add(operation_id)
+        total += 1
     return total
 
 

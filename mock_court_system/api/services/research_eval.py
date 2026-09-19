@@ -185,10 +185,38 @@ def compare_runs(run_ids: list[str]) -> dict[str, Any]:
         )
     clusters = {row.get("cluster_id") for row in runs if row.get("cluster_id")}
     hashes = {row.get("materials_hash") for row in runs}
+
+    # 身份不一致（pack/rubric/materials 任一不同）→ 拒绝直接比分
+    def _identity(row: dict[str, Any]):
+        eval_payload = row.get("eval") or {}
+        contract = eval_payload.get("eval_contract") or {}
+        return (
+            row.get("dataset_id"),
+            row.get("cluster_id"),
+            row.get("pack_version"),
+            row.get("materials_hash"),
+            contract.get("rubric_version") or RUBRIC_VERSION,
+        )
+
+    identities = {_identity(row) for row in runs}
+    comparable = len(identities) == 1
+    if not comparable:
+        for row in runs:
+            row["eval"] = None  # 不展示分数
     return {
         "runs": runs,
         "same_cluster": len(clusters) <= 1,
         "condition_differs": len(hashes) > 1,
+        "comparable": comparable,
+        "score_comparison": (
+            {"refused": False}
+            if comparable
+            else {
+                "refused": True,
+                "reason": "identity_mismatch",
+                "detail": "dataset/cluster/version/materials/rubric 不一致，拒绝直接比分",
+            }
+        ),
         "disclaimer": RESEARCH_DISCLAIMER,
     }
 
@@ -234,6 +262,26 @@ def export_bundle(run_id: str) -> dict[str, Any]:
             "derived_from": research.get("derived_from") or (indexed or {}).get("derived_from"),
         },
         "claims": claim_service.claim_chain(run_id),
+        # Task 7.4：导出必须含 degraded / unknown / anchor 面
+        "degraded": bool(
+            research.get("degraded")
+            or (eval_payload.get("degraded") if isinstance(eval_payload, dict) else False)
+            or (rubric or {}).get("degraded")
+        ),
+        "anchors": [
+            {"claim_id": c.get("claim_id"), "source_ids": list(c.get("source_ids") or [])}
+            for c in claim_service.claim_chain(run_id)
+        ],
+        "unanchored_claims": [
+            c.get("claim_id")
+            for c in claim_service.claim_chain(run_id)
+            if not c.get("source_ids")
+        ],
+        "unknown_claims": [
+            c.get("claim_id")
+            for c in claim_service.claim_chain(run_id)
+            if c.get("status") in ("unknown", "absent", "unverifiable", "withdrawn")
+        ],
         "audit": {
             "events": claim_service.list_claim_events(run_id),
             "reviews": claim_service.get_store().list_reviews(run_id),
