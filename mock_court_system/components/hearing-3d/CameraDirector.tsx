@@ -5,10 +5,11 @@ import { useThree } from "@react-three/fiber"
 import type { SceneState } from "./contracts"
 
 const cameras = {
-  wide: { position: [0, 2.5, -7.6] as const, target: [0, 1.15, 0.25] as const },
-  presiding_medium: { position: [0.75, 1.45, 0] as const, target: [0, 1.35, 2.8] as const },
-  claimant_medium: { position: [0, 1.4, 0.15] as const, target: [-2.9, 1.3, 0.65] as const },
-  respondent_medium: { position: [0, 1.4, 0.15] as const, target: [2.9, 1.3, 0.65] as const },
+  wide: { position: [0, 2.42, -6.55] as const, target: [0, 1.15, 0.45] as const },
+  presiding_medium: { position: [0.75, 1.55, -0.05] as const, target: [0, 1.35, 2.65] as const },
+  // 两组中景从庭审桌对面取景，避免从秘书席后方切入造成“后脑勺挡脸”。
+  claimant_medium: { position: [0, 1.72, 2.75] as const, target: [-2.9, 1.28, 0.48] as const },
+  respondent_medium: { position: [0, 1.72, 2.75] as const, target: [2.9, 1.28, 0.48] as const },
 }
 
 type CameraMode = keyof typeof cameras
