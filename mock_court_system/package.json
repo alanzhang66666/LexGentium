@@ -1,13 +1,14 @@
 {
   "name": "lexgentium-mock-court",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next typegen && tsc --noEmit",
     "start": "next start",
-    "test:3d": "vitest run components/hearing-3d"
+    "test:3d": "vitest run components/hearing-3d",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -62,7 +63,8 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.186.0",
     "vaul": "^1.1.2",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "geist": "^1.7.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
@@ -73,6 +75,7 @@
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "@types/three": "^0.185.4"
   }
 }

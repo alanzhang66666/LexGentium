@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { createPlaybackStore } from "./playback-store"
+import { appendAndConsume, createPlaybackStore } from "./playback-store"
+import { conversationFinishedToEvent, conversationMessageToEvent } from "./backend-event-adapter"
 import type { HearingEvent } from "./contracts"
 
 const ev = (seq: number): HearingEvent => ({
@@ -15,6 +16,17 @@ describe("hearing playback store", () => {
     expect(store.consumeNext()?.seq).toBe(1)
     expect(store.consumeNext()?.seq).toBe(2)
     expect(store.getCursor()).toBe(2)
+  })
+  it("consumes the live utterance and terminal event with autoplay disabled", () => {
+    const store = createPlaybackStore()
+    const payload = { session_id: "s-live", scenario: "CI", case_id: "case-live" }
+    const message = conversationMessageToEvent(payload, "Done", "Arbitrator", 1, "live-message")
+    const finished = conversationFinishedToEvent(payload, 2)
+    appendAndConsume(store, [message, finished])
+    expect(store.getCursor()).toBe(2)
+    expect(store.getState().subtitle?.zh).toBe("Done")
+    expect(store.getState().status).toBe("finished")
+    expect(store.consumeNext()).toBeNull()
   })
   it("pauses and resumes without consuming", () => {
     const store = createPlaybackStore()

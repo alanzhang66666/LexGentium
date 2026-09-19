@@ -8,7 +8,7 @@
 
 ## 技术栈
 
-Next.js 20 BFF + FastAPI。CD / DD / CI / Sim 智能体。听证走 `HearingRuntime`，书状走 `PleadRuntime`。民事评测是 LexEval / J1 / CADD；研究量表在 `evaluation/lib/research_rubric.py`。
+Next.js 16 BFF + FastAPI。CD / DD / CI / Sim 智能体。听证走 `HearingRuntime`，书状走 `PleadRuntime`。民事评测是 LexEval / J1 / CADD；研究量表在 `evaluation/lib/research_rubric.py`。
 
 ## 目录
 

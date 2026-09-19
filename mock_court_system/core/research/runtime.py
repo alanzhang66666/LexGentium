@@ -391,18 +391,14 @@ def _item_visible(
         return False
     doc = _item_document_id(item)
     rule = str(item.get("rule_id") or "")
-    if rule and rules and rule not in rules:
+    if rule and rule not in rules:
         return False
-    if doc and documents and doc not in documents:
+    if doc and doc not in documents:
         return False
-    if item_sources and sources:
-        return bool(item_sources & sources)
-    if doc:
-        return not documents or doc in documents
-    if rule:
-        return not rules or rule in rules
-    # Unanchored researcher notes stay only if nothing is hidden against them.
-    return True
+    if item_sources and not item_sources.issubset(sources):
+        return False
+    # Unanchored text has no auditable basis for being exposed to a role.
+    return bool(item_sources or doc or rule)
 
 
 def filter_materials_for_role(
@@ -429,25 +425,25 @@ def filter_materials_for_role(
                 continue
             if field_name == "documents":
                 doc_id = str(row.get("document_id") or "")
-                if documents and doc_id not in documents:
+                if not doc_id or doc_id not in documents:
                     continue
                 kept.append(dict(row))
                 continue
             if field_name == "source_anchors":
                 source_id = str(row.get("source_id") or "")
-                if source_id in hidden:
+                if not source_id or source_id in hidden or source_id not in sources:
                     continue
-                if sources and source_id not in sources:
-                    continue
-                if documents and _item_document_id(row) and _item_document_id(row) not in documents:
+                if _item_document_id(row) and _item_document_id(row) not in documents:
                     continue
                 kept.append(dict(row))
                 continue
+            if field_name == "evidence_links":
+                kept.append(dict(row))
+                continue
             if field_name == "rules":
-                rule_id = str(row.get("rule_id") or "")
-                if rules and rule_id not in rules:
-                    continue
-                if _item_source_ids(row) & hidden:
+                if not _item_visible(
+                    row, documents=documents, sources=sources, rules=rules, hidden=hidden
+                ):
                     continue
                 kept.append(dict(row))
                 continue
@@ -459,18 +455,17 @@ def filter_materials_for_role(
 
     labels = filtered.get("task_labels")
     if isinstance(labels, dict):
-        events = labels.get("notice_events")
-        if isinstance(events, list):
-            labels = dict(labels)
-            labels["notice_events"] = [
-                dict(event)
-                for event in events
-                if isinstance(event, dict)
-                and _item_visible(
-                    event, documents=documents, sources=sources, rules=rules, hidden=hidden
-                )
-            ]
-            filtered["task_labels"] = labels
+        labels = dict(labels)
+        for key, values in list(labels.items()):
+            if isinstance(values, list) and values and all(isinstance(row, dict) for row in values):
+                labels[key] = [
+                    dict(row)
+                    for row in values
+                    if _item_visible(
+                        row, documents=documents, sources=sources, rules=rules, hidden=hidden
+                    )
+                ]
+        filtered["task_labels"] = labels
 
     kept_ids: set[str] = set()
     for field_name in _LIST_MATERIAL_FIELDS:
@@ -516,24 +511,25 @@ def filter_retrieval_snippets(
     context = ctx or current_research_context()
     rows = list(snippets or [])
     if context is None:
-        return [item for item in rows if not _snippet_leaks_reference(item)]
+        return rows
 
     kept: list[Any] = []
     for item in rows:
         if _snippet_leaks_reference(item):
             continue
-        if isinstance(item, dict):
-            doc = str(item.get("document_id") or "")
-            source = str(item.get("source_id") or "")
-            rule = str(item.get("rule_id") or "")
-            if source and (source in context.hide_source_ids or (
-                context.visible_source_ids and source not in context.visible_source_ids
-            )):
-                continue
-            if doc and context.visible_document_ids and doc not in context.visible_document_ids:
-                continue
-            if rule and context.visible_rule_ids and rule not in context.visible_rule_ids:
-                continue
+        if not isinstance(item, dict):
+            continue
+        doc = str(item.get("document_id") or "")
+        sources = _item_source_ids(item)
+        rule = str(item.get("rule_id") or "")
+        if sources and (sources & context.hide_source_ids or not sources.issubset(context.visible_source_ids)):
+            continue
+        if doc and doc not in context.visible_document_ids:
+            continue
+        if rule and rule not in context.visible_rule_ids:
+            continue
+        if not (sources or doc or rule):
+            continue
         kept.append(item)
     return kept
 
@@ -635,7 +631,9 @@ def role_model_input(
     return out
 
 
-def material_context_message(filtered_input: dict[str, Any]) -> Optional[dict[str, Any]]:
+def material_context_message(
+    filtered_input: dict[str, Any], role: Optional[str] = None
+) -> Optional[dict[str, Any]]:
     research = research_block(filtered_input)
     if not research:
         return None
@@ -645,10 +643,16 @@ def material_context_message(filtered_input: dict[str, Any]) -> Optional[dict[st
     protocol = get_task_config(research.get("task_type"))
     duties = []
     if protocol:
-        entry = protocol.protocol_for(
-            canonical_research_role(None, research.get("task_type"))
-        )
-        duties = list(entry.duties) if entry else []
+        active_role = role
+        if not active_role:
+            visible = research.get("visible_materials")
+            if isinstance(visible, dict) and len(visible) == 1:
+                active_role = next(iter(visible))
+        if active_role:
+            entry = protocol.protocol_for(
+                canonical_research_role(active_role, research.get("task_type"))
+            )
+            duties = list(entry.duties) if entry else []
     lines = [
         "【角色可见材料】以下内容已按可见材料过滤，不含对照答案。",
         description[:6000],
@@ -663,11 +667,12 @@ def inject_material_context(
     dialog_history: list[dict[str, Any]],
     filtered_input: dict[str, Any],
     scenario: str,
+    role: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """CD/DD can take a System preface. CI reads projected case fields instead."""
     if scenario not in ("CD", "DD"):
         return list(dialog_history)
-    preface = material_context_message(filtered_input)
+    preface = material_context_message(filtered_input, role=role)
     if not preface:
         return list(dialog_history)
     return [preface, *dialog_history]

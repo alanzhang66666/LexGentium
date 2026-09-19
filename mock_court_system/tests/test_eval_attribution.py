@@ -178,7 +178,7 @@ def test_start_evaluation_mints_uuid_and_binds_session_run_id(tmp_path, monkeypa
         input_json={"research": {"run_id": run_id}},
     )
     record.dialog_history = [
-        {"turn": 0, "role": "Client", "message": "请帮我起草民事起诉状，原告李婷琳。"}
+        {"turn": 0, "role": "Final", "message": "民事起诉状 原告李婷琳 被告 诉讼请求 事实 证据"}
     ]
     conv.save(record)
 
@@ -219,7 +219,7 @@ def test_start_evaluation_accepts_or_mints_run_id_when_session_has_none(tmp_path
         case_id="CD-Test",
         input_json={},
     )
-    record.dialog_history = [{"turn": 0, "role": "Client", "message": "起诉借款纠纷"}]
+    record.dialog_history = [{"turn": 0, "role": "Final", "message": "民事起诉状 借款纠纷"}]
     conv.save(record)
 
     store = SqliteEvaluationTaskStore(str(tmp_path / "tasks.sqlite3"))
@@ -244,7 +244,7 @@ def test_start_evaluation_accepts_or_mints_run_id_when_session_has_none(tmp_path
         case_id="CD-Test",
         input_json={},
     )
-    record2.dialog_history = [{"turn": 0, "role": "Client", "message": "另一起借款纠纷"}]
+    record2.dialog_history = [{"turn": 0, "role": "Final", "message": "民事起诉状 另一起借款纠纷"}]
     conv.save(record2)
     report_b, _ = ev.start_evaluation_task(["CD"], None, "sess-gen-run", False)
     generated = store.get(report_b).run_id
