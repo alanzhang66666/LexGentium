@@ -128,7 +128,7 @@ export function Hearing3DExperience() {
           <div>
             <p className="text-[13px] text-muted-foreground">观庭 · OBJ 角色资产</p>
             <h1 className="text-[22px] font-medium tracking-tight">仲裁听证 3D</h1>
-            <p className="mt-1 text-sm text-muted-foreground">九席供应商 OBJ 角色 + PBR 贴图 + 司法警察 OBJ 资产，不代表法律裁决。</p>
+            <p className="mt-1 text-sm text-muted-foreground">十三席供应商 OBJ 角色 + PBR 贴图 + 司法警察 OBJ 资产，不代表法律裁决。</p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <button className="rounded-md border border-border px-3 py-2 hover:bg-secondary" onClick={() => setProfessional((v) => !v)}>
@@ -173,7 +173,7 @@ export function Hearing3DExperience() {
           </section>
           <MaterialPanel state={state} />
         </div>
-        <div className="mt-3 text-xs text-muted-foreground">九席已加载：{castManifest.length} · 供应商 OBJ：已加载 · 司法警察 OBJ：已加载 · 事件总数：{events.length} · sourceType: {state.source_type ?? (sessionId ? "backend_run" : "scripted_demo")}</div>
+        <div className="mt-3 text-xs text-muted-foreground">十三席已加载：{castManifest.length} · 供应商 OBJ：已加载 · 司法警察 OBJ：已加载 · 事件总数：{events.length} · sourceType: {state.source_type ?? (sessionId ? "backend_run" : "scripted_demo")}</div>
       </div>
     </main>
   )

@@ -2,7 +2,7 @@
 
 当前页面是 LexGentium 的第一阶段技术闭环 Demo：
 
-- 房间仍使用程序化环境；9 个新增角色使用供应商 OBJ + PBR 运行资产，司法警察继续使用独立 OBJ；
+- 房间仍使用程序化环境；13 个角色使用供应商 OBJ + PBR 运行资产，司法警察继续使用独立 OBJ；
 - 事件来源是 `scripted_demo`，来自交付包中的结构样例，不是真实案件运行；
 - 当前不提供正式动作捕捉、口型、配音、视频导出或后端实时事件；
 - 正式资产到位后，替换 cast manifest 的 `modelUrl`、`seatToRoot`、`forwardAxis` 和 `scale`，不改事件播放器和业务状态层。
@@ -10,7 +10,7 @@
 合同文件：
 
 - `contracts/scene-layout.json`：房间、桌面、座席与相机坐标；
-- `contracts/cast-manifest.json`：9 个 actor_id、角色映射与运行资产路径；
+- `contracts/cast-manifest.json`：13 个 actor_id、角色映射与运行资产路径；
 - `contracts/event-contract.json`：HearingEvent 1.1 草案；
 - `contracts/sample-events.jsonl`：人工结构样例。
 
@@ -34,7 +34,7 @@
 
 `models/judicial-police/` 保存供应商交付的浏览器运行用轻量化 OBJ、MTL 和四张 PBR 贴图。`JudicialPoliceModel.tsx` 使用 Three.js `OBJLoader` 读取轻量化网格，并显式绑定 base color、metallic、roughness、normal 贴图；`/hearing-3d` 会将其作为独立的司法警察角色显示在入口前侧。运行用 OBJ 保留 UV 和材质并聚合顶点、减少退化面，避免浏览器加载超大原始文件。
 
-`models/roles/` 保存本次新增的 9 个角色运行资产：审判长、书记员、中方代理律师、外方代理律师、外方企业代表、外籍被告人、法庭口译员、公诉人、外籍事实证人。每个角色目录包含降面后的 `model-optimized.obj`、`material.mtl` 和四张 PBR 贴图；`ObjCharacterModel.tsx` 显式绑定 PBR 贴图并按席位校准根节点。运行版使用 `scripts/optimize-obj.mjs` 保留 UV、聚合位置顶点并减少退化面，避免九个高模同时解析时阻塞首屏。
+`models/roles/` 保存本次新增的 13 个角色运行资产：审判长、审判员、人民陪审员、书记员、中方代理律师、外籍被告人、中方企业代表、外方代理律师、外方企业代表、法庭口译员、公诉人、技术专家证人、外籍事实证人。每个角色目录包含降面后的 `model-optimized.obj`、`material.mtl` 和四张 PBR 贴图；`ObjCharacterModel.tsx` 显式绑定 PBR 贴图并按席位校准根节点。运行版使用 `scripts/optimize-obj.mjs` 保留 UV、聚合位置顶点并减少退化面，避免十三个高模同时解析时阻塞首屏。
 
 角色模型按席位逐个进入渲染树；等待后续模型解析时先显示程序化 3D 回退，因此页面不会因为某个大 OBJ 尚未完成解析而出现空 Canvas。
 

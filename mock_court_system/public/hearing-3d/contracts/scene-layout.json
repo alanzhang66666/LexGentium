@@ -35,6 +35,38 @@
       "note": "保留"
     },
     {
+      "id": "associate_judge",
+      "actor_id": "associate_judge",
+      "label": "审判员",
+      "position": [
+        1.0,
+        0.45,
+        2.8
+      ],
+      "look_at": [
+        0,
+        1.35,
+        0
+      ],
+      "note": "新增供应商 OBJ 角色"
+    },
+    {
+      "id": "people_juror",
+      "actor_id": "people_juror",
+      "label": "人民陪审员",
+      "position": [
+        -1.0,
+        0.45,
+        2.8
+      ],
+      "look_at": [
+        0,
+        1.35,
+        0
+      ],
+      "note": "新增供应商 OBJ 角色"
+    },
+    {
       "id": "clerk",
       "actor_id": "clerk",
       "label": "仲裁庭秘书",
@@ -81,6 +113,22 @@
         -1.15
       ],
       "note": "保留"
+    },
+    {
+      "id": "china_company_rep",
+      "actor_id": "china_company_rep",
+      "label": "中方企业代表",
+      "position": [
+        -2.9,
+        0.45,
+        -2.55
+      ],
+      "look_at": [
+        0,
+        1.35,
+        -2.55
+      ],
+      "note": "新增供应商 OBJ 角色"
     },
     {
       "id": "defendant_counsel",
@@ -159,6 +207,22 @@
         0,
         1.35,
         -2.35
+      ],
+      "note": "新增供应商 OBJ 角色"
+    },
+    {
+      "id": "technical_expert_witness",
+      "actor_id": "technical_expert_witness",
+      "label": "技术专家证人",
+      "position": [
+        4.0,
+        0.45,
+        -0.8
+      ],
+      "look_at": [
+        0,
+        1.35,
+        -0.8
       ],
       "note": "新增供应商 OBJ 角色"
     }

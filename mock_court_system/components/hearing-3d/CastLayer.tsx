@@ -8,7 +8,7 @@ import { ObjCharacterModel } from "./ObjCharacterModel"
 import { CHARACTER_ASSETS } from "./asset-adapter"
 
 export function CastLayer({ members, actorModes, activeActorId, isSpeaking }: { members: CastMember[]; actorModes: Record<string, ActorMode>; activeActorId?: string | null; isSpeaking?: string | null }) {
-  // 供应商 OBJ 体量较大，按席位逐个放入渲染树，避免首屏并发解析九个高模导致 Canvas 空白。
+  // 供应商 OBJ 体量较大，按席位逐个放入渲染树，避免首屏并发解析十三个高模导致 Canvas 空白。
   const [modelSlots, setModelSlots] = useState(1)
   useEffect(() => {
     setModelSlots(1)
