@@ -106,7 +106,7 @@ export function emptyLinks(): SessionLinks {
 
 export async function streamSessionMessage(
   sessionId: string,
-  body: { message: string; role?: string },
+  body: { message: string; role?: string; operation_id?: string },
   onEvent: (evt: Record<string, unknown>) => void,
   signal?: AbortSignal,
 ) {

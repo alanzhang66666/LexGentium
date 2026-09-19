@@ -1,6 +1,6 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
-export async function GET() {
-  return backendFetch("/health", { label: "health", timeoutMs: 10000 })
+export async function GET(request: Request) {
+  return proxyJson(request, {path: "/health", label: "health", timeoutMs: 10000})
 }
 

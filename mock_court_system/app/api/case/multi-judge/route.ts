@@ -1,13 +1,6 @@
 import { type NextRequest } from "next/server"
-import { backendFetch, parseJsonBody } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(request: NextRequest) {
-  const parsed = await parseJsonBody(request)
-  if (!parsed.ok) return parsed.response
-  return backendFetch("/case/multi-judge", {
-    method: "POST",
-    body: parsed.body,
-    label: "case-multi-judge",
-    timeoutMs: 180000,
-  })
+  return proxyJson(request, {path: "/case/multi-judge", method: "POST", label: "case-multi-judge", timeoutMs: 180000})
 }

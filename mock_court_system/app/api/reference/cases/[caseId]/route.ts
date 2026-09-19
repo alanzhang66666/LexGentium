@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,5 @@ export async function GET(
   const { caseId } = await params
   const split = new URL(request.url).searchParams.get("split")
   const query = split ? `?split=${encodeURIComponent(split)}` : ""
-  return backendFetch(`/reference/cases/${encodeURIComponent(caseId)}${query}`, {
-    label: "reference-case-full",
-  })
+  return proxyJson(request, {path: `/reference/cases/${encodeURIComponent(caseId)}${query}`, label: "reference-case-full"})
 }

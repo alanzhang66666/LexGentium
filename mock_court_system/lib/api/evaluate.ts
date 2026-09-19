@@ -1,5 +1,10 @@
 import { apiFetch } from "@/lib/api/http"
-import type { EvaluationReportsList, EvaluationRequest, EvaluationResponse } from "@/lib/evaluation-types"
+import type {
+  EvaluationReportResponse,
+  EvaluationReportsList,
+  EvaluationRequest,
+  EvaluationResponse,
+} from "@/lib/evaluation-types"
 
 export function startEvaluation(body: EvaluationRequest) {
   return apiFetch<EvaluationResponse>("/api/evaluate", {
@@ -17,7 +22,7 @@ export function listEvaluationReports() {
 }
 
 export function getEvaluationReport(reportId: string) {
-  return apiFetch<{ report_id: string; status: string; results: unknown }>(
+  return apiFetch<EvaluationReportResponse>(
     `/api/evaluate/reports/${encodeURIComponent(reportId)}`,
   )
 }

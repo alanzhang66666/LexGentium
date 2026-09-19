@@ -1,3 +1,25 @@
+/**
+ * SseEventV1 envelope → 旧域事件形状（双读期翻译层）。
+ * envelope.payload 即原事件体，payload.event 是原事件名。
+ */
+function envelopeToLegacy(env: Record<string, unknown>): Record<string, unknown> {
+  const payload = (env.payload ?? {}) as Record<string, unknown>
+  const out: Record<string, unknown> = { ...payload }
+  out.type = (typeof payload.event === "string" && payload.event) || (env.type as string)
+  out.sequence = env.sequence
+  out.operation_id = env.operation_id
+  out.request_id = env.request_id
+  if (env.text != null && out.text === undefined) out.text = env.text
+  if (env.role != null && out.role === undefined) out.role = env.role
+  if (env.sub_stage != null && out.sub_stage === undefined) out.sub_stage = env.sub_stage
+  if (env.degraded !== undefined && out.degraded === undefined) out.degraded = env.degraded
+  if (env.type === "error" && out.message === undefined) {
+    const err = env.error as Record<string, unknown> | null | undefined
+    out.message = err?.message ?? err?.code ?? "stream error"
+  }
+  return out
+}
+
 export function parseSseBlocks(buffer: string): { events: Record<string, unknown>[]; rest: string } {
   const normalized = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
   const chunks = normalized.split("\n\n")
@@ -10,6 +32,10 @@ export function parseSseBlocks(buffer: string): { events: Record<string, unknown
     if (!dataLines.length) continue
     try {
       const data = JSON.parse(dataLines.join("\n")) as Record<string, unknown>
+      if (data.schema_version === "1") {
+        events.push(envelopeToLegacy(data))
+        continue
+      }
       if (eventLine && data.type === undefined) data.type = eventLine.slice(6).trim()
       events.push(data)
     } catch {

@@ -1,12 +1,9 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ reportId: string }> },
 ) {
   const { reportId } = await params
-  return backendFetch(`/evaluation/reports/${encodeURIComponent(reportId)}`, {
-    label: "evaluation-report",
-    timeoutMs: 30000,
-  })
+  return proxyJson(request, {path: `/evaluation/reports/${encodeURIComponent(reportId)}`, label: "evaluation-report", timeoutMs: 30000})
 }

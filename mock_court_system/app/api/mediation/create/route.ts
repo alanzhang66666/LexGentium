@@ -1,11 +1,6 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(request: NextRequest) {
-  return backendFetch("/mediation/create", {
-    method: "POST",
-    body: await request.json(),
-    label: "mediation-create",
-    timeoutMs: 60000,
-  })
+  return proxyJson(request, {path: "/mediation/create", method: "POST", label: "mediation-create", timeoutMs: 60000})
 }

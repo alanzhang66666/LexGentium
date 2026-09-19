@@ -38,9 +38,29 @@ export function getCaseFull(caseId: string, split?: string) {
 
 export function listResearchPacks(dataset?: string) {
   const query = dataset ? `?dataset=${encodeURIComponent(dataset)}` : ""
-  return apiFetch<{ packs: PackSummary[]; total: number }>(
-    `/api/reference/research-packs${query}`,
-  )
+  return apiFetch<{
+    packs: PackSummary[]
+    total: number
+    governance?: {
+      formal_pack_count: number
+      formal_status: string
+      fixture_count: number
+      candidate_count: number
+    }
+  }>(`/api/reference/research-packs${query}`)
+}
+
+export interface ResearchInventory {
+  formal_pack_count: number
+  formal_status: string
+  technical_fixtures: Array<{ id: string; classification?: string }>
+  unreviewed_annotations: { count?: number; independent_review_complete?: boolean }
+  case_25: { classification?: string; confirmation?: string }
+  disclaimer?: string
+}
+
+export function getResearchInventory() {
+  return apiFetch<ResearchInventory>("/api/research/inventory")
 }
 
 export function getResearchPack(dataset: string, cluster: string, packVersion?: string) {

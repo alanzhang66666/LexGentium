@@ -1,13 +1,6 @@
 import { type NextRequest } from "next/server"
-import { backendFetch, parseJsonBody } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(request: NextRequest) {
-  const parsed = await parseJsonBody(request)
-  if (!parsed.ok) return parsed.response
-  return backendFetch("/research/evaluate", {
-    method: "POST",
-    body: parsed.body,
-    label: "research-evaluate",
-    request,
-  })
+  return proxyJson(request, {path: "/research/evaluate", method: "POST", label: "research-evaluate"})
 }

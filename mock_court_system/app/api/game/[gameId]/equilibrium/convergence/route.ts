@@ -1,11 +1,9 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ gameId: string }> },
 ) {
   const { gameId } = await params
-  return backendFetch(`/game/${encodeURIComponent(gameId)}/equilibrium/convergence`, {
-    label: "game-equilibrium-convergence",
-  })
+  return proxyJson(request, {path: `/game/${encodeURIComponent(gameId)}/equilibrium/convergence`, label: "game-equilibrium-convergence"})
 }

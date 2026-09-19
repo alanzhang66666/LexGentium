@@ -1,13 +1,10 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ taskId: string }> },
 ) {
   const { taskId } = await params
-  return backendFetch(`/case/full-simulation/${encodeURIComponent(taskId)}`, {
-    label: "full-simulation-status",
-    timeoutMs: 30000,
-  })
+  return proxyJson(request, {path: `/case/full-simulation/${encodeURIComponent(taskId)}`, label: "full-simulation-status", timeoutMs: 30000})
 }
 

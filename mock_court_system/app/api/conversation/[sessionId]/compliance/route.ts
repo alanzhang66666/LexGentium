@@ -1,11 +1,9 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   const { sessionId } = await params
-  return backendFetch(`/conversation/${encodeURIComponent(sessionId)}/compliance`, {
-    label: "conversation-compliance",
-  })
+  return proxyJson(request, {path: `/conversation/${encodeURIComponent(sessionId)}/compliance`, label: "conversation-compliance"})
 }

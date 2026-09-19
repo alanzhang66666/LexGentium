@@ -1,12 +1,7 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(request: NextRequest) {
-  return backendFetch("/conversation/import", {
-    method: "POST",
-    body: await request.json(),
-    label: "conversation-import",
-    timeoutMs: 30000,
-  })
+  return proxyJson(request, {path: "/conversation/import", method: "POST", label: "conversation-import", timeoutMs: 30000})
 }
 

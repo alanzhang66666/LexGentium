@@ -47,17 +47,19 @@ export function getLlmConfig() {
   return apiFetch<CurrentLlmConfig>("/api/config/llm")
 }
 
-export function saveLlmConfig(body: LlmConfigPayload) {
+export function saveLlmConfig(body: LlmConfigPayload, operationId?: string) {
   return apiFetch<LlmMutationResult>("/api/config/llm", {
     method: "POST",
     body: JSON.stringify(body),
+    headers: operationId ? { "x-operation-id": operationId } : undefined,
   })
 }
 
-export function testLlmConfig(body: LlmConfigPayload) {
+export function testLlmConfig(body: LlmConfigPayload, operationId?: string) {
   return apiFetch<LlmMutationResult>("/api/config/llm/test", {
     method: "POST",
     body: JSON.stringify(body),
+    headers: operationId ? { "x-operation-id": operationId } : undefined,
   })
 }
 

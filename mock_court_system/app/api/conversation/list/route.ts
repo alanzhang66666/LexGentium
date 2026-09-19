@@ -1,11 +1,8 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams.toString()
-  return backendFetch(`/conversation/list${params ? `?${params}` : ""}`, {
-    label: "conversation-list",
-    timeoutMs: 30000,
-  })
+  const path = `/conversation/list${params ? `?${params}` : ""}`
+  return proxyJson(request, { path, label: "conversation-list", timeoutMs: 30000 })
 }
-

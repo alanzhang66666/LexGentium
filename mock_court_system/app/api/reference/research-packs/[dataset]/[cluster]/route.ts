@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
   request: NextRequest,
@@ -8,8 +8,5 @@ export async function GET(
   const { dataset, cluster } = await params
   const packVersion = new URL(request.url).searchParams.get("pack_version")
   const query = packVersion ? `?pack_version=${encodeURIComponent(packVersion)}` : ""
-  return backendFetch(
-    `/reference/research-packs/${encodeURIComponent(dataset)}/${encodeURIComponent(cluster)}${query}`,
-    { label: "reference-research-pack" },
-  )
+  return proxyJson(request, {path: `/reference/research-packs/${encodeURIComponent(dataset)}/${encodeURIComponent(cluster)}${query}`, label: "reference-research-pack"})
 }

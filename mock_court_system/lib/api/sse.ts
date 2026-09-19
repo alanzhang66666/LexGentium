@@ -1,5 +1,3 @@
-import { clientAuthHeaders } from "@/lib/session/unlock"
-
 export { consumeSse, parseSseBlocks } from "@/lib/court3d/parseSse"
 
 export async function streamJson(
@@ -10,7 +8,7 @@ export async function streamJson(
 ) {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal,
     cache: "no-store",

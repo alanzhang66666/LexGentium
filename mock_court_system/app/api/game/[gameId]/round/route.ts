@@ -1,20 +1,14 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ gameId: string }> },
 ) {
   const { gameId } = await params
-  let body: unknown = {}
-  try {
-    body = await request.json()
-  } catch {
-    body = {}
-  }
-  return backendFetch(`/game/${encodeURIComponent(gameId)}/round`, {
+  return proxyJson(request, {
+    path: `/game/${encodeURIComponent(gameId)}/round`,
     method: "POST",
-    body,
     label: "game-round",
     timeoutMs: 300000,
   })

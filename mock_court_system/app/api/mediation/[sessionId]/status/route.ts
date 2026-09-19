@@ -1,11 +1,9 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   const { sessionId } = await params
-  return backendFetch(`/mediation/${encodeURIComponent(sessionId)}/status`, {
-    label: "mediation-status",
-  })
+  return proxyJson(request, {path: `/mediation/${encodeURIComponent(sessionId)}/status`, label: "mediation-status"})
 }

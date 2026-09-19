@@ -1,7 +1,6 @@
 import type { ConflictStrategy } from "@/lib/conversation-types"
 import type { PerformanceEvent } from "@/lib/court3d/protocol"
 import { consumeSse } from "@/lib/court3d/parseSse"
-import { clientAuthHeaders } from "@/lib/session/unlock"
 
 export async function streamGameRound(
   gameId: string,
@@ -10,7 +9,7 @@ export async function streamGameRound(
 ) {
   const res = await fetch(`/api/game/${encodeURIComponent(gameId)}/stream-round`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
     signal,
   })

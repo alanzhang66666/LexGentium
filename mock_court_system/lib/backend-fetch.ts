@@ -10,73 +10,47 @@ interface BackendProxyOptions {
   timeoutMs?: number
   label?: string
   timeoutMessage?: string
+  /** @deprecated Accepted for call-site compatibility; browser auth is never forwarded. */
   request?: Request
 }
-
-const BEARER_RE = /^Bearer\s+\S+/i
 
 function envBackendToken(): string {
   return (process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || "").trim()
 }
 
-function bearerFromHeader(value: string | null | undefined): string | undefined {
-  if (!value) return undefined
-  const trimmed = value.trim()
-  return BEARER_RE.test(trimmed) ? trimmed : undefined
-}
-
-/** Forward incoming Bearer or server-side API_TOKEN / BACKEND_API_TOKEN. Never log the token. */
-export async function backendAuthHeaders(incoming?: Request): Promise<Record<string, string>> {
-  const fromIncoming = bearerFromHeader(incoming?.headers.get("authorization"))
-  if (fromIncoming) {
-    return { Authorization: fromIncoming }
-  }
-  try {
-    const { headers } = await import("next/headers")
-    const requestHeaders = await headers()
-    const fromRequest = bearerFromHeader(requestHeaders.get("authorization"))
-    if (fromRequest) {
-      return { Authorization: fromRequest }
-    }
-  } catch {
-    // Not in a Next.js request context (scripts / unit tests).
-  }
+/**
+ * Server-only auth boundary. The backend token comes exclusively from
+ * API_TOKEN / BACKEND_API_TOKEN environment configuration; browser-supplied
+ * Authorization headers are never forwarded. Never log the token.
+ */
+export async function backendAuthHeaders(): Promise<Record<string, string>> {
   const envToken = envBackendToken()
-  if (envToken) {
-    return { Authorization: `Bearer ${envToken}` }
-  }
-  return {}
+  return envToken ? { Authorization: `Bearer ${envToken}` } : {}
 }
 
 const DEFAULT_TIMEOUT_MS = 30000
 
-function isConnectionError(message: string): boolean {
-  return (
-    message.includes("fetch failed") ||
-    message.includes("ECONNREFUSED") ||
-    message.includes("Failed to fetch") ||
-    message.includes("NetworkError")
-  )
-}
-
-function buildErrorResponse(error: unknown, timeoutMs: number, label: string, timeoutMessage?: string) {
-  const message = error instanceof Error ? error.message : String(error)
-  const isTimeout = message.includes("aborted") || message.includes("AbortError")
-  const cannotConnect = isConnectionError(message)
+/**
+ * Sanitized BFF error: PublicError envelope, no backend URL, no raw
+ * exception text. Connect-level failures -> 502 backend_unavailable;
+ * header timeout -> 504 backend_timeout.
+ */
+function buildErrorResponse(error: unknown, _timeoutMs: number, _label: string, _timeoutMessage?: string) {
+  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error)
+  const isTimeout = message.includes("AbortError") || message.includes("aborted") || message.includes("TimeoutError")
+  const requestId = crypto.randomUUID().replaceAll("-", "")
 
   return NextResponse.json(
     {
-      error: isTimeout ? "请求超时" : cannotConnect ? "无法连接到后端服务器" : "Internal server error",
-      detail: message,
-      backend_url: BACKEND_URL,
-      suggestion: isTimeout
-        ? timeoutMessage || `后端处理超时（>${timeoutMs / 1000}s）。可稍后重试。`
-        : cannotConnect
-          ? `请确保后端服务器正在运行 (python api_server.py)，并且地址为 ${BACKEND_URL}`
-          : undefined,
-      source: label,
+      error: {
+        code: isTimeout ? "backend_timeout" : "backend_unavailable",
+        message: isTimeout ? "backend response timeout" : "backend unavailable",
+        request_id: requestId,
+        retriable: true,
+        field_errors: [],
+      },
     },
-    { status: 500 },
+    { status: isTimeout ? 504 : 502, headers: { "x-request-id": requestId } },
   )
 }
 
@@ -116,13 +90,12 @@ export async function backendFetch(path: string, options: BackendProxyOptions = 
     timeoutMs = DEFAULT_TIMEOUT_MS,
     label = path,
     timeoutMessage,
-    request,
   } = options
 
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
-    const headers: Record<string, string> = { ...(await backendAuthHeaders(request)) }
+    const headers: Record<string, string> = { ...(await backendAuthHeaders()) }
     if (body !== undefined) {
       headers["Content-Type"] = "application/json"
     }

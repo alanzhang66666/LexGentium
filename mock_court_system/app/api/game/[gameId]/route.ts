@@ -1,22 +1,17 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ gameId: string }> },
 ) {
   const { gameId } = await params
-  return backendFetch(`/game/${encodeURIComponent(gameId)}`, {
-    label: "game-get",
-  })
+  return proxyJson(request, {path: `/game/${encodeURIComponent(gameId)}`, label: "game-get"})
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ gameId: string }> },
 ) {
   const { gameId } = await params
-  return backendFetch(`/game/${encodeURIComponent(gameId)}`, {
-    method: "DELETE",
-    label: "game-delete",
-  })
+  return proxyJson(request, {path: `/game/${encodeURIComponent(gameId)}`, method: "DELETE", label: "game-delete"})
 }

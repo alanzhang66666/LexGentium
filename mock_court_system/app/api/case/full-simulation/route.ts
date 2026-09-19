@@ -1,12 +1,7 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(request: NextRequest) {
-  return backendFetch("/case/full-simulation", {
-    method: "POST",
-    body: await request.json(),
-    label: "full-simulation-start",
-    timeoutMs: 60000,
-  })
+  return proxyJson(request, {path: "/case/full-simulation", method: "POST", label: "full-simulation-start", timeoutMs: 60000})
 }
 

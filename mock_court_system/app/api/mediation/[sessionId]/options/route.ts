@@ -1,14 +1,9 @@
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   const { sessionId } = await params
-  return backendFetch(`/mediation/${encodeURIComponent(sessionId)}/options`, {
-    method: "POST",
-    body: {},
-    label: "mediation-options",
-    timeoutMs: 120000,
-  })
+  return proxyJson(request, {path: `/mediation/${encodeURIComponent(sessionId)}/options`, method: "POST", label: "mediation-options", timeoutMs: 120000})
 }

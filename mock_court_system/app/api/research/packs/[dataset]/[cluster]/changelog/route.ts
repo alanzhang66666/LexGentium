@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server"
-import { backendFetch } from "@/lib/backend-fetch"
+import { proxyJson } from "@/lib/backend-proxy"
 
 export async function GET(
   request: NextRequest,
@@ -8,8 +8,5 @@ export async function GET(
   const { dataset, cluster } = await params
   const search = request.nextUrl.searchParams.toString()
   const suffix = search ? `?${search}` : ""
-  return backendFetch(
-    `/research/packs/${encodeURIComponent(dataset)}/${encodeURIComponent(cluster)}/changelog${suffix}`,
-    { label: "research-changelog", request },
-  )
+  return proxyJson(request, {path: `/research/packs/${encodeURIComponent(dataset)}/${encodeURIComponent(cluster)}/changelog${suffix}`, label: "research-changelog"})
 }
