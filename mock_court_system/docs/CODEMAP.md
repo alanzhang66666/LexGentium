@@ -1,4 +1,4 @@
-# LexGentium 0.8 CODEMAP
+# LexGentium 1.0 CODEMAP
 
 盘点截止 **2026-09-15**。B–F 已搬家。本页是现役分层地图，不是施工前标签稿。
 

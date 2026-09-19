@@ -1,10 +1,10 @@
-# LexGentium 0.8 — 工程笔记
+# LexGentium 1.0 — 工程笔记
 
 [中文根说明](../README.md) · [English](../README.en.md) · [This page in English](README.en.md)
 
 本页是 **接口 / 目录 / 引用**。要跑起来，从仓库根 [README.md](../README.md) 走。
 
-一场听证一个 `session_id`。版本 **0.8.0**。国际商事仲裁听证仿真，不是泛用模拟法庭演示页。
+一场听证一个 `session_id`。版本 **1.0.0**。国际商事仲裁研究平台，不是泛用模拟法庭演示页。
 
 | 标记 | 意思 |
 |------|------|
@@ -107,7 +107,7 @@ mock_court_system/
 ├── api_server.py
 ├── main.py                     # 离线批跑（COURT_API_*；不是 Web）
 ├── DESIGN.md
-├── package.json                # 0.8.0
+├── package.json                # 1.0.0
 └── requirements.txt
 ```
 

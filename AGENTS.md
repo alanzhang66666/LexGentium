@@ -1,6 +1,6 @@
 # LexGentium
 
-国际商事仲裁听证仿真工作台。能跑的代码只在 `mock_court_system/`。版本 `0.8.0`。
+国际商事仲裁研究平台。能跑的代码只在 `mock_court_system/`。版本 `1.0.0`。
 
 ## 怎么跑
 

@@ -1,0 +1,32 @@
+[Unit]
+Description=LexGentium Next.js Web (BFF)
+After=network.target lexgentium-api.service
+Requires=lexgentium-api.service
+
+# Non-root service account. The BFF reads BACKEND_URL/API_TOKEN only from
+# the server environment — tokens never reach the browser.
+[Service]
+Type=simple
+User=lexgentium
+Group=lexgentium
+WorkingDirectory=/opt/lexgentium/mock_court_system
+EnvironmentFile=/opt/lexgentium/mock_court_system/.env
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="BACKEND_URL=http://127.0.0.1:8000"
+ExecStart=/usr/bin/env npx next start -p 3000
+
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+ReadWritePaths=/var/lib/lexgentium/logs
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,8 @@
-# LexGentium 0.8
+# LexGentium 1.0
 
 [中文](README.md) · [English](README.en.md)
 
-**A workbench for international commercial arbitration hearing simulation.** Not a generic mock-trial demo.
+**International Commercial Arbitration Research Platform.** Not a generic mock-trial demo.
 
 One hearing = one `session_id`. Three steps share that session:
 
@@ -12,7 +12,7 @@ One hearing = one `session_id`. Three steps share that session:
 | 2 Watch | Procedural 3D (Phase A, not formal VRM) | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 Review | Contrast, strategy, procedural compliance | [`/evaluation`](http://localhost:3000/evaluation) |
 
-**Runnable code lives only in [`mock_court_system/`](mock_court_system/).** Start there. Version `0.8.0`.
+**Runnable code lives only in [`mock_court_system/`](mock_court_system/).** Start there. Version `1.0.0`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Design System: LexGentium Hearing
 
-Version **0.8.0**. Adapted from Linear’s dark-first workbench density and Stripe’s institutional restraint on marketing pages. Not a pixel clone. Do not use Linear’s brand indigo (`#5e6ad2`) or proprietary fonts (CursorGothic, Berkeley Mono).
+Version **1.0.0**. Adapted from Linear’s dark-first workbench density and Stripe’s institutional restraint on marketing pages. Not a pixel clone. Do not use Linear’s brand indigo (`#5e6ad2`) or proprietary fonts (CursorGothic, Berkeley Mono).
 
 ## 1. Visual Theme & Atmosphere
 
@@ -123,7 +123,7 @@ Two bars share the same tokens. Do not introduce Linear indigo (`#5e6ad2`), Curs
 - Do not flatten 博弈 / 评测 / 全案 / 调解 as fifth top-level links. 策略推演 and 对照本场 live under 复盘. `game_id` / `report_id` show on the session chip
 - Right cluster: session chip, health dot, theme
 - Optional command bar: `Cmd+K` / `Ctrl+K` lists the same `NAV_ACTIONS` as the four dropdowns. Display entry only; not a second feature set
-- Logo: 28px square, solid brand fill, Scale icon - **no blur glow**
+- Mark: 20px LG character from favicon, no plate / ring / glow. Full lockup only on marketing bar and home hero.
 
 **Dropdown**
 
@@ -213,7 +213,7 @@ Touch targets stay ≥32px on workbench, ≥40px on marketing CTAs.
 When editing UI:
 
 1. Read this file and `app/globals.css` before adding a color.
-2. Official product language: **国际商事仲裁听证仿真**. Flows: 开庭 → 观庭 → 复盘.
+2. Official product language: **国际商事仲裁研究平台**. Flows: 开庭 → 观庭 → 复盘.
 3. Scenarios: CD 申请准备, DD 答辩准备, CI 仲裁听证.
 4. Roles on screen: 首席仲裁员 / 申请人 / 被申请人 — never paint them as 法官/原告/被告 in new copy.
 5. Shells: `MarketingShell` for `/` `/about` `/docs`; `WorkbenchShell` for product pages; `footer={false}` on live hearing and 3D session.

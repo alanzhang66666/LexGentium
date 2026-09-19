@@ -1,0 +1,349 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 核验并精确锁定属性测试与 E2E 依赖": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265386
+      },
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717280067
+      }
+    ],
+    "1.2 建立范围、路由、配置与版本声明源": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265579
+      },
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717288366
+      }
+    ],
+    "1.3 优先关闭评测 schema、路由与 BFF 类型漂移": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265665
+      },
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717295320
+      }
+    ],
+    "2.1 实现 RequestContextMiddleware 与 PublicError": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265714
+      }
+    ],
+    "2.2 实现共享 JSON/SSE BFF 代理": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265812
+      }
+    ],
+    "2.3 迁移稳定 Route Handler 到共享代理": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265884
+      }
+    ],
+    "3.1 实现 ConfigurationManager 与生产配置校验": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717265957
+      }
+    ],
+    "3.2 移除浏览器 Token 并改为 BFF server-only 认证": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266010
+      }
+    ],
+    "3.3 实现生产认证、Origin、Body Limit 与 docs 保护": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266059
+      }
+    ],
+    "3.4 完成配置页面安全结果与输入恢复": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266114
+      }
+    ],
+    "4.1 实现 OperationStore 与状态机": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266169
+      }
+    ],
+    "4.2 实现 Python/TypeScript 对称 SSE_Event_Codec": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266221
+      }
+    ],
+    "4.3 实现 OperationCoordinator、StreamLifecycle 与取消令牌": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266264
+      }
+    ],
+    "4.4 接入会话、全案与 game 流并更新消费者": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266335
+      }
+    ],
+    "5.1 优先修复 CI 自动 60/30 不一致": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266389
+      }
+    ],
+    "5.2 实现 CheckpointV2 与 RuntimeUnitOfWork": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266442
+      }
+    ],
+    "5.3 完成 runtime 恢复、隔离、路由与有界上下文": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266491
+      }
+    ],
+    "5.4 实现 LLMCallContext、缓存身份与预算": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266535
+      }
+    ],
+    "5.5 实现 UnknownFactGuard 与材料不足停止": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266578
+      }
+    ],
+    "6.1 实现 StoreRegistry 和 additive migrations": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266625
+      }
+    ],
+    "6.2 实现 SQLite 在线备份、校验和 clean restore": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266668
+      }
+    ],
+    "6.3 实现 Conversation Archive Codec 与事务导入": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266709
+      }
+    ],
+    "7.1 实现显式 DataBoundaryClassifier": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266748
+      }
+    ],
+    "7.2 实现 Research Governance、FormalReviewV2 与 Pack Codec": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266793
+      }
+    ],
+    "7.3 将研究计数和材料不足终态接入 operation/runtime": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266851
+      }
+    ],
+    "7.4 更新研究 inventory/API/UI 与导出比较": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266892
+      }
+    ],
+    "8.1 实现 provenance store 与 evaluation task 原子接受": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266936
+      }
+    ],
+    "8.2 从已提交会话构建评测输入并移除 session_predictions": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717266975
+      }
+    ],
+    "8.3 接通 API/BFF/UI 报告来源与降级标记": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267018
+      }
+    ],
+    "9.1 拆分 liveness 与 component readiness": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267088
+      }
+    ],
+    "9.2 实现 completion log 与固定指标 catalog": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267139
+      }
+    ],
+    "9.3 实现可测试告警状态机与 monitoring 配置": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267193
+      }
+    ],
+    "10.1 实现 canonical manifest、evidence 与 gap 模型": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267243
+      }
+    ],
+    "10.2 实现 deterministic gate 与 append-only decision chain": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267288
+      }
+    ],
+    "10.3 实现 scope、source-control 与敏感产物扫描": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267328
+      }
+    ],
+    "11.1 统一非观庭页面状态、错误、身份与实验标签": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267373
+      }
+    ],
+    "11.2 建立 Playwright 一次性 E2E harness 与故障注入夹具": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267433
+      }
+    ],
+    "12.1 实现性能样本、环境身份与 nearest-rank 统计": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267505
+      }
+    ],
+    "12.2 实现 release benchmark runner 并扩展 hearing/plead 基准": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267573
+      }
+    ],
+    "12.3 实现 Web cold-navigation 性能自动采样": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267640
+      }
+    ],
+    "12.4 实现高成本操作容量 semaphore 与 FullCase 资源释放": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267713
+      }
+    ],
+    "13.1 实现机器可校验的部署模板和文档命令 catalog": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717267768
+      }
+    ],
+    "13.2 实现自动备份、恢复、升级与回滚演练脚本": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717268037
+      }
+    ],
+    "14.1 实现 release gate CLI 与分阶段有限命令": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717268124
+      }
+    ],
+    "14.2 实现同 Commit 三连跑和测试范围过滤": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717268196
+      }
+    ],
+    "14.3 生成候选 manifest/evidence 并执行自动发布演练": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717268296
+      }
+    ],
+    "15. Final checkpoint — Ensure all tests pass, ask the user if questions arise.": [
+      {
+        "executionId": "ac524a48-7afa-49b0-80c0-39d9888d5723",
+        "chatSessionId": "sess_154c854c-50db-4d9b-af89-8f7d5f5c2da1",
+        "timestamp": 1789717268358
+      }
+    ]
+  }
+}

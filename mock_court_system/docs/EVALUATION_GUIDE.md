@@ -1,4 +1,4 @@
-# 评测指南（LexGentium 0.8）
+# 评测指南（LexGentium 1.0）
 
 ## 主路径（Web / API）
 

@@ -1,6 +1,6 @@
-# 主工程全链路梳理（LexGentium 0.8）
+# 主工程全链路梳理（LexGentium 1.0）
 
-本文件面向**本机/离线演示**场景。一场庭只有一个对外 ID：`session_id`（SQLite）。浏览器只打 Next `/api/*`；FastAPI 经 `api/services/` 处理业务。`main.py` 仅离线批跑，不是 Web 主入口。当前版本 **0.8.0**。
+本文件面向**本机/离线演示**场景。一场庭只有一个对外 ID：`session_id`（SQLite）。浏览器只打 Next `/api/*`；FastAPI 经 `api/services/` 处理业务。`main.py` 仅离线批跑，不是 Web 主入口。当前版本 **1.0.0**。
 
 ## 1. 目录与职责
 

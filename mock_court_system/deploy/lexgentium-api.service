@@ -1,0 +1,33 @@
+[Unit]
+Description=LexGentium FastAPI Backend
+After=network.target
+
+# Non-root service account. The application only needs write access to the
+# runtime data, log, and evidence directories — everything else is read-only.
+[Service]
+Type=simple
+User=lexgentium
+Group=lexgentium
+WorkingDirectory=/opt/lexgentium/mock_court_system
+EnvironmentFile=/opt/lexgentium/mock_court_system/.env
+Environment="PATH=/opt/lexgentium/mock_court_system/venv/bin"
+Environment="API_HOST=127.0.0.1"
+Environment="API_PORT=8000"
+ExecStart=/opt/lexgentium/mock_court_system/venv/bin/python api_server.py
+
+# Graceful shutdown: stop accepting work, drain in-flight operations.
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# Least privilege: only runtime paths are writable.
+ReadWritePaths=/var/lib/lexgentium/data /var/lib/lexgentium/logs /var/lib/lexgentium/evidence
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,8 @@
-# LexGentium 0.8
+# LexGentium 1.0
 
 [中文](README.md) · [English](README.en.md)
 
-**国际商事仲裁听证仿真工作台。** 不是泛用模拟法庭演示页。
+**国际商事仲裁研究平台。** 不是泛用模拟法庭演示页。
 
 一场听证 = 一个 `session_id`。三步共用这一场：
 
@@ -12,7 +12,7 @@
 | 2 观庭 | 程序化 3D（Phase A，非正式 VRM） | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 复盘 | 对照、策略、程序合规 | [`/evaluation`](http://localhost:3000/evaluation) |
 
-**能跑的代码只在 [`mock_court_system/`](mock_court_system/)。** 从那里启动。版本 `0.8.0`。
+**能跑的代码只在 [`mock_court_system/`](mock_court_system/)。** 从那里启动。版本 `1.0.0`。
 
 ---
 

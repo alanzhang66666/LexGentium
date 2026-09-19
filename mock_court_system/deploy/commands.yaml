@@ -1,0 +1,155 @@
+# Machine-checkable deployment command catalog.
+# Every command declares cwd, preconditions, and expected result so the
+# validator (scripts/validate_deployment_docs.py) and release rehearsal can
+# diff documentation against executable reality. cwd is always the product
+# root `mock_court_system/` unless stated otherwise.
+version: 1
+
+commands:
+  - id: install.python
+    cwd: mock_court_system
+    preconditions: ["python>=3.9", "virtualenv active"]
+    command: pip install -r requirements.lock
+    expected_exit: 0
+    expected_result: locked dependency set installed
+
+  - id: install.node
+    cwd: mock_court_system
+    preconditions: ["node>=20", "package-lock.json present"]
+    command: npm ci
+    expected_exit: 0
+    expected_result: node_modules matches the lock file
+
+  - id: config.env
+    cwd: mock_court_system
+    preconditions: [".env.example present"]
+    command: cp .env.example .env
+    expected_exit: 0
+    expected_result: .env created from template; operator fills LLM_API_KEY/LLM_BASE_URL/LLM_MODEL and, for external binds, API_TOKEN
+
+  - id: build.web
+    cwd: mock_court_system
+    preconditions: ["install.node"]
+    command: npm run build
+    expected_exit: 0
+    expected_result: .next production build exists
+
+  - id: start.backend
+    cwd: mock_court_system
+    preconditions: ["install.python", "config.env"]
+    command: python api_server.py
+    expected_result: process serves /health/live with HTTP 200 on the configured host/port
+    service: lexgentium-api.service
+
+  - id: start.frontend
+    cwd: mock_court_system
+    preconditions: ["build.web", "config.env"]
+    command: npx next start -p 3000
+    expected_result: process serves /login with HTTP 200 on the configured port
+    service: lexgentium-web.service
+
+  - id: health.liveness
+    cwd: mock_court_system
+    preconditions: ["start.backend"]
+    command: curl -fsS http://127.0.0.1:8000/health/live
+    expected_exit: 0
+    expected_result: JSON with status ok, version, request id; no dependency probes
+
+  - id: health.readiness
+    cwd: mock_court_system
+    preconditions: ["start.backend"]
+    command: curl -fsS http://127.0.0.1:8000/health/ready
+    expected_exit: 0
+    expected_result: per-component readiness; 503 with stable reason on required failure
+
+  - id: smoke.configuration
+    journey: configuration
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/login
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.conversation
+    journey: conversation
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/conversation
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.simulate
+    journey: simulate
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/simulate
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.full_simulation
+    journey: full_simulation
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/full-simulation
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.mediation
+    journey: mediation
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/mediation
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.research
+    journey: research
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/research
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.evaluation
+    journey: evaluation
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/evaluation
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: smoke.system
+    journey: system
+    cwd: mock_court_system
+    preconditions: ["start.frontend"]
+    command: curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/system
+    expected_exit: 0
+    expected_result: "200"
+
+  - id: ops.backup
+    cwd: mock_court_system
+    preconditions: ["start.backend"]
+    command: python scripts/release_rehearsal.py backup --data-root data --out /var/backups/lexgentium
+    expected_exit: 0
+    expected_result: snapshot manifest with identity/schema/digest written outside the source tree
+
+  - id: ops.restore
+    cwd: mock_court_system
+    preconditions: ["ops.backup", "empty target data root"]
+    command: python scripts/release_rehearsal.py restore --snapshot /var/backups/lexgentium/latest --data-root data
+    expected_exit: 0
+    expected_result: restore verifies digests then migrations/readiness pass
+
+  - id: ops.shutdown
+    cwd: mock_court_system
+    preconditions: ["start.backend", "start.frontend"]
+    command: systemctl stop lexgentium-web lexgentium-api
+    expected_exit: 0
+    expected_result: both units stop within the configured graceful timeout
+
+  - id: ops.rollback
+    cwd: mock_court_system
+    preconditions: ["prior immutable artifact and data snapshot exist"]
+    command: python scripts/release_rehearsal.py rollback --candidate . --previous /opt/lexgentium/releases/previous
+    expected_exit: 0
+    expected_result: previous artifact restored; /health/ready reports ready within RTO

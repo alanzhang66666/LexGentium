@@ -1,10 +1,10 @@
-# LexGentium 0.8 — engineering notes
+# LexGentium 1.0 — engineering notes
 
 [中文](../README.md) · [English](../README.en.md) · [This page in 中文](README.md)
 
 This page is **APIs / layout / citations**. To run the app, start at the root [README.en.md](../README.en.md).
 
-One hearing, one `session_id`. Version **0.8.0**.
+One hearing, one `session_id`. Version **1.0.0**.
 
 | Tag | Meaning |
 |-----|---------|
@@ -107,7 +107,7 @@ mock_court_system/
 ├── api_server.py
 ├── main.py                     # Offline batch (COURT_API_*; not web)
 ├── DESIGN.md
-├── package.json                # 0.8.0
+├── package.json                # 1.0.0
 └── requirements.txt
 ```
 
