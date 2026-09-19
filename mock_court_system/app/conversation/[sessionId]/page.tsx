@@ -6,11 +6,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
+import { JourneyError } from "@/components/journey/states"
 import { Composer } from "@/components/hearing/Composer"
 import { StageBadge } from "@/components/hearing/StageBadge"
 import { Transcript } from "@/components/hearing/Transcript"
 import {
-  AlertCircle,
   ArrowLeft,
   Box,
   CheckCircle2,
@@ -43,7 +43,8 @@ function ConversationSessionInner() {
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isAdvancing, setIsAdvancing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [lastAction, setLastAction] = useState<(() => void) | null>(null)
   const [isFinished, setIsFinished] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [scenario, setScenario] = useState("")
@@ -58,6 +59,8 @@ function ConversationSessionInner() {
   const [claimBusy, setClaimBusy] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendAbortRef = useRef<AbortController | null>(null)
+  // 同一条消息的重试复用同一 Operation ID（服务端幂等回放）
+  const sendOpIdRef = useRef<string | null>(null)
 
   const links = info?.links || {}
   const research = info?.research || null
@@ -89,13 +92,14 @@ function ConversationSessionInner() {
   }
 
   const loadConversation = async () => {
+    setLastAction(() => () => void loadConversation())
     try {
       setIsFetching(true)
       const data = await getConversation(sessionId)
       applyConversationData(data)
       await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载会话失败")
+      setError(err)
     } finally {
       setIsFetching(false)
     }
@@ -106,6 +110,7 @@ function ConversationSessionInner() {
     const sent = inputMessage
     setIsLoading(true)
     setError(null)
+    setLastAction(() => () => void handleSendMessage())
     setStreamingText("")
     const controller = new AbortController()
     sendAbortRef.current = controller
@@ -113,9 +118,10 @@ function ConversationSessionInner() {
 
     try {
       const finals: ConversationMessageResponse[] = []
+      if (!sendOpIdRef.current) sendOpIdRef.current = crypto.randomUUID()
       await streamSessionMessage(
         sessionId,
-        { message: sent, role: selectedRole || undefined },
+        { message: sent, role: selectedRole || undefined, operation_id: sendOpIdRef.current },
         (evt) => {
           if (evt.type === "delta" && typeof evt.text === "string") {
             setStreamingText((prev) => prev + evt.text)
@@ -130,12 +136,13 @@ function ConversationSessionInner() {
       setStreamingText("")
       setMessages(finalData.dialog_history)
       setInputMessage("")
+      sendOpIdRef.current = null
       if (finalData.is_finished) setIsFinished(true)
       if (finalData.degraded) setError("当前未配置 LLM，本条回复由离线模板生成")
       await loadConversation()
     } catch (err) {
       const msg = err instanceof Error ? err.message : "发送消息失败"
-      setError(msg.includes("AbortError") ? "已停止本次请求" : msg)
+      setError(msg.includes("AbortError") ? "已停止本次请求" : err)
       setMessages((prev) => prev.slice(0, -1))
     } finally {
       sendAbortRef.current = null
@@ -148,10 +155,11 @@ function ConversationSessionInner() {
     if (isAdvancing || isFinished) return
     setIsAdvancing(true)
     setError(null)
+    setLastAction(() => () => void handleAutoAdvance())
     try {
       applyConversationData(await autoAdvance(sessionId, advanceRounds))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "自动推进失败")
+      setError(err)
     } finally {
       setIsAdvancing(false)
     }
@@ -203,7 +211,7 @@ function ConversationSessionInner() {
       await deleteConversation(sessionId)
       router.push("/conversation")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除会话失败")
+      setError(err)
     }
   }
 
@@ -286,12 +294,13 @@ function ConversationSessionInner() {
           </div>
         </div>
 
-        {error ? (
-          <Alert variant="destructive" className="mx-4 mt-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
+        <JourneyError
+          error={error}
+          fallback="会话操作失败"
+          onRetry={lastAction ? () => lastAction() : undefined}
+          busy={isLoading || isAdvancing || isFetching}
+          className="mx-4 mt-2"
+        />
 
         {isFinished ? (
           <Alert className="mx-4 mt-2">
@@ -320,7 +329,10 @@ function ConversationSessionInner() {
               inputMessage={inputMessage}
               selectedRole={selectedRole}
               advanceRounds={advanceRounds}
-              onInputChange={setInputMessage}
+              onInputChange={(v) => {
+                setInputMessage(v)
+                sendOpIdRef.current = null
+              }}
               onRoleChange={setSelectedRole}
               onAdvanceRoundsChange={setAdvanceRounds}
               onSend={handleSendMessage}
@@ -332,8 +344,8 @@ function ConversationSessionInner() {
             <ClaimChainPanel
               claims={claims}
               runId={research.run_id}
-              derivedFrom={research.derived_from}
-              materialsHash={research.materials_hash}
+              derivedFrom={research.derived_from ?? undefined}
+              materialsHash={research.materials_hash ?? undefined}
               busy={claimBusy}
               error={claimError}
               onSubmit={handleClaimSubmit}

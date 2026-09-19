@@ -7,7 +7,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-[680px] px-4 pt-16 pb-20">
           <h1 className="text-[40px] font-medium leading-[1.1] tracking-[-0.03em]">关于</h1>
           <p className="mt-4 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
-            LexGentium 是国际商事仲裁听证仿真工作台，不是泛用模拟法庭演示页。
+            法序智演 LexGentium 是国际商事仲裁研究平台，不是泛用模拟法庭演示页。
           </p>
         </div>
       </section>

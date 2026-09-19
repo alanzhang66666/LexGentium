@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
-import { clientAuthHeaders } from "@/lib/session/unlock"
+import { ExperimentBadge } from "@/components/journey/experiment-badge"
 import { SCENARIO_LABELS } from "@/lib/labels"
 import {
   History,
@@ -52,7 +52,7 @@ export default function APIHistoryPage() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch("/api/api-history/stats", { headers: { ...clientAuthHeaders() } })
+      const response = await fetch("/api/api-history/stats", )
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -76,7 +76,7 @@ export default function APIHistoryPage() {
       params.append("offset", "0")
 
       const response = await fetch(`/api/api-history/list?${params.toString()}`, {
-        headers: { ...clientAuthHeaders() },
+        
       })
       if (response.ok) {
         const data = await response.json()
@@ -93,7 +93,10 @@ export default function APIHistoryPage() {
     <WorkbenchShell>
       <main className="flex-1 px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-[22px] font-medium tracking-tight">API 历史</h1>
+          <h1 className="flex items-center gap-2 text-[22px] font-medium tracking-tight">
+            API 历史
+            <ExperimentBadge />
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">调用记录，用于调试。</p>
         </div>
         <Card className="mb-6">

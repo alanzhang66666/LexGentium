@@ -4,15 +4,15 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { WorkbenchShell } from "@/components/shell"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ExternalLink, RefreshCw } from "lucide-react"
+import { ExperimentBadge } from "@/components/journey/experiment-badge"
+import { JourneyError } from "@/components/journey/states"
 import { PUBLIC_BACKEND_URL } from "@/lib/public-backend-url"
 import {
-  ApiError,
   getBigFiveTraits,
   getDisputeCauses,
   getHealth,
@@ -77,11 +77,12 @@ const SHORTCUTS = [
 export default function SystemPage() {
   const [health, setHealth] = useState<HealthPayload | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   const [experimentKind, setExperimentKind] = useState<"progressive-rag" | "dual-mode" | "multi-judge">("progressive-rag")
   const [experimentBusy, setExperimentBusy] = useState(false)
-  const [experimentError, setExperimentError] = useState<string | null>(null)
+  const [experimentError, setExperimentError] = useState<unknown>(null)
+  const [lastExperiment, setLastExperiment] = useState<(() => void) | null>(null)
   const [experimentResult, setExperimentResult] = useState<unknown>(null)
   const [ragStage, setRagStage] = useState("investigation")
   const [ragContext, setRagContext] = useState(
@@ -101,17 +102,14 @@ export default function SystemPage() {
       setHealth(data)
     } catch (e) {
       setHealth(null)
-      if (e instanceof ApiError) {
-        setError([e.message, e.detail, e.suggestion].filter(Boolean).join("\n"))
-      } else {
-        setError(e instanceof Error ? e.message : String(e))
-      }
+      setError(e)
     } finally {
       setLoading(false)
     }
   }, [])
 
   const runExperiment = async () => {
+    setLastExperiment(() => () => void runExperiment())
     setExperimentBusy(true)
     setExperimentError(null)
     try {
@@ -131,19 +129,14 @@ export default function SystemPage() {
       }
     } catch (e) {
       setExperimentResult(null)
-      if (e instanceof ApiError) {
-        setExperimentError([e.message, e.detail, e.suggestion].filter(Boolean).join("\n"))
-      } else if (e instanceof SyntaxError) {
-        setExperimentError("context 必须是 JSON 对象")
-      } else {
-        setExperimentError(e instanceof Error ? e.message : String(e))
-      }
+      setExperimentError(e instanceof SyntaxError ? new Error("context 必须是 JSON 对象") : e)
     } finally {
       setExperimentBusy(false)
     }
   }
 
   const loadReference = async (kind: "causes" | "bigfive" | "benchmark") => {
+    setLastExperiment(() => () => void loadReference(kind))
     setExperimentBusy(true)
     setExperimentError(null)
     try {
@@ -152,7 +145,7 @@ export default function SystemPage() {
       else setExperimentResult(await getProgressiveBenchmark())
     } catch (e) {
       setExperimentResult(null)
-      setExperimentError(e instanceof Error ? e.message : String(e))
+      setExperimentError(e)
     } finally {
       setExperimentBusy(false)
     }
@@ -201,11 +194,13 @@ export default function SystemPage() {
           ))}
         </div>
 
-        {error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription className="whitespace-pre-wrap font-mono text-xs">{error}</AlertDescription>
-          </Alert>
-        ) : null}
+        <JourneyError
+          error={error}
+          fallback="健康检查失败"
+          onRetry={() => void loadHealth()}
+          busy={loading}
+          className="mb-4"
+        />
 
         <div className="mb-6 overflow-x-auto rounded-lg border border-border">
           <div className="border-b border-border px-3 py-2 text-[13px] font-medium">健康检查</div>
@@ -230,7 +225,9 @@ export default function SystemPage() {
             <tbody>
               {MAPPINGS.map((row) => (
                 <tr key={row.backend + row.nextApi} className="border-b border-border/70 last:border-0 hover:bg-secondary">
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{row.tier}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {row.tier === "实验" ? <ExperimentBadge /> : row.tier}
+                  </td>
                   <td className="px-3 py-2 font-mono text-xs">{row.backend}</td>
                   <td className="px-3 py-2 text-muted-foreground">{row.desc}</td>
                   <td className="px-3 py-2">
@@ -247,7 +244,10 @@ export default function SystemPage() {
 
         <div id="experiment-panel" className="mt-8 overflow-hidden rounded-lg border border-border">
           <div className="border-b border-border px-3 py-2">
-            <div className="text-[13px] font-medium">实验面板</div>
+            <div className="flex items-center gap-2 text-[13px] font-medium">
+              实验面板
+              <ExperimentBadge />
+            </div>
             <p className="mt-1 text-[12px] text-muted-foreground">
               走 <code className="font-mono">/case/*</code>
               。<code className="font-mono">game.py</code> 里同名会话版重复端点保留，本页不用。
@@ -342,11 +342,12 @@ export default function SystemPage() {
                 渐进基准
               </Button>
             </div>
-            {experimentError ? (
-              <Alert variant="destructive">
-                <AlertDescription className="whitespace-pre-wrap font-mono text-xs">{experimentError}</AlertDescription>
-              </Alert>
-            ) : null}
+            <JourneyError
+              error={experimentError}
+              fallback="实验调用失败"
+              onRetry={lastExperiment ? () => lastExperiment() : undefined}
+              busy={experimentBusy}
+            />
             {experimentResult ? (
               <pre className="max-h-80 overflow-auto rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
                 {JSON.stringify(experimentResult, null, 2)}

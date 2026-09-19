@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle } from "lucide-react"
+import { IdentityChips } from "@/components/journey/identity"
+import { JourneyError } from "@/components/journey/states"
 import { ApiError } from "@/lib/api"
 import {
   createMediation,
@@ -57,9 +59,10 @@ export default function MediationPage() {
   const [statementParty, setStatementParty] = useState("申请人")
   const [statement, setStatement] = useState("")
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [status, setStatus] = useState<Record<string, unknown> | null>(null)
   const [last, setLast] = useState<Record<string, unknown> | null>(null)
+  const [lastAction, setLastAction] = useState<(() => void) | null>(null)
 
   const partyNames = [partyA.trim(), partyB.trim()].filter(Boolean)
 
@@ -93,14 +96,15 @@ export default function MediationPage() {
         }
       }
     } catch (e) {
-      setError(formatError(e))
+      setError(e)
     } finally {
       setBusy(false)
     }
   }
 
-  const handleCreate = () =>
-    run(async () => {
+  const handleCreate = () => {
+    setLastAction(() => handleCreate)
+    return run(async () => {
       const result = await createMediation(createBody())
       if (typeof result.session_id === "string") {
         setSessionId(result.session_id)
@@ -108,12 +112,14 @@ export default function MediationPage() {
       }
       return result
     })
+  }
 
   const handleStage = (id: (typeof STAGES)[number]["id"]) => {
     if (!sessionId) {
       setError("请先创建调解会话")
       return
     }
+    setLastAction(() => () => handleStage(id))
     if (id === "preliminary") return run(() => runMediationPreliminary(sessionId))
     if (id === "statement") {
       return run(() =>
@@ -138,13 +144,14 @@ export default function MediationPage() {
           </p>
         </div>
 
-        {error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="whitespace-pre-wrap font-mono text-xs">{error}</AlertDescription>
-          </Alert>
-        ) : null}
-        {error && /404|不存在|重启/.test(error) ? (
+        <JourneyError
+          error={error}
+          fallback="调解操作失败"
+          onRetry={lastAction ? () => lastAction() : undefined}
+          busy={busy}
+          className="mb-4"
+        />
+        {error && /404|不存在|重启/.test(formatError(error)) ? (
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -191,7 +198,7 @@ export default function MediationPage() {
               <Button onClick={handleCreate} disabled={busy}>
                 {busy ? "处理中…" : "创建调解"}
               </Button>
-              {sessionId ? <p className="font-mono text-xs text-muted-foreground">{sessionId}</p> : null}
+              <IdentityChips items={[{ label: "med_session", value: sessionId }]} />
             </CardContent>
           </Card>
 

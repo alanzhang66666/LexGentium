@@ -1,52 +1,49 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { MarketingShell } from "@/components/shell"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { JourneyError } from "@/components/journey/states"
 import {
   defaultLlmPayload,
-  describeApiError,
   getLlmConfig,
   testLlmConfig,
   type CurrentLlmConfig,
   type LlmConfigPayload,
 } from "@/lib/api/config"
-import { markUnlocked, writeSessionApiToken } from "@/lib/session/unlock"
+import { markUnlocked } from "@/lib/session/unlock"
 
 export default function LoginPage() {
   const router = useRouter()
   const [current, setCurrent] = useState<CurrentLlmConfig | null>(null)
-  const [loadError, setLoadError] = useState("")
+  const [loadError, setLoadError] = useState<unknown>(null)
   const [apiKey, setApiKey] = useState("")
   const [baseUrl, setBaseUrl] = useState("")
   const [model, setModel] = useState("")
   const [provider, setProvider] = useState("deepseek")
-  const [apiToken, setApiToken] = useState("")
   const [showKey, setShowKey] = useState(false)
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<unknown>(null)
+  const opIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
+  const loadCurrent = () => {
     getLlmConfig()
       .then((data) => {
-        if (cancelled) return
         setCurrent(data)
         setProvider(data.provider || "deepseek")
         setBaseUrl(data.base_url || "")
         setModel(data.model || "")
       })
-      .catch((err) => {
-        if (!cancelled) setLoadError(describeApiError(err, "无法读取已有配置。请确认后端已启动。"))
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch((err) => setLoadError(err))
+  }
+
+  useEffect(() => {
+    loadCurrent()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const buildPayload = (): LlmConfigPayload =>
@@ -60,18 +57,15 @@ export default function LoginPage() {
       timeout: current?.timeout ?? 60,
     })
 
-  const onSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    setError("")
+  const runTest = async (operationId: string) => {
     const payload = buildPayload()
     if (!payload.api_key || !payload.base_url || !payload.model) {
       setError("请填写模型密钥、Base URL 与模型名，以便测通已有配置。")
       return
     }
     setPending(true)
-    writeSessionApiToken(apiToken)
     try {
-      const result = await testLlmConfig(payload)
+      const result = await testLlmConfig(payload, operationId)
       if (!result.success) {
         setError(result.message || result.detail || "测通失败：鉴权失败或服务不可达。")
         return
@@ -79,10 +73,18 @@ export default function LoginPage() {
       markUnlocked()
       router.push("/conversation")
     } catch (err) {
-      setError(describeApiError(err, "测通请求失败。"))
+      setError(err)
     } finally {
       setPending(false)
     }
+  }
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    // 每次显式提交生成新 Operation ID；JourneyError 的显式重试复用它
+    opIdRef.current = crypto.randomUUID()
+    await runTest(opIdRef.current)
   }
 
   return (
@@ -95,7 +97,7 @@ export default function LoginPage() {
             一场听证绑定一个 session。本页测通已写入的模型配置，不建用户表。
           </p>
           <p className="mt-3 max-w-[42ch] text-sm leading-relaxed text-muted-foreground">
-            可选填写 API_TOKEN，仅存于本页会话，供后续请求附带 Authorization。未解锁也可进入工作台；密钥仍可在设置中改。
+            后端接口令牌由服务端环境统一注入，浏览器不持有 Token。未解锁也可进入工作台；密钥仍可在设置中改。
           </p>
           <p className="mt-8 text-sm text-muted-foreground">
             尚未写入配置？
@@ -120,11 +122,18 @@ export default function LoginPage() {
                 {current.model || "未设模型"}
                 {" · "}
                 {current.api_key_set ? current.api_key_masked : "密钥未设置"}
+                {" · "}
+                {current.chat_model_ready ? "已连接" : "未测通"}
               </div>
             ) : loadError ? (
-              <Alert variant="destructive">
-                <AlertDescription>{loadError}</AlertDescription>
-              </Alert>
+              <JourneyError
+                error={loadError}
+                fallback="无法读取已有配置。请确认后端已启动。"
+                onRetry={() => {
+                  setLoadError(null)
+                  loadCurrent()
+                }}
+              />
             ) : (
               <p className="text-xs text-muted-foreground">正在读取本机配置…</p>
             )}
@@ -175,26 +184,16 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="login-api-token">
-                API_TOKEN <span className="font-normal text-muted-foreground">可选</span>
-              </Label>
-              <Input
-                id="login-api-token"
-                type="password"
-                value={apiToken}
-                onChange={(e) => setApiToken(e.target.value)}
-                placeholder="仅当后端启用了接口令牌时填写"
-                className="font-mono"
-                autoComplete="off"
-              />
-            </div>
-
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
+            <JourneyError
+              error={error}
+              fallback="测通请求失败。"
+              onRetry={
+                opIdRef.current
+                  ? () => void runTest(opIdRef.current as string)
+                  : undefined
+              }
+              busy={pending}
+            />
 
             <Button type="submit" size="lg" className="w-full" disabled={pending}>
               {pending ? "正在测通…" : "测通并进入"}

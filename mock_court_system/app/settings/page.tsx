@@ -23,7 +23,6 @@ import {
   RefreshCcw,
 } from "lucide-react"
 import { PROVIDER_PRESETS } from "@/lib/llm-presets"
-import { clientAuthHeaders } from "@/lib/session/unlock"
 
 interface LLMConfig {
   provider: string
@@ -74,7 +73,7 @@ export default function SettingsPage() {
   const fetchCurrentConfig = async () => {
     setLoadingCurrent(true)
     try {
-      const res = await fetch("/api/config/llm", { headers: { ...clientAuthHeaders() } })
+      const res = await fetch("/api/config/llm", )
       if (res.ok) {
         const data: CurrentConfig = await res.json()
         setCurrentConfig(data)
@@ -124,7 +123,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/config/llm/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()
@@ -155,7 +154,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/config/llm", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...clientAuthHeaders() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildPayload()),
       })
       const data = await res.json()

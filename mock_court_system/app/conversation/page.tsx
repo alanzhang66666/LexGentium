@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
-import { AlertCircle, Loader2, Plus } from "lucide-react"
+import { JourneyError } from "@/components/journey/states"
+import { Loader2, Plus } from "lucide-react"
 import { CasePicker } from "@/components/hearing/CasePicker"
 import { createGame, listConversations, listResearchPacks, startConversation } from "@/lib/api"
 import { SCENARIO_LABELS, STRATEGY_LABELS } from "@/lib/labels"
@@ -27,7 +27,8 @@ export default function ConversationListPage() {
   const router = useRouter()
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [lastAction, setLastAction] = useState<(() => void) | null>(null)
   const [query, setQuery] = useState("")
   const [scenarioFilter, setScenarioFilter] = useState<"ALL" | "CD" | "DD" | "CI">("ALL")
   const [statusFilter, setStatusFilter] = useState<"ALL" | "RUNNING" | "FINISHED">("ALL")
@@ -73,13 +74,14 @@ export default function ConversationListPage() {
   }, [])
 
   const loadConversations = async () => {
+    setLastAction(() => () => void loadConversations())
     setLoading(true)
     try {
       const data = await listConversations(limit, offset)
       setConversations(data.sessions || [])
       setTotal(typeof data.total === "number" ? data.total : (data.sessions || []).length)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载会话列表失败")
+      setError(err)
     } finally {
       setLoading(false)
     }
@@ -97,6 +99,7 @@ export default function ConversationListPage() {
     }
     setCreating(true)
     setError(null)
+    setLastAction(() => () => void handleCreateConversation())
     try {
       const payload =
         caseSource === "research" && selectedPack
@@ -122,12 +125,12 @@ export default function ConversationListPage() {
             defendant_strategy: defendantStrategy || "compromising",
           })
         } catch (gameErr) {
-          setError(gameErr instanceof Error ? gameErr.message : "会话已创建，但策略开局失败")
+          setError(gameErr instanceof Error ? gameErr : new Error("会话已创建，但策略开局失败"))
         }
       }
       router.push(`/conversation/${data.session_id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建会话失败")
+      setError(err instanceof Error ? err : new Error("创建会话失败"))
     } finally {
       setCreating(false)
     }
@@ -254,12 +257,13 @@ export default function ConversationListPage() {
             : `将载入 民事 1K · ${newCaseId.trim() || "未选 case_id"}`}
         </p>
 
-        {error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
+        <JourneyError
+          error={error}
+          fallback="操作失败"
+          onRetry={lastAction ? () => lastAction() : undefined}
+          busy={loading || creating}
+          className="mb-4"
+        />
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索案号 / 会话" className="max-w-xs" />

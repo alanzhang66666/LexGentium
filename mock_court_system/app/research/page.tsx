@@ -1,40 +1,44 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { AlertCircle, Loader2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { WorkbenchShell } from "@/components/shell"
+import { JourneyError } from "@/components/journey/states"
 import { ReviewBadge } from "@/components/research/review-badge"
 import { DATASET_LABELS, TASK_TYPE_LABELS } from "@/components/research/labels"
-import { describeApiError } from "@/lib/api/config"
-import { listResearchPacks } from "@/lib/api/simulation"
+import { getResearchInventory, listResearchPacks, type ResearchInventory } from "@/lib/api/simulation"
 import type { DatasetId, PackSummary } from "@/lib/research"
 
-type ListedPack = PackSummary & { overlay_count?: number }
+type ListedPack = PackSummary & { overlay_count?: number; classification?: string }
 
 export default function ResearchPackListPage() {
   const [packs, setPacks] = useState<ListedPack[]>([])
+  const [inventory, setInventory] = useState<ResearchInventory | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    listResearchPacks()
-      .then((payload) => {
-        if (!cancelled) setPacks((payload.packs || []) as unknown as ListedPack[])
-      })
-      .catch((err) => {
-        if (!cancelled) setError(describeApiError(err, "无法加载研究包列表"))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [payload, inv] = await Promise.all([
+        listResearchPacks(),
+        getResearchInventory().catch(() => null),
+      ])
+      setPacks((payload.packs || []) as unknown as ListedPack[])
+      setInventory(inv)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   return (
     <WorkbenchShell>
@@ -45,11 +49,22 @@ export default function ResearchPackListPage() {
             材料标注工作台：对照原文、提取片段与字段，并从字段跳回 source_id。覆盖层写入独立库，不改 pack.json。
           </p>
         </div>
-        {error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="size-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+        <JourneyError
+          error={error}
+          fallback="无法加载研究包列表"
+          onRetry={() => void load()}
+          busy={loading}
+          className="mb-4"
+        />
+        {inventory ? (
+          <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
+            正式研究包 <span className="font-medium text-foreground">{inventory.formal_pack_count}</span>
+            {inventory.formal_status === "no_formal_pack" ? "（no_formal_pack）" : ""}
+            {" · "}技术夹具 {inventory.technical_fixtures.length} 个
+            {" · "}未复核标注 {inventory.unreviewed_annotations?.count ?? 0} 份
+            {" · "}案例 25：{inventory.case_25?.confirmation === "pending" ? "AI 辅助初标待确认" : inventory.case_25?.confirmation || "未知"}
+            <p className="mt-1 text-[12px]">{inventory.disclaimer}</p>
+          </div>
         ) : null}
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -72,7 +87,14 @@ export default function ResearchPackListPage() {
                             {DATASET_LABELS[dataset] || pack.dataset_id} / {pack.cluster_id}
                           </CardDescription>
                         </div>
-                        <ReviewBadge state={pack.review_state} />
+                        <div className="flex items-center gap-2">
+                          {pack.classification === "technical_fixture" ? (
+                            <span className="rounded border border-muted-foreground/30 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                              技术夹具
+                            </span>
+                          ) : null}
+                          <ReviewBadge state={pack.review_state} />
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-1 text-[13px] text-muted-foreground">

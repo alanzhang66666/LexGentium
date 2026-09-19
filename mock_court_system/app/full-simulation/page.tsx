@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
+import { IdentityChips } from "@/components/journey/identity"
+import { JourneyError, JourneyTerminal } from "@/components/journey/states"
 import { ResultPanel, type SimulationResult, type TournamentResult } from "@/components/hearing/ResultPanel"
-import { AlertCircle, ArrowRight, Box, Loader2, Play, Swords } from "lucide-react"
+import { ArrowRight, Box, Loader2, Play, Swords } from "lucide-react"
 import { getFullSimulation, listConversations, startFullSimulation } from "@/lib/api"
 import type { ConversationSummary } from "@/lib/conversation-types"
 
@@ -37,7 +38,7 @@ function FullSimulationInner() {
   const [rounds, setRounds] = useState(3)
   const [status, setStatus] = useState<TaskStatus>("idle")
   const [taskId, setTaskId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [currentStage, setCurrentStage] = useState<string | null>(null)
   const [result, setResult] = useState<SimulationResult | TournamentResult | null>(null)
   const [sessionId, setSessionId] = useState(search.get("session") || "")
@@ -70,7 +71,7 @@ function FullSimulationInner() {
           stopPolling()
         } else if (data.status === "failed") {
           setStatus("failed")
-          setError(data.message || "任务失败")
+          setError(new Error(data.message || "任务失败"))
           stopPolling()
         }
       } catch {
@@ -104,7 +105,7 @@ function FullSimulationInner() {
       pollRef.current = setInterval(() => void pollStatus(data.task_id), 3000)
     } catch (err) {
       setStatus("failed")
-      setError(err instanceof Error ? err.message : "启动失败")
+      setError(err instanceof Error ? err : new Error("启动失败"))
     }
   }
 
@@ -203,11 +204,28 @@ function FullSimulationInner() {
             </CardContent>
           </Card>
 
-          {error ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+          <JourneyError
+            error={error}
+            fallback="全案任务失败"
+            onRetry={() => void handleStart()}
+            busy={status === "running" || status === "pending"}
+          />
+
+          <IdentityChips
+            items={[
+              { label: "session_id", value: sessionId },
+              { label: "task_id", value: taskId },
+            ]}
+          />
+
+          {status === "completed" ? (
+            <JourneyTerminal
+              title="全案任务已完成"
+              identity={[
+                { label: "session_id", value: sessionId },
+                { label: "task_id", value: taskId },
+              ]}
+            />
           ) : null}
 
           {(status === "running" || status === "pending") && (

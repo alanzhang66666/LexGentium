@@ -6,13 +6,14 @@ import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "法序智演 LexGentium｜国际商事仲裁听证仿真",
+  title: "法序智演 LexGentium｜国际商事仲裁研究平台",
   description:
-    "LexGentium 国际商事仲裁听证仿真：开庭、观庭、复盘。支持申请准备、答辩准备与仲裁听证。",
+    "法序智演 LexGentium 国际商事仲裁研究平台：开庭、观庭、复盘。支持申请准备、答辩准备与仲裁听证。",
   keywords: [
     "LexGentium",
+    "法序智演",
     "国际商事仲裁",
-    "听证仿真",
+    "研究平台",
     "申请准备",
     "答辩准备",
     "仲裁听证",

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
-import { clientAuthHeaders } from "@/lib/session/unlock"
 import {
   Database,
   Search,
@@ -50,7 +49,7 @@ export default function DatabasePage() {
   const loadStats = async () => {
     setLoadingStats(true)
     try {
-      const response = await fetch("/api/database/stats", { headers: { ...clientAuthHeaders() } })
+      const response = await fetch("/api/database/stats", )
       if (response.ok) {
         const data = await response.json()
         setStats(data)
@@ -77,7 +76,6 @@ export default function DatabasePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...clientAuthHeaders(),
         },
         body: JSON.stringify({
           query: searchQuery,

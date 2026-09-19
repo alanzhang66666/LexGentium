@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { JsonEditor } from "@/components/json-editor"
 import { MetricCard } from "@/components/metric-card"
 import { WorkbenchShell } from "@/components/shell"
+import { ExperimentBadge } from "@/components/journey/experiment-badge"
 import { FileJson, AlertCircle, CheckCircle2, Send, Activity, Clock, Zap, ArrowRightLeft, Loader2 } from "lucide-react"
 import { SCENARIO_DESCRIPTIONS, SCENARIO_LABELS } from "@/lib/labels"
 import { ApiError, importConversation, runSimulate } from "@/lib/api"
@@ -190,7 +191,10 @@ export default function SimulatePage() {
     <WorkbenchShell>
       <main className="flex-1 px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-[22px] font-medium tracking-tight">调试模拟器</h1>
+          <h1 className="flex items-center gap-2 text-[22px] font-medium tracking-tight">
+            调试模拟器
+            <ExperimentBadge />
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">实验接口，无状态单轮。正式听证请走开庭。</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

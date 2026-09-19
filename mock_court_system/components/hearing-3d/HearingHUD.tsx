@@ -7,11 +7,7 @@ export function HearingHUD({ state, professional = false }: { state: SceneState;
     <div className="pointer-events-none absolute inset-0 p-4 text-white">
       <div className="flex items-start justify-between gap-4">
         <div className="rounded-xl border border-white/15 bg-slate-950/75 px-4 py-3 backdrop-blur">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-cyan-300">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/branding/lexgentium-logo-dark.png" alt="法序智演 LexGentium" className="h-4 w-auto" />
-            <span>仲裁听证 3D</span>
-          </div>
+          <div className="text-xs uppercase tracking-[0.25em] text-cyan-300">观庭</div>
           <div className="mt-1 text-lg font-semibold">{state.stage?.label ?? "等待听证开始"}</div>
           <div className="text-xs text-white/60">{state.active_issue?.label ?? "暂无当前争点"}</div>
         </div>

@@ -28,6 +28,7 @@ import {
 import { readLastSessionId, subscribeLastSession } from "@/lib/session/last-session"
 import { clearUnlock, isUnlocked, subscribeUnlock } from "@/lib/session/unlock"
 import type { ConversationInfo } from "@/lib/conversation-types"
+import { BrandLockup, BrandMark } from "@/components/brand"
 import { cn } from "@/lib/utils"
 
 function actionsFor(group: NavGroupId) {
@@ -226,11 +227,8 @@ function MarketingBar() {
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-[1120px] items-center justify-between gap-3 px-4">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
-          <span className="flex shrink-0 items-center rounded-md bg-white px-1.5 py-1 shadow-sm ring-1 ring-black/5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/branding/lexgentium-logo.png" alt="法序智演 LexGentium" className="h-5 w-auto" />
-          </span>
-          <span className="hidden truncate text-[13px] font-normal text-muted-foreground sm:inline">国际商事仲裁听证仿真</span>
+          <BrandLockup />
+          <span className="hidden truncate text-[13px] font-normal text-muted-foreground sm:inline">研究平台</span>
         </Link>
         <div className="flex shrink-0 items-center gap-1">
           <Link
@@ -326,11 +324,8 @@ function WorkbenchBar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-12 max-w-none items-center justify-between gap-3 px-4">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5 hover:opacity-80">
-          <span className="flex shrink-0 items-center rounded-md bg-white px-1.5 py-1 shadow-sm ring-1 ring-black/5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/branding/lexgentium-logo.png" alt="法序智演 LexGentium" className="h-5 w-auto" />
-          </span>
+        <Link href="/" className="flex shrink-0 items-center hover:opacity-80">
+          <BrandMark />
         </Link>
 
         <nav className="hidden items-center gap-0.5 sm:flex">

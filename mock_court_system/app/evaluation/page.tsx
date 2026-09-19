@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { StatusBadge } from "@/components/status-badge"
 import { WorkbenchShell } from "@/components/shell"
+import { IdentityChips } from "@/components/journey/identity"
+import { JourneyError } from "@/components/journey/states"
 import { AlertCircle, CheckCircle2, Play, RefreshCw } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
@@ -144,7 +146,8 @@ function EvaluationInner() {
   const [sessionsError, setSessionsError] = useState<string | null>(null)
   const [selectedScenarios, setSelectedScenarios] = useState<string[]>(["CI"])
   const [isLoading, setIsLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<unknown>(null)
+  const [lastAction, setLastAction] = useState<(() => void) | null>(null)
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResponse | null>(null)
   const [polling, setPolling] = useState(false)
   const [reportsList, setReportsList] = useState<EvaluationReportsList | null>(null)
@@ -314,6 +317,7 @@ function EvaluationInner() {
       return
     }
     setErrorMessage(null)
+    setLastAction(() => () => void handleStartEvaluation())
     setEvaluationResult(null)
     setIsLoading(true)
     try {
@@ -326,7 +330,7 @@ function EvaluationInner() {
       setEvaluationResult(result)
       if (result.status === "running") setPolling(true)
     } catch (error) {
-      setErrorMessage(`请求失败: ${error instanceof Error ? error.message : String(error)}`)
+      setErrorMessage(error)
     } finally {
       setIsLoading(false)
     }
@@ -336,6 +340,7 @@ function EvaluationInner() {
     if (!sessionId || !bound) return
     setGameBusy(true)
     setErrorMessage(null)
+    setLastAction(() => () => void openGame())
     try {
       await createGame({
         case_info: { case_id: bound.case_id },
@@ -345,7 +350,7 @@ function EvaluationInner() {
       setBound(next)
       setGameMissing(false)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "开局失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -356,13 +361,14 @@ function EvaluationInner() {
     if (!gameId) return
     setGameBusy(true)
     setErrorMessage(null)
+    setLastAction(() => () => void playRound())
     try {
       await streamGameRound(gameId, () => {})
       const [g, h] = await Promise.all([getGame(gameId), getStrategyHistory(gameId)])
       setGame(g)
       setHistory(h)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "推演失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -390,6 +396,7 @@ function EvaluationInner() {
     setGameEvalBusy(true)
     setGameEvalKind(kind)
     setErrorMessage(null)
+    setLastAction(() => () => void runGameEval(kind))
     try {
       const result =
         kind === "outcome"
@@ -419,7 +426,7 @@ function EvaluationInner() {
                                 : await getEquilibriumConvergence(gameId)
       setGameEvalResult(result)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "博弈评测失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
       setGameEvalBusy(false)
@@ -431,10 +438,11 @@ function EvaluationInner() {
     if (!gameId) return
     setGameBusy(true)
     setErrorMessage(null)
+    setLastAction(() => () => void runCf())
     try {
       setCfResult(await runCounterfactual(gameId, { party: cfParty, hypothetical_strategy: cfStrategy }))
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "反事实失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -453,6 +461,7 @@ function EvaluationInner() {
     setGameBusy(true)
     setGameEvalKind("strategy-set")
     setErrorMessage(null)
+    setLastAction(() => () => void handleSetStrategy())
     try {
       const result = await setGameStrategy(gameId, {
         party: setParty,
@@ -462,7 +471,7 @@ function EvaluationInner() {
       setGameEvalResult(result)
       await refreshBoundGame(gameId)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "设定策略失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -474,6 +483,7 @@ function EvaluationInner() {
     setGameBusy(true)
     setGameEvalKind("strategy-reflect")
     setErrorMessage(null)
+    setLastAction(() => () => void handleReflectStrategy())
     try {
       const result = await reflectGameStrategy(gameId, {
         party: reflectParty,
@@ -482,7 +492,7 @@ function EvaluationInner() {
       setGameEvalResult(result)
       await refreshBoundGame(gameId)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "策略反思失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -499,7 +509,7 @@ function EvaluationInner() {
       setGameEvalResult(result)
       await refreshBoundGame(gameId)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "非流式一轮失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -515,6 +525,7 @@ function EvaluationInner() {
     setGameBusy(true)
     setGameEvalKind("liability-cf")
     setErrorMessage(null)
+    setLastAction(() => () => void handleLiabilityCf())
     try {
       const result = await runLiabilityChainCounterfactual(gameId, {
         party: lcParty,
@@ -523,7 +534,7 @@ function EvaluationInner() {
       })
       setGameEvalResult(result)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "责任链反事实失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -536,6 +547,7 @@ function EvaluationInner() {
     setGameEvalBusy(true)
     setGameEvalKind(kind)
     setErrorMessage(null)
+    setLastAction(() => () => void runGameInnovation(kind))
     try {
       const result =
         kind === "progressive-rag"
@@ -558,7 +570,7 @@ function EvaluationInner() {
             : await runGameMultiJudge(gameId)
       setGameEvalResult(result)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "会话版创新调用失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
       setGameEvalBusy(false)
@@ -571,6 +583,7 @@ function EvaluationInner() {
     setGameBusy(true)
     setGameEvalKind("game-delete")
     setErrorMessage(null)
+    setLastAction(() => () => void handleDeleteGame())
     try {
       const result = await deleteGame(gameId)
       setGameEvalResult(result)
@@ -580,7 +593,7 @@ function EvaluationInner() {
       setDeleteArmed(false)
       setCfResult(null)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "删除失败")
+      setErrorMessage(error)
     } finally {
       setGameBusy(false)
     }
@@ -630,12 +643,23 @@ function EvaluationInner() {
           </div>
         </div>
 
-        {errorMessage ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+        <JourneyError
+          error={errorMessage}
+          fallback="操作失败"
+          onRetry={lastAction ? () => lastAction() : undefined}
+          busy={isLoading || gameBusy}
+          className="mb-4"
+        />
+
+        <IdentityChips
+          className="mb-4"
+          items={[
+            { label: "session_id", value: sessionId },
+            { label: "game_id", value: bound?.links?.game_id },
+            { label: "task_id", value: bound?.links?.task_id },
+            { label: "report_id", value: evaluationResult?.report_id },
+          ]}
+        />
 
         {pane === "contrast" ? (
           <div className="grid gap-6 lg:grid-cols-2">
@@ -732,6 +756,32 @@ function EvaluationInner() {
                     </div>
                     {evaluationResult.report_id ? (
                       <p className="font-mono text-xs text-muted-foreground">{evaluationResult.report_id}</p>
+                    ) : null}
+                    {evaluationResult.provenance ? (
+                      <div className="space-y-1 rounded-md border border-border px-3 py-2 text-[12px] text-muted-foreground">
+                        <div className="flex flex-wrap gap-x-3">
+                          <span>
+                            namespace{" "}
+                            <span className="font-mono text-foreground">{evaluationResult.provenance.namespace}</span>
+                          </span>
+                          <span>
+                            rubric{" "}
+                            <span className="font-mono text-foreground">{evaluationResult.provenance.rubric_version}</span>
+                          </span>
+                          <span>
+                            provenance{" "}
+                            <span className="font-mono text-foreground">{evaluationResult.provenance.provenance_id}</span>
+                          </span>
+                        </div>
+                        {evaluationResult.provenance.degraded ? (
+                          <p className="text-amber-600 dark:text-amber-500">
+                            降级输入 · 受影响指标:{" "}
+                            {evaluationResult.provenance.affected_metrics.length > 0
+                              ? evaluationResult.provenance.affected_metrics.join(", ")
+                              : "未标注"}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                     {summaryCards.length > 0 ? (
                       <div className="grid gap-2 sm:grid-cols-2">
@@ -1239,7 +1289,7 @@ function EvaluationInner() {
                           setResearchBusy(true)
                           setErrorMessage(null)
                           try {
-                            setResearchEval(await scoreResearchRun({ run_id: bound.research?.run_id, session_id: sessionId }))
+                            setResearchEval(await scoreResearchRun({ run_id: bound.research?.run_id ?? undefined, session_id: sessionId }))
                           } catch (err) {
                             setErrorMessage(err instanceof Error ? err.message : "研究评价失败")
                           } finally {

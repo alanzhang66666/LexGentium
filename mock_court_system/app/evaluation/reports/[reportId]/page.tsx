@@ -29,6 +29,8 @@ export default function EvaluationReportPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any>(null)
+  const [provenance, setProvenance] = useState<any>(null)
+  const [correlation, setCorrelation] = useState<any>(null)
 
   useEffect(() => {
     loadReport()
@@ -40,11 +42,17 @@ export default function EvaluationReportPage() {
 
     try {
       const statusData = await getEvaluationStatus(reportId)
+      setProvenance(statusData.provenance || null)
+      setCorrelation(statusData.correlation || null)
       if (statusData.results) {
         setReportData(statusData.results)
         return
       }
       const data = await getEvaluationReport(reportId)
+      if (!provenance) {
+        setProvenance(data.provenance || null)
+        setCorrelation(data.correlation || null)
+      }
       setReportData(data.results || data)
     } catch (err) {
       if (err instanceof ApiError) {
@@ -137,6 +145,41 @@ export default function EvaluationReportPage() {
           </Button>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">民事文书分数仅表示结构关键词覆盖，不代表法律正确性或证据充分性。研究参考对照没有质量分数，请使用研究量表。</p>
+
+        {provenance ? (
+          <Card className="mb-6">
+            <CardContent className="flex flex-wrap gap-x-6 gap-y-1 py-3 text-[12px] text-muted-foreground">
+              <span>
+                namespace <span className="font-mono text-foreground">{provenance.namespace}</span>
+              </span>
+              <span>
+                rubric <span className="font-mono text-foreground">{provenance.rubric_version}</span>
+              </span>
+              <span>
+                provenance <span className="font-mono text-foreground">{provenance.provenance_id}</span>
+              </span>
+              {correlation?.session_id ? (
+                <span>
+                  session <span className="font-mono text-foreground">{correlation.session_id}</span>
+                </span>
+              ) : null}
+              {correlation?.run_id ? (
+                <span>
+                  run <span className="font-mono text-foreground">{correlation.run_id}</span>
+                </span>
+              ) : null}
+              {provenance.degraded ? (
+                <span className="text-amber-600 dark:text-amber-500">
+                  降级输入
+                  {provenance.affected_metrics?.length
+                    ? ` · 受影响: ${provenance.affected_metrics.join(", ")}`
+                    : ""}
+                </span>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* 总体统计 */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {scenarios.map((scenario) => {
