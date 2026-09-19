@@ -36,6 +36,17 @@ PROJECT = _ROOT
 TEST_RUN = PROJECT / "evaluation" / "data" / "test_run"
 
 
+def _isolate_provenance(monkeypatch, ev, tmp_path: Path) -> None:
+    """把 provenance store 指到 tmp，避免测试写真实 data/app_state.sqlite3。"""
+    from core.store.evaluation_provenance_store import EvaluationProvenanceStore
+
+    monkeypatch.setattr(
+        ev.state,
+        "evaluation_provenance_store",
+        EvaluationProvenanceStore(str(tmp_path / "prov.sqlite3")),
+    )
+
+
 def _civil_config(output_root: Path) -> dict:
     return {
         "evaluation": {
@@ -185,6 +196,7 @@ def test_start_evaluation_mints_uuid_and_binds_session_run_id(tmp_path, monkeypa
     store = SqliteEvaluationTaskStore(str(tmp_path / "tasks.sqlite3"))
     monkeypatch.setattr(ev.state, "conversation_store", conv)
     monkeypatch.setattr(ev.state, "evaluation_task_store", store)
+    _isolate_provenance(monkeypatch, ev, tmp_path)
     ev.state.evaluation_tasks.clear()
     monkeypatch.setattr(ev, "bind_session_link", lambda *a, **k: None)
 
@@ -225,6 +237,7 @@ def test_start_evaluation_accepts_or_mints_run_id_when_session_has_none(tmp_path
     store = SqliteEvaluationTaskStore(str(tmp_path / "tasks.sqlite3"))
     monkeypatch.setattr(ev.state, "conversation_store", conv)
     monkeypatch.setattr(ev.state, "evaluation_task_store", store)
+    _isolate_provenance(monkeypatch, ev, tmp_path)
     ev.state.evaluation_tasks.clear()
     monkeypatch.setattr(ev, "bind_session_link", lambda *a, **k: None)
 
@@ -265,6 +278,7 @@ def test_empty_body_wrong_cluster_missing_reference_are_distinct(tmp_path, monke
     store = SqliteEvaluationTaskStore(str(tmp_path / "tasks.sqlite3"))
     monkeypatch.setattr(ev.state, "conversation_store", conv)
     monkeypatch.setattr(ev.state, "evaluation_task_store", store)
+    _isolate_provenance(monkeypatch, ev, tmp_path)
     ev.state.evaluation_tasks.clear()
     monkeypatch.setattr(ev, "bind_session_link", lambda *a, **k: None)
 

@@ -1,0 +1,92 @@
+# Release gate check catalog (design §14 / Task 14.1).
+# Every check is a bounded, non-watch command executed with fixed cwd
+# (product root) and a sanitized environment. Commands must terminate
+# on their own; the runner also enforces timeout_seconds.
+checks:
+  - check_id: source_scan
+    mandatory: true
+    kind: in_process            # 不产生子进程；直接调用 scan_source
+    timeout_seconds: 120
+    owner: release
+    closure_action: remove tracked secrets/artifacts or fix scope exclusions
+
+  - check_id: unit_tests_critical
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "-m", "pytest", "tests/release", "tests/contract", "tests/integration", "-q"]
+    timeout_seconds: 1800
+    owner: release
+    closure_action: fix failing release/contract/integration tests
+
+  - check_id: typecheck
+    mandatory: true
+    kind: subprocess
+    command: ["npm", "run", "lint"]
+    timeout_seconds: 600
+    owner: frontend
+    closure_action: fix TypeScript errors until tsc --noEmit is clean
+
+  - check_id: build
+    mandatory: true
+    kind: subprocess
+    command: ["npm", "run", "build"]
+    timeout_seconds: 900
+    owner: frontend
+    closure_action: fix Next.js build failures
+
+  - check_id: contract
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "-m", "pytest", "tests/contract", "-q"]
+    timeout_seconds: 900
+    owner: api
+    closure_action: restore backend/BFF contract compatibility
+
+  - check_id: security
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "-m", "pytest", "tests/release/test_source_scan.py", "tests/contract/test_backend_api_contract.py", "-q"]
+    timeout_seconds: 900
+    owner: security
+    closure_action: close auth/origin/body-limit/secret-scan gaps
+
+  - check_id: recovery
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "-m", "pytest", "tests/integration/test_sqlite_migration_backup_restore.py", "-q"]
+    timeout_seconds: 900
+    owner: persistence
+    closure_action: restore backup/restore and migration correctness
+
+  - check_id: boundary
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "-m", "pytest", "tests/integration/test_data_boundaries.py", "tests/test_research_identity.py", "-q"]
+    timeout_seconds: 900
+    owner: research
+    closure_action: restore civil/research data-boundary separation
+
+  - check_id: e2e
+    mandatory: true
+    kind: subprocess
+    command: ["node", "node_modules/@playwright/test/cli.js", "test", "--project=journey"]
+    timeout_seconds: 1800
+    owner: web
+    closure_action: fix failing non-hearing E2E journeys
+
+  - check_id: performance
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "scripts/benchmark_release.py", "--suite", "runtime", "--mock", "--samples", "30", "--output", "{evidence_dir}"]
+    timeout_seconds: 3600
+    min_samples: 30
+    owner: performance
+    closure_action: meet benchmark sample/threshold requirements
+
+  - check_id: deploy_docs
+    mandatory: true
+    kind: subprocess
+    command: ["{python}", "scripts/validate_deployment_docs.py"]
+    timeout_seconds: 120
+    owner: release
+    closure_action: complete deploy assets/permissions/lifecycle documentation

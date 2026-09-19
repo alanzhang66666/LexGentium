@@ -1,0 +1,49 @@
+# Release gap register (design §14 / Tasks 10.1, 14.3).
+# 每条恰一个 primary classification。legal_content_gap / data_limitation /
+# accepted_risk / out_of_scope 只披露，不产生 engineering blocker；
+# 只有 open engineering_blocker 会让 gate 产出 no_go。
+gaps:
+  - gap_id: gap-research-formal-packs
+    classification: legal_content_gap
+    trigger: candidate release inventory
+    expected: 至少一个正式研究包完成全部复核
+    actual: 正式研究包 = 0；enforcement/cisg 两个目录是技术夹具（SAMPLE）
+    owner: legal-content
+    status: open
+    evidence_link: docs/SYSTEM_STATUS.md
+
+  - gap_id: gap-research-unreviewed-annotations
+    classification: legal_content_gap
+    trigger: candidate release inventory
+    expected: 案例材料标注完成独立复核
+    actual: 法学材料/案例材料 15 份标注未完成独立复核，不计入正式研究包
+    owner: legal-content
+    status: open
+    evidence_link: docs/SYSTEM_STATUS.md
+
+  - gap_id: gap-research-case25-confirmation
+    classification: legal_content_gap
+    trigger: candidate release inventory
+    expected: 案例 25 标注经人工确认
+    actual: 案例 25 为 AI 辅助初标，确认 pending
+    owner: legal-content
+    status: open
+    evidence_link: docs/SYSTEM_STATUS.md
+
+  - gap_id: gap-civil-dataset-splits
+    classification: data_limitation
+    trigger: candidate release inventory
+    expected: 民事 dataset_1000 产出完整 train/val/test split
+    actual: build_dataset.py 存在但未产出完整 split
+    owner: data
+    status: open
+    evidence_link: docs/SYSTEM_STATUS.md
+
+  - gap_id: gap-observation-visual
+    classification: out_of_scope
+    trigger: release scope
+    expected: 观庭视觉（/hearing-3d、/court3d 重定向、VRM）纳入验证
+    actual: 本特性不含观庭视觉；相关路径在 source scan 中标记 excluded
+    owner: release
+    status: open
+    evidence_link: release/routes.yaml

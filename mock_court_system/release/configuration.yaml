@@ -1,0 +1,36 @@
+schema_version: 1
+version: 1.0.0
+variables:
+  - {name: BACKEND_URL, required: true, profiles: [development, production, test], secret: false, visibility: server_only, owner: next}
+  - {name: NEXT_PUBLIC_BACKEND_URL, required: false, profiles: [development], secret: false, visibility: browser_visible, owner: next}
+  - {name: LLM_PROVIDER, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: LLM_API_KEY, required: true, profiles: [production], secret: true, visibility: server_only, owner: backend}
+  - {name: LLM_BASE_URL, required: true, profiles: [production], secret: false, visibility: server_only, owner: backend}
+  - {name: LLM_MODEL, required: true, profiles: [production], secret: false, visibility: server_only, owner: backend}
+  - {name: LLM_FAST_MODEL, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: LLM_FAST_MAX_TOKENS, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 512}
+  - {name: LLM_MAX_TOKENS, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 4096}
+  - {name: LLM_TEMPERATURE, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 0.1}
+  - {name: LLM_TIMEOUT, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 60}
+  - {name: LLM_CACHE, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 1}
+  - {name: DASHSCOPE_API_KEY, required: false, profiles: [development, production], secret: true, visibility: server_only, owner: backend}
+  - {name: API_HOST, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 127.0.0.1}
+  - {name: API_PORT, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 8000}
+  - {name: API_TOKEN, required: false, profiles: [development, production], secret: true, visibility: server_only, owner: backend}
+  - {name: CONVERSATION_STORE, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: sqlite}
+  - {name: CONVERSATION_DB_PATH, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: HEARING_CHECKPOINT_PATH, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: MEDIATION_DB_PATH, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: RESEARCH_CLAIMS_DB, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: RESEARCH_ANNOTATION_DB, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: CI_USE_GRAPH, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 1}
+  - {name: PLEAD_USE_RUNTIME, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 1}
+  - {name: CI_LEGACY_ANALYSIS, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 0}
+  - {name: CI_MAX_AUTO_TURNS, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: 30}
+  - {name: PLEAD_WINDOW_K, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: HEARING_SUMMARY_WINDOW, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: COURT_API_BASE_URL, required: false, profiles: [development], secret: false, visibility: server_only, owner: offline}
+  - {name: COURT_API_KEY, required: false, profiles: [development], secret: true, visibility: server_only, owner: offline}
+  - {name: SCENARIO_PREFIX, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: TEAM_ID, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend}
+  - {name: LOG_LEVEL, required: false, profiles: [development, production, test], secret: false, visibility: server_only, owner: backend, default: INFO}

@@ -437,3 +437,108 @@ def test_argument_graph_requires_known_ids():
     payload["argument_records"][0]["fact_ids"] = ["not-a-fact"]
     with pytest.raises(ValidationError):
         ResearchPack.model_validate(payload)
+
+
+# ---------- Task 7.2: Research Governance / FormalReviewV2 / PackCodec ----------
+
+
+def test_governance_sample_packs_are_technical_fixtures():
+    from research.governance import (
+        FormalReviewRecordV2,
+        PackCodec,
+        classify_pack,
+        formal_pack_count,
+        is_formal_eligible,
+        pack_content_digest,
+    )
+
+    enf = _loader().get_pack("enforcement", "enf-cn-notice-001")
+    cisg = _loader().get_pack("cisg", "cisg-art79-sample-001")
+
+    # 两个 SAMPLE 即使有 approved 复核也永远是 fixture
+    fake_review = FormalReviewRecordV2(
+        independent_reviewer_id="rev-1",
+        review_timestamp="2026-01-01T00:00:00Z",
+        reviewed_pack_version=enf.pack_version,
+        outcome="approved",
+        reviewed_content_digest=pack_content_digest(enf),
+    )
+    assert classify_pack(enf, [fake_review]) == "technical_fixture"
+    assert classify_pack(cisg, [fake_review]) == "technical_fixture"
+    assert formal_pack_count([(enf, [fake_review]), (cisg, [fake_review])]) == 0
+
+
+def test_governance_formal_requires_complete_v2_review():
+    from research.governance import (
+        FormalReviewRecordV2,
+        is_formal_eligible,
+        pack_content_digest,
+    )
+
+    pack = _loader().get_pack("cisg", "cisg-art79-sample-001")
+    # 把 cluster_id 换掉构造非 fixture pack（模型校验仍通过）
+    payload = pack.model_dump(mode="json")
+    payload["cluster_id"] = "cisg-art79-formal-candidate"
+    candidate = ResearchPack.model_validate(payload)
+
+    digest = pack_content_digest(candidate)
+    complete = FormalReviewRecordV2(
+        independent_reviewer_id="rev-9",
+        review_timestamp="2026-01-01T00:00:00Z",
+        reviewed_pack_version=candidate.pack_version,
+        outcome="approved",
+        reviewed_content_digest=digest,
+    )
+    assert is_formal_eligible(candidate, [complete])
+
+    # 任一字段缺失 → 不合格
+    for kwargs in (
+        {"independent_reviewer_id": ""},
+        {"review_timestamp": ""},
+        {"reviewed_pack_version": "other-version"},
+        {"outcome": "changes_required"},
+        {"reviewed_content_digest": "wrong"},
+    ):
+        fields = dict(
+            independent_reviewer_id="rev-9",
+            review_timestamp="2026-01-01T00:00:00Z",
+            reviewed_pack_version=candidate.pack_version,
+            outcome="approved",
+            reviewed_content_digest=digest,
+        )
+        fields.update(kwargs)
+        assert not is_formal_eligible(candidate, [FormalReviewRecordV2(**fields)])
+
+
+def test_governance_pack_codec_round_trip_preserves_unknown_and_anchors():
+    from research.governance import PackCodec, pack_content_digest
+
+    pack = _loader().get_pack("cisg", "cisg-art79-sample-001")
+    text = PackCodec.pretty_print(pack)
+    reparsed = PackCodec.parse(text)
+    assert PackCodec.compare(pack, reparsed)
+    assert pack_content_digest(reparsed) == pack_content_digest(pack)
+
+    dumped = reparsed.model_dump(mode="json")
+    # unknown 字段往返保持
+    assert dumped["caption"]["court"] == "unknown"
+    # source anchors 状态保持
+    assert len(dumped["source_anchors"]) == len(
+        pack.model_dump(mode="json")["source_anchors"]
+    )
+
+    # 严格 parse：坏数据直接抛
+    bad = json.loads(text)
+    bad["source_anchors"][0]["document_id"] = "999"
+    with pytest.raises(ValidationError):
+        PackCodec.parse(json.dumps(bad, ensure_ascii=False))
+
+
+def test_governance_register_marks_classification():
+    from research.governance import PackCodec
+
+    pack = _loader().get_pack("enforcement", "enf-cn-notice-001")
+    registration = PackCodec.register(pack)
+    assert registration["classification"] == "technical_fixture"
+    assert registration["formal_eligible"] is False
+    assert registration["content_digest"]

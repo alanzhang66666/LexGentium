@@ -1,0 +1,55 @@
+schema_version: 1
+version: 1.0.0
+authoritative_status:
+  path: docs/SYSTEM_STATUS.md
+  summary: 民事工作台能开庭、观庭、复盘；研究工作台已接通；正式法学研究案为 0；两个 SAMPLE 包仅为技术夹具。
+  required_statements:
+    - "正式法学研究案 **0**"
+    - "enf-cn-notice-001"
+    - "cisg-art79-sample-001"
+    - "15 份均未完成独立复核"
+    - "案例 25 仍是 AI 辅助初标待确认"
+    - "没有** train/val/test jsonl"
+research:
+  formal_pack_count: 0
+  technical_fixtures:
+    - id: enf-cn-notice-001
+      path: data/research_packs/enforcement/enf-cn-notice-001
+      classification: technical_fixture
+    - id: cisg-art79-sample-001
+      path: data/research_packs/cisg/cisg-art79-sample-001
+      classification: technical_fixture
+  unreviewed_annotations:
+    count: 15
+    independent_review_complete: false
+    formal_eligible: false
+  case_25:
+    classification: ai_assisted_initial_annotation
+    confirmation: pending
+    formal_eligible: false
+civil_dataset:
+  path: data/dataset_1000
+  track: civil
+  separate_from: research
+  required_split_files:
+    train: train.jsonl
+    validation: validation.jsonl
+    test: test.jsonl
+  expected_missing_splits: [train, validation, test]
+observation_presentation:
+  gate_effect: none
+  entry_route: /hearing-3d
+  excluded_route_patterns: ["/hearing-3d", "/hearing-3d/*"]
+  excluded_source_paths:
+    - components/hearing-3d
+  excluded_checks:
+    - visual_quality
+    - scene_fidelity
+    - model_quality
+    - hud_appearance
+    - animation_quality
+    - viewing_experience
+  legacy_redirects_only:
+    - /court3d
+    - /court3d/[sessionId]
+    - /court3d/replay

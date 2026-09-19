@@ -487,3 +487,61 @@ def test_research_llm_blocked_is_noop_for_civil():
     lawyers = [{"role": "Lawyer", "message": str(i)} for i in range(20)]
     assert research_llm_blocked(_research_input(), lawyers) is None
     assert "上限" in research_stop_notice("max_turns")
+
+
+def test_count_argument_turns_dedupes_by_operation_id():
+    history = [
+        {"role": "Plaintiff", "message": "a", "operation_id": "op-1"},
+        {"role": "Plaintiff", "message": "a", "operation_id": "op-1"},
+        {"role": "Defendant", "message": "b", "operation_id": "op-2"},
+        {"role": "Judge", "message": "c", "operation_id": "op-3"},
+    ]
+    assert count_argument_turns(history) == 2
+    history[1]["operation_id"] = "op-4"
+    assert count_argument_turns(history) == 3
+
+
+def test_research_stop_zero_llm_calls_and_idempotent(monkeypatch):
+    api_server, captured = _load_api_server(monkeypatch, _runtime_path("stop-zero"), _runtime_path("stop-claims"))
+    from api import state
+    from api.services.conversation import send_message, start_session
+
+    calls = {"n": 0}
+    real_fake = state.run_agent_turn
+
+    def counting(*args, **kwargs):
+        calls["n"] += 1
+        return real_fake(*args, **kwargs)
+
+    state.run_agent_turn = counting
+
+    result = start_session(
+        "CI",
+        "enf-cn-notice-001",
+        dataset_id="enforcement",
+        cluster_id="enf-cn-notice-001",
+        pack_version="0.1.0-draft",
+    )
+    sid = result["session_id"]
+    record = state.conversation_store.get(sid)
+    record.dialog_history = [
+        {"turn": i, "role": "Plaintiff", "message": f"主张{i}"} for i in range(12)
+    ]
+    state.conversation_store.save(record)
+
+    resp = send_message(sid, "继续陈述", "Plaintiff")
+    assert resp["is_finished"] is True
+    assert resp["stop_reason"] == "max_turns"
+    assert resp["response"]["role"] == "Judge"
+    assert calls["n"] == 0
+
+    # 终态后重复提交：不再调 LLM，停止通知幂等不重复追加
+    resp2 = send_message(sid, "再次陈述", "Plaintiff")
+    assert calls["n"] == 0
+    assert resp2["stop_reason"] == "max_turns"
+    updated = state.conversation_store.get(sid)
+    notices = [
+        m for m in updated.dialog_history
+        if m.get("role") == "Judge" and m.get("message") == resp["response"]["message"]
+    ]
+    assert len(notices) == 1

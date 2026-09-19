@@ -1,0 +1,266 @@
+schema_version: 1
+version: 1.0.0
+owner: lexgentium
+scope:
+  product_root: .
+  inspected_paths:
+    - api
+    - app
+    - components
+    - core
+    - lib
+    - release
+    - tests/release
+  excluded_paths:
+    - path: components/hearing-3d
+      reason: observation_visual_quality
+      gate_effect: none
+    - path: app/hearing-3d
+      reason: observation_presentation
+      gate_effect: none
+
+# Rules are expanded against source-discovered routes. Every actual route must
+# match exactly one stable, experimental, redirect-only, or excluded rule.
+stable:
+  - id: web-core
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/", "/about", "/docs", "/login", "/register", "/settings", "/system"]
+    auth: public
+    response_mode: html
+    journey: system
+  - id: web-conversation
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/conversation", "/conversation/*"]
+    auth: public
+    response_mode: html
+    journey: conversation
+  - id: web-full-case
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/full-simulation"]
+    auth: public
+    response_mode: html
+    journey: full_case
+  - id: web-mediation
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/mediation", "/mediation/*"]
+    auth: public
+    response_mode: html
+    journey: mediation
+  - id: web-research
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/research", "/research/*"]
+    auth: public
+    response_mode: html
+    journey: research
+  - id: web-evaluation
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/evaluation", "/evaluation/*"]
+    auth: public
+    response_mode: html
+    journey: evaluation
+  - id: web-database
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/database"]
+    auth: public
+    response_mode: html
+    journey: database
+  - id: bff-config
+    surfaces: [next_bff]
+    methods: [GET, POST]
+    path_patterns: ["/api/config/*"]
+    auth: same_origin
+    response_mode: json
+    journey: configuration
+  - id: bff-conversation
+    surfaces: [next_bff]
+    methods: [GET, POST, DELETE]
+    path_patterns: ["/api/conversation/*"]
+    auth: same_origin
+    response_mode: auto
+    journey: conversation
+  - id: bff-full-case
+    surfaces: [next_bff]
+    methods: [GET, POST]
+    path_patterns: ["/api/case/full-simulation", "/api/case/full-simulation/*"]
+    auth: same_origin
+    response_mode: auto
+    journey: full_case
+  - id: bff-mediation
+    surfaces: [next_bff]
+    methods: [GET, POST]
+    path_patterns: ["/api/mediation/*"]
+    auth: same_origin
+    response_mode: json
+    journey: mediation
+  - id: bff-research
+    surfaces: [next_bff]
+    methods: [GET, POST, PATCH]
+    path_patterns: ["/api/research/*", "/api/reference/research-packs", "/api/reference/research-packs/*"]
+    auth: same_origin
+    response_mode: json
+    journey: research
+  - id: bff-evaluation
+    surfaces: [next_bff]
+    methods: [GET, POST]
+    path_patterns: ["/api/evaluate", "/api/evaluate/*", "/api/evaluation/*"]
+    auth: same_origin
+    response_mode: json
+    journey: evaluation
+  - id: bff-database
+    surfaces: [next_bff]
+    methods: [GET, POST]
+    path_patterns:
+      - "/api/database/*"
+      - "/api/reference/big-five"
+      - "/api/reference/big-five-traits"
+      - "/api/reference/cases"
+      - "/api/reference/cases/*"
+      - "/api/reference/dispute-causes"
+      - "/api/reference/progressive-benchmark"
+    auth: same_origin
+    response_mode: json
+    journey: database
+  - id: bff-health
+    surfaces: [next_bff]
+    methods: [GET]
+    path_patterns: ["/api/health"]
+    auth: same_origin
+    response_mode: json
+    journey: system
+  - id: api-config
+    surfaces: [fastapi]
+    methods: [GET, POST]
+    path_patterns: ["/config/*"]
+    auth: optional_bearer
+    response_mode: json
+    journey: configuration
+  - id: api-conversation
+    surfaces: [fastapi]
+    methods: [GET, POST, DELETE]
+    path_patterns: ["/conversation/*"]
+    auth: optional_bearer
+    response_mode: auto
+    journey: conversation
+  - id: api-full-case
+    surfaces: [fastapi]
+    methods: [GET, POST]
+    path_patterns: ["/case/full-simulation", "/case/full-simulation/*"]
+    auth: optional_bearer
+    response_mode: auto
+    journey: full_case
+  - id: api-mediation
+    surfaces: [fastapi]
+    methods: [GET, POST]
+    path_patterns: ["/mediation/*"]
+    auth: optional_bearer
+    response_mode: json
+    journey: mediation
+  - id: api-research
+    surfaces: [fastapi]
+    methods: [GET, POST, PATCH]
+    path_patterns: ["/research/*"]
+    auth: optional_bearer
+    response_mode: json
+    journey: research
+  - id: api-evaluation
+    surfaces: [fastapi]
+    methods: [GET, POST]
+    path_patterns: ["/evaluate", "/evaluation/*"]
+    auth: optional_bearer
+    response_mode: json
+    journey: evaluation
+  - id: api-database
+    surfaces: [fastapi]
+    methods: [GET, POST]
+    path_patterns: ["/database/*", "/reference/*"]
+    auth: optional_bearer
+    response_mode: json
+    journey: database
+  - id: api-health
+    surfaces: [fastapi]
+    methods: [GET]
+    path_patterns: ["/health"]
+    auth: public
+    response_mode: json
+    journey: system
+  - id: api-health-probes
+    surfaces: [fastapi]
+    methods: [GET]
+    path_patterns: ["/health/live", "/health/ready"]
+    auth: public
+    response_mode: json
+    journey: system
+
+experimental:
+  - id: web-experimental
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/api-history", "/simulate"]
+    auth: public
+    response_mode: html
+    journey: experimental_tools
+    label: 实验功能
+  - id: bff-experimental
+    surfaces: [next_bff]
+    methods: [GET, POST, PATCH, DELETE]
+    path_patterns:
+      - "/api/api-history/*"
+      - "/api/game/*"
+      - "/api/case/progressive-rag"
+      - "/api/case/dual-mode-reasoning"
+      - "/api/case/multi-judge"
+      - "/api/legacy"
+      - "/api/simulate"
+    auth: same_origin
+    response_mode: auto
+    journey: experimental_tools
+    label: 实验功能
+  - id: api-experimental
+    surfaces: [fastapi]
+    methods: [GET, POST, PATCH, DELETE]
+    path_patterns:
+      - "/"
+      - "/api-history/*"
+      - "/game/*"
+      - "/case/progressive-rag"
+      - "/case/dual-mode-reasoning"
+      - "/case/multi-judge"
+    auth: optional_bearer
+    response_mode: auto
+    journey: experimental_tools
+    label: 实验功能
+
+redirects:
+  - surface: next_page
+    method: GET
+    path: /court3d
+    status_contract: next_redirect
+    target: /hearing-3d
+    preserve: []
+  - surface: next_page
+    method: GET
+    path: /court3d/[sessionId]
+    status_contract: next_redirect
+    target: /hearing-3d?sessionId={urlencoded_sessionId}
+    preserve: [sessionId]
+  - surface: next_page
+    method: GET
+    path: /court3d/replay
+    status_contract: next_redirect
+    target: /hearing-3d
+    preserve: []
+
+excluded:
+  - id: observation-entry
+    surfaces: [next_page]
+    methods: [GET]
+    path_patterns: ["/hearing-3d", "/hearing-3d/*"]
+    reason: observation_presentation
+    gate_effect: none

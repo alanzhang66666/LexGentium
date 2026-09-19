@@ -148,3 +148,43 @@ def test_export_contains_run_id_materials_hash_eval(monkeypatch, tmp_path):
     assert bundle["eval"]["rubric"]["dimensions"]
     assert "disclaimer" in bundle
     assert bundle["claims"]
+    # Task 7.4：导出必须含 anchor / unknown / degraded 面
+    assert "degraded" in bundle
+    assert bundle["anchors"] == [{"claim_id": bundle["claims"][0]["claim_id"], "source_ids": ["001:p3"]}]
+    assert "unanchored_claims" in bundle and "unknown_claims" in bundle
+
+
+def _reload_api(monkeypatch, tmp_path, name):
+    import sys
+    import uuid as _uuid
+
+    monkeypatch.setenv("CONVERSATION_STORE", "sqlite")
+    monkeypatch.setenv("CONVERSATION_DB_PATH", str(tmp_path / f"{name}-{_uuid.uuid4().hex}.sqlite3"))
+    monkeypatch.setenv("RESEARCH_CLAIMS_DB", str(tmp_path / f"{name}-claims-{_uuid.uuid4().hex}.sqlite3"))
+    monkeypatch.setenv("LLM_API_KEY", "")
+    monkeypatch.setenv("LLM_BASE_URL", "")
+    monkeypatch.setenv("LLM_MODEL", "")
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "")
+    stale = [
+        m for m in list(sys.modules)
+        if m == "api_server" or m == "api" or m.startswith("api.") or m in ("settings",)
+    ]
+    for m in stale:
+        sys.modules.pop(m, None)
+
+
+def test_compare_refuses_score_when_identity_mismatches(monkeypatch, tmp_path):
+    """不同 pack/材料身份 → comparable=False 且不返回分数（Task 7.4）。"""
+    _reload_api(monkeypatch, tmp_path, "compare")
+    from api.services.conversation import start_session
+    from api.services.research_eval import compare_runs
+
+    a = start_session("CI", "enf-cn-notice-001", dataset_id="enforcement",
+                      cluster_id="enf-cn-notice-001", pack_version="0.1.0-draft")
+    b = start_session("CI", "cisg-art79-sample-001", dataset_id="cisg",
+                      cluster_id="cisg-art79-sample-001", pack_version="0.1.0")
+    result = compare_runs([a["run_id"], b["run_id"]])
+    assert result["comparable"] is False
+    assert result["score_comparison"]["refused"] is True
+    assert result["score_comparison"]["reason"] == "identity_mismatch"
+    assert all(row["eval"] is None for row in result["runs"])
