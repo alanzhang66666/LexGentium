@@ -349,9 +349,70 @@ def _speaking_role(record, role: Optional[str] = None) -> Optional[str]:
     return None
 
 
+def _claim_actions_for_record(record) -> List[str]:
+    """本会话 research run 已提交的 claim actions（用于停止判定）。"""
+    try:
+        from core.research.runtime import has_research, research_block
+
+        if not has_research(record.input_json):
+            return []
+        run_id = (research_block(record.input_json) or {}).get("run_id")
+        if not run_id:
+            return []
+        from api.services.claims import list_claim_events
+
+        return [str(e.get("action") or "") for e in list_claim_events(str(run_id))]
+    except Exception:
+        return []
+
+
+def research_session_stop_reason(record) -> Optional[str]:
+    """研究协议停止判定：无 research identity 的民事会话永远 None。"""
+    from core.research.runtime import session_stop_reason
+
+    task_type = None
+    try:
+        from core.research.runtime import has_research, research_block
+
+        if not has_research(record.input_json):
+            return None
+        task_type = (research_block(record.input_json) or {}).get("task_type")
+    except Exception:
+        return None
+    return session_stop_reason(
+        task_type=task_type,
+        dialog_history=list(record.dialog_history or []),
+        claim_actions=_claim_actions_for_record(record),
+    )
+
+
+def commit_research_stop(record, reason: str) -> str:
+    """幂等提交停止终态：同一会话只追加一次 stop notice。"""
+    from core.research.runtime import research_stop_notice
+
+    notice = research_stop_notice(reason)
+    history = list(record.dialog_history or [])
+    last_judge = next((m for m in reversed(history) if m.get("role") == "Judge"), None)
+    if not last_judge or last_judge.get("message") != notice:
+        persist_agent_reply(record, "Judge", notice)
+    return notice
+
+
 def send_message(session_id: str, message: str, role: Optional[str] = None) -> Dict[str, Any]:
     record = require_session(session_id)
     user_role = append_user_message(record, message, role)
+
+    stop_reason = research_session_stop_reason(record)
+    if stop_reason:
+        notice = commit_research_stop(record, stop_reason)
+        return {
+            "session_id": session_id,
+            "response": {"role": "Judge", "message": notice},
+            "dialog_history": list(record.dialog_history),
+            "is_finished": True,
+            "stop_reason": stop_reason,
+            "degraded": False,
+        }
 
     response_role, response_text, is_finished = state.run_agent_turn(
         scenario=record.scenario,
@@ -379,6 +440,20 @@ async def auto_advance(
     dialog_history = list(record.dialog_history)
     auto_roles = state._determine_auto_roles(record.scenario, auto_reply_roles)
     rounds_played = 0
+
+    stop_reason = research_session_stop_reason(record)
+    if stop_reason:
+        notice = commit_research_stop(record, stop_reason)
+        return {
+            "session_id": session_id,
+            "rounds_played": 0,
+            "dialog_history": list(record.dialog_history),
+            "is_finished": True,
+            "stop_reason": stop_reason,
+            "current_stage": "stopped",
+            "next_speaker": None,
+            "available_actions": [],
+        }
 
     for _ in range(max_rounds):
         response_role, response_text, finished = state.run_agent_turn(
@@ -416,8 +491,26 @@ async def auto_advance(
             "message": sim_text,
         })
 
+        # 轮内达到研究上限即停，不再发起下一轮 CI/support 调用
+        record.dialog_history = dialog_history
+        stop_reason = research_session_stop_reason(record)
+        if stop_reason:
+            break
+
     record.dialog_history = dialog_history
     state.conversation_store.save(record)
+    if stop_reason:
+        notice = commit_research_stop(record, stop_reason)
+        return {
+            "session_id": session_id,
+            "rounds_played": rounds_played,
+            "dialog_history": list(record.dialog_history),
+            "is_finished": True,
+            "stop_reason": stop_reason,
+            "current_stage": "stopped",
+            "next_speaker": None,
+            "available_actions": [],
+        }
     final_meta = state._infer_conversation_meta(
         record.scenario, dialog_history, session_id, record.input_json
     )

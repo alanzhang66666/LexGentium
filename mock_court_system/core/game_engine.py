@@ -40,8 +40,8 @@ class GameScore:
     defendant_win_rate: float = 0.0
     reasoning_quality: float = 0.0
     evidence_strength: float = 0.0
-    details: Dict[str, Any] = field(default_factory=dict)
     degraded: bool = False
+    details: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -964,3 +964,79 @@ class GameEngine:
     def get_payoff_matrix(self) -> Dict[str, Any]:
         """获取收益矩阵。"""
         return self.nash_tracker.get_payoff_matrix_display()
+
+    # ================================================================
+    # 会话快照（重启/换引擎恢复）
+    # ================================================================
+
+    def export_snapshot(self) -> Dict[str, Any]:
+        """导出可序列化的博弈会话快照。"""
+        return {
+            "schema_version": "game_snapshot.v1",
+            "plaintiff_strategy_type": self._plaintiff_strategy_type,
+            "defendant_strategy_type": self._defendant_strategy_type,
+            "plaintiff_strategy_text": self._plaintiff_strategy_text,
+            "defendant_strategy_text": self._defendant_strategy_text,
+            "dispute_cause": self._dispute_cause,
+            "dispute_cause_detail": self._dispute_cause_detail,
+            "strategy_history": [r.to_dict() for r in self.strategy_history],
+            "evolution_log": list(self._evolution_log),
+        }
+
+    def import_snapshot(self, snapshot: Dict[str, Any]) -> None:
+        """从快照恢复策略状态与历史；未知/缺省字段安全忽略。"""
+        if not isinstance(snapshot, dict):
+            return
+        self._plaintiff_strategy_type = snapshot.get(
+            "plaintiff_strategy_type", self._plaintiff_strategy_type
+        )
+        self._defendant_strategy_type = snapshot.get(
+            "defendant_strategy_type", self._defendant_strategy_type
+        )
+        self._plaintiff_strategy_text = snapshot.get("plaintiff_strategy_text")
+        self._defendant_strategy_text = snapshot.get("defendant_strategy_text")
+        self._dispute_cause = snapshot.get("dispute_cause")
+        self._dispute_cause_detail = snapshot.get("dispute_cause_detail")
+        self._evolution_log = list(snapshot.get("evolution_log") or [])
+        self.strategy_history = [
+            _game_round_from_dict(item)
+            for item in snapshot.get("strategy_history") or []
+            if isinstance(item, dict)
+        ]
+
+
+def _stage_result_from_dict(data: Optional[Dict[str, Any]]) -> Optional[StageResult]:
+    if not data:
+        return None
+    return StageResult(
+        scenario=str(data.get("scenario") or ""),
+        dialog_history=list(data.get("dialog_history") or []),
+        final_document=str(data.get("final_document") or ""),
+        extracted_info=dict(data.get("extracted_info") or {}),
+        metadata=dict(data.get("metadata") or {}),
+    )
+
+
+def _full_case_result_from_dict(data: Optional[Dict[str, Any]]) -> FullCaseResult:
+    data = data or {}
+    return FullCaseResult(
+        case_id=str(data.get("case_id") or ""),
+        cd_result=_stage_result_from_dict(data.get("cd_result")),
+        dd_result=_stage_result_from_dict(data.get("dd_result")),
+        ci_result=_stage_result_from_dict(data.get("ci_result")),
+        judgment_score=data.get("judgment_score"),
+        elapsed_seconds=float(data.get("elapsed_seconds", 0.0)),
+    )
+
+
+def _game_round_from_dict(data: Dict[str, Any]) -> GameRound:
+    return GameRound(
+        round_index=int(data.get("round_index", 0)),
+        cd_strategy=data.get("cd_strategy"),
+        dd_strategy=data.get("dd_strategy"),
+        case_result=_full_case_result_from_dict(data.get("case_result")),
+        score=GameScore.from_dict(data.get("score")),
+        elapsed_seconds=float(data.get("elapsed_seconds", 0.0)),
+        equilibrium_snapshot=data.get("equilibrium_snapshot"),
+        strategy_switch_log=data.get("strategy_switch_log"),
+    )

@@ -137,8 +137,10 @@ async def get_reference_case(case_id: str, split: Optional[str] = None):
 @router.get("/reference/research-packs")
 async def list_research_packs(dataset: Optional[str] = None):
     from api.services.materials import list_packs
+    from core.research.governance import summarize_pack_inventory
+
     packs = list_packs(dataset)
-    return {"packs": packs, "total": len(packs)}
+    return {"packs": packs, "total": len(packs), "governance": summarize_pack_inventory(packs)}
 
 
 @router.get("/reference/research-packs/{dataset}/{cluster}")

@@ -306,11 +306,29 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
 
     method = (req.evolution_method if req and req.evolution_method else None) or config.get("evolution_method", "llm_reflection")
     round_idx = sess["rounds_completed"]
+
+    from api.middleware.request_context import current_request_context
+    from api.services.operation_coordinator import CommitCapabilityLost
+    from core.store.operation_store import OperationConflict, canonical_digest
+
+    ctx = current_request_context()
+    operation_id = (req.operation_id if req else None) or f"game-{uuid.uuid4().hex[:16]}"
+    try:
+        handle = state.operation_coordinator.begin(
+            operation_id,
+            "game.round",
+            {"game_id": game_id, "round_index": round_idx, "evolution_method": method},
+            ctx.request_id,
+        )
+    except OperationConflict:
+        raise HTTPException(status_code=409, detail="operation_id_conflict")
+    state.operation_coordinator.mark_running(handle)
+
     loop = asyncio.get_running_loop()
     event_queue: asyncio.Queue = asyncio.Queue()
 
     def on_progress(stage, round_i, role, finished, sub_stage=None):
-        loop.call_soon_threadsafe(event_queue.put_nowait, sse_event("stage_transition", {
+        loop.call_soon_threadsafe(event_queue.put_nowait, ("stage_transition", {
             "stage": stage,
             "round_within_stage": round_i,
             "role": role,
@@ -321,7 +339,7 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
     async def run_round():
         try:
             sess["status"] = "running"
-            await event_queue.put(sse_event("round_start", {
+            await event_queue.put(("round_start", {
                 "round_index": round_idx,
                 "plaintiff_strategy": engine._plaintiff_strategy_type,
                 "defendant_strategy": engine._defendant_strategy_type,
@@ -336,13 +354,13 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
             )
             sess["rounds_completed"] = round_idx + 1
 
-            await event_queue.put(sse_event("score_update", {
+            await event_queue.put(("score_update", {
                 "round_index": round_idx,
                 "score": game_round.score.to_dict(),
                 "degraded": bool(game_round.score.degraded),
             }))
 
-            await event_queue.put(sse_event("equilibrium_update", {
+            await event_queue.put(("equilibrium_update", {
                 "equilibrium": game_round.equilibrium_snapshot,
             }))
 
@@ -357,14 +375,14 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
                 await asyncio.to_thread(engine.evolve_both_strategies, game_round, method)
 
                 if engine._plaintiff_strategy_type != old_p:
-                    await event_queue.put(sse_event("strategy_switch", {
+                    await event_queue.put(("strategy_switch", {
                         "party": "plaintiff",
                         "old": old_p,
                         "new": engine._plaintiff_strategy_type,
                     }))
 
                 if engine._defendant_strategy_type != old_d:
-                    await event_queue.put(sse_event("strategy_switch", {
+                    await event_queue.put(("strategy_switch", {
                         "party": "defendant",
                         "old": old_d,
                         "new": engine._defendant_strategy_type,
@@ -376,7 +394,7 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
             sess["status"] = "converged" if converged else "in_progress"
             persist_game(game_id)
 
-            await event_queue.put(sse_event("round_complete", {
+            await event_queue.put(("round_complete", {
                 "round_index": round_idx,
                 "converged": converged,
                 "convergence_rate": conv,
@@ -388,28 +406,47 @@ async def stream_game_round(game_id: str, req: Optional[GameRoundRequest] = None
         except Exception as e:
             sess["status"] = "failed"
             persist_game(game_id)
-            await event_queue.put(sse_event("error", {"message": str(e)}))
+            await event_queue.put(("error", {"message": str(e)}))
         finally:
             await event_queue.put(None)
 
     worker = asyncio.create_task(run_round())
 
     async def event_generator():
+        coordinator = state.operation_coordinator
         try:
+            for f in list(handle.frames):
+                yield f
             while True:
                 try:
                     event = await asyncio.wait_for(event_queue.get(), timeout=25)
                 except asyncio.TimeoutError:
                     if worker.done():
                         break
-                    yield sse_event("heartbeat", {"ok": True})
+                    frame = coordinator.emit_domain(handle, "heartbeat", {"ok": True})
+                    if frame:
+                        yield frame
                     continue
                 if event is None:
                     break
-                yield event
+                etype, edata = event
+                if etype == "error":
+                    coordinator.fail(handle, "worker_error", retriable=True)
+                elif etype == "round_complete":
+                    try:
+                        coordinator.commit(
+                            handle, "game_round", f"{game_id}:{round_idx}",
+                            canonical_digest(edata), "",
+                        )
+                    except CommitCapabilityLost:
+                        etype, edata = "cancelled", {"reason": "client_disconnect"}
+                frame = coordinator.emit_domain(handle, etype, edata)
+                if frame:
+                    yield frame
         finally:
             if not worker.done():
                 worker.cancel()
+            coordinator.disconnect(operation_id)
 
     return StreamingResponse(
         event_generator(),

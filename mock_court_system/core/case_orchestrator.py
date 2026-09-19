@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import logging
 from dataclasses import dataclass, field, asdict
@@ -21,6 +22,29 @@ from agents import CDAgent, DDAgent, CIAgent, SimAgent
 from agents.sim_agent import CONFLICT_STRATEGIES
 
 logger = logging.getLogger("orchestrator")
+
+#: 全案自动 CI 默认步数上限（AGENTS.md：CI_MAX_AUTO_TURNS 默认 30）
+DEFAULT_CI_AUTO_TURN_CAP = 30
+CI_AUTO_TURN_ENV = "CI_MAX_AUTO_TURNS"
+
+
+def _env_ci_auto_turn_cap() -> int:
+    raw = os.getenv(CI_AUTO_TURN_ENV, "")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_CI_AUTO_TURN_CAP
+    return value if value > 0 else DEFAULT_CI_AUTO_TURN_CAP
+
+
+def ci_auto_turn_limit(max_turns: int, cap: Optional[int] = None) -> int:
+    """CI 自动阶段步数上限：``min(max_turns * 3, cap)``。
+
+    ``cap`` 缺省读取 ``CI_MAX_AUTO_TURNS``（默认 30，非法值回落 30）。
+    达到上限即停止，不再产生额外 CI LLM 调用。
+    """
+    effective_cap = cap if cap is not None else _env_ci_auto_turn_cap()
+    return min(max_turns * 3, effective_cap)
 
 
 @dataclass
@@ -349,7 +373,7 @@ class FullCaseOrchestrator:
 
         dialog_history: List[Dict[str, Any]] = []
         final_doc = ""
-        max_ci_turns = min(self.max_turns * 3, 60)
+        max_ci_turns = ci_auto_turn_limit(self.max_turns)
         # 跨轮维护 CI 推理状态：避免每轮用启发式规则重放自然语言导致状态漂移
         ci_state = None
         from core.reasoning_state import extract_ci_reasoning_state

@@ -228,9 +228,12 @@ def get_law_retriever():
 # ========== 会话辅助 ==========
 
 
-def _infer_conversation_meta(scenario: str, dialog_history: List[Dict[str, Any]],
-                             session_id: Optional[str] = None,
-                             input_json: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def _infer_conversation_meta(
+    scenario: str,
+    dialog_history: List[Dict[str, Any]],
+    session_id: Optional[str] = None,
+    input_json: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     is_finished = False
     if dialog_history:
         last_role = dialog_history[-1].get("role", "")
@@ -343,10 +346,71 @@ from core.game_engine import GameEngine
 _orchestrator = runtime.orchestrator
 _game_engine = runtime.game_engine
 
+from core.capacity import CapacityGuard
+from core.store.operation_store import OperationStore
+from api.services.operation_coordinator import OperationCoordinator
+from api.observability.metrics import metrics as _metrics_registry
+
+capacity_guard = CapacityGuard.from_env()
+
+# Operation ledger + stream lifecycle（Task 4.3/4.4）
+operation_store = OperationStore(
+    os.environ.get("OPERATION_DB_PATH", str(project_root / "data" / "operations.sqlite3"))
+)
+operation_coordinator = OperationCoordinator(operation_store, metrics=_metrics_registry)
+
+# 统一 runtime state DB（Task 5.2）：checkpoint v2 与 operation commit 可同事务
+from core.graphs.checkpoint import SqliteCheckpointStore
+
+checkpoint_store = SqliteCheckpointStore(
+    os.environ.get("HEARING_CHECKPOINT_PATH", str(project_root / "data" / "checkpoints.sqlite3"))
+)
+
+# Evaluation provenance：与 evaluation task store 共用 app_state 库（Task 8.1/8.3）
+from core.store.evaluation_provenance_store import EvaluationProvenanceStore
+
+evaluation_provenance_store = EvaluationProvenanceStore(
+    os.environ.get("EVALUATION_PROVENANCE_DB", str(project_root / "data" / "app_state.sqlite3"))
+)
+
+# 操作接受时捕获配置 snapshot（Task 3.8/8.3 provenance 的 configuration_identity）
+from core.configuration import ConfigurationManager
+
+configuration_manager = ConfigurationManager(
+    persist_path=Path(
+        os.environ.get("CONFIG_SNAPSHOT_PATH", str(project_root / "data" / "config_snapshot.json"))
+    )
+)
+
 simulation_tasks: Dict[str, Dict[str, Any]] = {}
 
 
-def _run_full_simulation_task(task_id: str, case_info: Dict[str, Any]):
+def persist_simulation_task(task_id: str) -> None:
+    """把内存中的模拟任务快照写入持久化任务表（report_id=task_id）。"""
+    task = simulation_tasks.get(task_id)
+    if not task:
+        return
+    try:
+        evaluation_task_store.upsert(
+            EvaluationTaskRecord(
+                report_id=task_id,
+                status=str(task.get("status") or "pending"),
+                message=str(task.get("message") or ""),
+                created_at=str(task.get("created_at") or _utcnow_iso()),
+                updated_at=_utcnow_iso(),
+                results_json=(
+                    json.dumps(task.get("result"), ensure_ascii=False)
+                    if task.get("result") is not None
+                    else None
+                ),
+                session_id=task.get("session_id"),
+            )
+        )
+    except Exception as exc:
+        eval_logger.warning(f"模拟任务持久化失败 {task_id}: {exc}")
+
+
+def _run_full_simulation_task(task_id: str, case_info: Dict[str, Any], permit=None):
     try:
         simulation_tasks[task_id]["status"] = "running"
         simulation_tasks[task_id]["current_stage"] = "CD"
@@ -366,9 +430,14 @@ def _run_full_simulation_task(task_id: str, case_info: Dict[str, Any]):
         eval_logger.error(f"全流程模拟失败: {e}", exc_info=True)
         simulation_tasks[task_id]["status"] = "failed"
         simulation_tasks[task_id]["message"] = f"妯℃嫙澶辫触: {str(e)}"
+    finally:
+        # terminal（completed/failed）：释放容量 permit 与 runtime 引用
+        simulation_tasks.get(task_id, {}).pop("worker", None)
+        if permit is not None:
+            permit.release()
 
 
-def _run_tournament_task(task_id: str, case_info: Dict[str, Any], rounds: int):
+def _run_tournament_task(task_id: str, case_info: Dict[str, Any], rounds: int, permit=None):
     try:
         simulation_tasks[task_id]["status"] = "running"
         simulation_tasks[task_id]["current_stage"] = "round_1"
@@ -390,6 +459,10 @@ def _run_tournament_task(task_id: str, case_info: Dict[str, Any], rounds: int):
         eval_logger.error(f"博弈锦标赛失败: {e}", exc_info=True)
         simulation_tasks[task_id]["status"] = "failed"
         simulation_tasks[task_id]["message"] = f"锦标赛失败: {str(e)}"
+    finally:
+        simulation_tasks.get(task_id, {}).pop("worker", None)
+        if permit is not None:
+            permit.release()
 
 
 
@@ -462,7 +535,11 @@ from core.nash_equilibrium import STRATEGY_NAMES as VALID_STRATEGIES
 from core.store.game_session_store import GameSessionStore
 
 game_sessions: Dict[str, Dict[str, Any]] = {}
-_game_store = GameSessionStore(str(project_root / "data" / "game_sessions.sqlite3"))
+_game_store = GameSessionStore(
+    os.environ.get(
+        "GAME_SESSION_DB_PATH", str(project_root / "data" / "game_sessions.sqlite3")
+    )
+)
 
 
 

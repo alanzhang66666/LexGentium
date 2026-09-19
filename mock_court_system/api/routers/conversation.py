@@ -29,7 +29,6 @@ router = APIRouter()
 async def start_conversation(req: ConversationStartRequest):
     from api.services.conversation import start_session
     try:
-        values = req.model_dump(by_alias=True)
         scenario = req.scenario.upper()
         result = start_session(
             scenario=scenario,
@@ -41,7 +40,7 @@ async def start_conversation(req: ConversationStartRequest):
             derived_from=req.derived_from,
             visible_materials=req.visible_materials,
             experiment_conditions=req.experiment_conditions,
-            model_config=values.get("model_config"),
+            model_config=req.model_config_,
             visibility_grants=req.visibility_grants,
         )
         return ConversationStartResponse(**result)
@@ -135,6 +134,19 @@ async def send_message(session_id: str, req: ConversationMessageRequest):
             "message": req.message
         }
         dialog_history.append(user_message)
+
+        # 研究协议停止判定：命中上限/材料不足时提交终态，不再调用 CI/support LLM
+        from api.services.conversation import commit_research_stop, research_session_stop_reason
+        stop_reason = research_session_stop_reason(record)
+        if stop_reason:
+            notice = commit_research_stop(record, stop_reason)
+            return ConversationMessageResponse(
+                session_id=session_id,
+                response={"role": "Judge", "message": notice},
+                dialog_history=list(dialog_history),
+                is_finished=True,
+                stop_reason=stop_reason,
+            )
 
         reasoning_state = state.ci_reasoning_state_from_record(record)
         session_ci = state.new_session_ci_agent() if scenario == "CI" else None
@@ -241,6 +253,22 @@ async def auto_advance_conversation(session_id: str, req: AutoAdvanceRequest):
         input_json = record.input_json
         auto_roles = state._determine_auto_roles(scenario, req.auto_reply_roles)
 
+        # 研究协议停止判定：命中上限/材料不足时提交终态，本轮不再推进
+        from api.services.conversation import commit_research_stop, research_session_stop_reason
+        stop_reason = research_session_stop_reason(record)
+        if stop_reason:
+            commit_research_stop(record, stop_reason)
+            return AutoAdvanceResponse(
+                session_id=session_id,
+                rounds_played=0,
+                dialog_history=list(record.dialog_history),
+                is_finished=True,
+                current_stage="stopped",
+                next_speaker=None,
+                available_actions=[],
+                stop_reason=stop_reason,
+            )
+
         rounds_played = 0
         is_finished = False
 
@@ -286,8 +314,27 @@ async def auto_advance_conversation(session_id: str, req: AutoAdvanceRequest):
                 "message": sim_text,
             })
 
+            # 轮内达到研究上限即停，不再发起下一轮 CI/support 调用
+            record.dialog_history = dialog_history
+            stop_reason = research_session_stop_reason(record)
+            if stop_reason:
+                break
+
         record.dialog_history = dialog_history
         state.conversation_store.save(record)
+
+        if stop_reason:
+            commit_research_stop(record, stop_reason)
+            return AutoAdvanceResponse(
+                session_id=session_id,
+                rounds_played=rounds_played,
+                dialog_history=list(record.dialog_history),
+                is_finished=True,
+                current_stage="stopped",
+                next_speaker=None,
+                available_actions=[],
+                stop_reason=stop_reason,
+            )
 
         final_meta = state._infer_conversation_meta(scenario, dialog_history)
 
@@ -371,18 +418,124 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
 
     session_ci = state.new_session_ci_agent() if scenario == "CI" else None
 
+    # Operation ledger：begin 同步发 start；冲突 op-id → 409；已提交 → 回放
+    from api.middleware.request_context import current_request_context
+    from api.services.operation_coordinator import CommitCapabilityLost
+    from core.store.operation_store import OperationConflict, canonical_digest
+
+    ctx = current_request_context()
+    operation_id = req.operation_id or f"msg-{uuid.uuid4().hex[:16]}"
+    try:
+        handle = state.operation_coordinator.begin(
+            operation_id,
+            "conversation.message",
+            {"session_id": session_id, "message": req.message, "role": user_role},
+            ctx.request_id,
+            state_fingerprint=canonical_digest(record.dialog_history),
+        )
+    except OperationConflict:
+        raise HTTPException(status_code=409, detail="operation_id_conflict")
+
+    stream_headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+    if handle.replayed:
+        # 已提交操作：从 store 重建 final，不重复 LLM
+        fresh = state.conversation_store.get(session_id)
+        final_payload = {
+            "session_id": session_id,
+            "response": (fresh.dialog_history[-1] if fresh and fresh.dialog_history else {}),
+            "dialog_history": list(fresh.dialog_history) if fresh else [],
+            "is_finished": True,
+            "replayed": True,
+            "degraded": False,
+            "reasoning_meta": None,
+        }
+
+        async def replay_stream():
+            try:
+                yield handle.encoder.emit("start") or ""
+                frame = state.operation_coordinator.emit_domain(handle, "final", final_payload)
+                if frame:
+                    yield frame
+            finally:
+                state.operation_coordinator.disconnect(operation_id)
+
+        return StreamingResponse(replay_stream(), media_type="text/event-stream", headers=stream_headers)
+
+    state.operation_coordinator.mark_running(handle)
+
+    # 研究协议停止判定：命中上限/材料不足时直接发终态事件，不再调 LLM
+    from api.services.conversation import commit_research_stop, research_session_stop_reason
+    stop_reason = research_session_stop_reason(record)
+    if stop_reason:
+        notice = commit_research_stop(record, stop_reason)
+
+        async def stopped_stream():
+            try:
+                for f in list(handle.frames):
+                    yield f
+                final = {
+                    "session_id": session_id,
+                    "response": {"role": "Judge", "message": notice},
+                    "dialog_history": list(record.dialog_history),
+                    "is_finished": True,
+                    "stop_reason": stop_reason,
+                    "degraded": False,
+                    "reasoning_meta": None,
+                }
+                try:
+                    from api.services.runtime_unit_of_work import (
+                        RuntimeUnitOfWork,
+                        UnitOfWorkError,
+                    )
+
+                    fingerprint = canonical_digest(record.dialog_history)
+                    with RuntimeUnitOfWork(
+                        state.checkpoint_store,
+                        operation_store=state.operation_store,
+                        conversation_store=state.conversation_store,
+                    ) as uow:
+                        uow.save_conversation(record)
+                        uow.commit_operation(
+                            operation_id,
+                            "conversation_message",
+                            f"{session_id}:{turn}",
+                            canonical_digest(final),
+                            fingerprint,
+                        )
+                        uow.save_checkpoint(
+                            f"conversation:{session_id}",
+                            turn,
+                            {"dialog_history": list(record.dialog_history),
+                             "stop_reason": stop_reason},
+                            state_fingerprint=fingerprint,
+                            operation_id=operation_id,
+                        )
+                    handle.record = state.operation_store.get(operation_id) or handle.record
+                except (CommitCapabilityLost, UnitOfWorkError):
+                    pass
+                frame = state.operation_coordinator.emit_domain(handle, "final", final)
+                if frame:
+                    yield frame
+            finally:
+                state.operation_coordinator.disconnect(operation_id)
+
+        return StreamingResponse(stopped_stream(), media_type="text/event-stream", headers=stream_headers)
+
     async def event_stream():
         import queue as _queue
         import threading as _threading
 
         q: _queue.Queue = _queue.Queue()
-        heartbeat = {"stop": False}
+        coordinator = state.operation_coordinator
 
         def _hook(delta: str):
             q.put(("delta", delta))
 
         def _run():
             try:
+                if handle.token.cancelled:
+                    return
                 state.llm_client.set_stream_hook(_hook)
                 try:
                     rs = state.ci_reasoning_state_from_record(record)
@@ -402,7 +555,7 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                 state.eval_logger.error(f"stream message failed: {e}", exc_info=True)
                 q.put(("error", str(e)))
                 return
-            q.put(("done", (role, text, finished)))
+            q.put(("done", (role, text, finished, session_ci)))
 
         worker = _threading.Thread(target=_run, daemon=True)
         worker.start()
@@ -410,6 +563,8 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
         import time as _time
         last_beat = _time.time()
         try:
+            for f in list(handle.frames):
+                yield f
             while True:
                 try:
                     kind, payload = q.get(timeout=5.0)
@@ -417,17 +572,29 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                     # 心跳，防止代理/浏览器 idle 超时断流
                     if _time.time() - last_beat > 4.5:
                         last_beat = _time.time()
-                        yield f"data: {json.dumps({'type': 'heartbeat'}, ensure_ascii=False)}\n\n"
+                        frame = coordinator.emit_domain(handle, "heartbeat")
+                        if frame:
+                            yield frame
                     continue
 
                 if kind == "delta":
                     last_beat = _time.time()
-                    yield f"data: {json.dumps({'type': 'delta', 'text': payload}, ensure_ascii=False)}\n\n"
+                    frame = coordinator.emit_domain(handle, "delta", {"text": payload})
+                    if frame:
+                        yield frame
                 elif kind == "error":
-                    yield f"data: {json.dumps({'type': 'final', 'error': str(payload)}, ensure_ascii=False)}\n\n"
+                    coordinator.fail(handle, "worker_error", retriable=True)
+                    frame = coordinator.emit_domain(handle, "error", {"message": str(payload)})
+                    if frame:
+                        yield frame
                     return
                 else:  # done
-                    role, text, finished = payload
+                    role, text, finished, session_ci = payload
+                    if handle.token.cancelled:
+                        frame = coordinator.emit_domain(handle, "cancelled", {"reason": "client_disconnect"})
+                        if frame:
+                            yield frame
+                        return
                     new_turn = turn + 1
                     response_message = {
                         "turn": new_turn,
@@ -436,11 +603,9 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                     }
                     dialog_history.append(response_message)
                     record.dialog_history = dialog_history
-                    state.conversation_store.save(record)
 
                     degraded = text.startswith("[离线模式回复]") or "（离线演示模板" in text
                     final = {
-                        "type": "final",
                         "session_id": session_id,
                         "response": {"role": role, "message": text},
                         "dialog_history": list(dialog_history),
@@ -452,13 +617,50 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                             "case_warnings": list(getattr(session_ci, "case_warnings", [])),
                         } if scenario == "CI" else None),
                     }
-                    yield f"data: {json.dumps(final, ensure_ascii=False)}\n\n"
+                    fingerprint = canonical_digest(dialog_history)
+                    try:
+                        # 原子提交：session + operation + checkpoint v2 同一事务
+                        from api.services.runtime_unit_of_work import (
+                            RuntimeUnitOfWork,
+                            UnitOfWorkError,
+                        )
+
+                        with RuntimeUnitOfWork(
+                            state.checkpoint_store,
+                            operation_store=state.operation_store,
+                            conversation_store=state.conversation_store,
+                        ) as uow:
+                            uow.save_conversation(record)
+                            uow.commit_operation(
+                                operation_id,
+                                "conversation_message",
+                                f"{session_id}:{new_turn}",
+                                canonical_digest(final),
+                                fingerprint,
+                            )
+                            uow.save_checkpoint(
+                                f"conversation:{session_id}",
+                                new_turn,
+                                {"dialog_history": list(dialog_history)},
+                                state_fingerprint=fingerprint,
+                                operation_id=operation_id,
+                            )
+                        # 同步 coordinator 内存中的 record 视图
+                        handle.record = coordinator.store.get(operation_id) or handle.record
+                    except (CommitCapabilityLost, UnitOfWorkError):
+                        frame = coordinator.emit_domain(handle, "cancelled", {"reason": "client_disconnect"})
+                        if frame:
+                            yield frame
+                        return
+                    frame = coordinator.emit_domain(handle, "final", final)
+                    if frame:
+                        yield frame
                     return
         finally:
-            heartbeat["stop"] = True
+            coordinator.disconnect(operation_id)
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers=stream_headers,
     )

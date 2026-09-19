@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Any, Optional
 
 from agents import CDAgent, CIAgent, DDAgent, SimAgent
@@ -46,6 +47,9 @@ def create_llm_client(settings: Any) -> LLMClient:
 def create_runtime(settings: Any) -> RuntimeContext:
     api_client = MockApiClient()
     llm_client = create_llm_client(settings)
+    # E2E/故障注入夹具：托管 harness 可用确定性 mock provider，不触外部 LLM。
+    if os.environ.get("E2E_LLM_MOCK", "") == "1":
+        llm_client.enable_mock()
     cd_agent = CDAgent(api_client, llm_client)
     dd_agent = DDAgent(api_client, llm_client)
     ci_agent = CIAgent(api_client, llm_client)

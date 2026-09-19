@@ -1,6 +1,6 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DialogMessage(BaseModel):
@@ -22,22 +22,102 @@ class ApiResponse(BaseModel):
     response: Dict[str, str]
 
 
+EvaluationScenario = Literal["CD", "DD", "CI"]
+EvaluationTaskStatus = Literal["running", "completed", "failed"]
+
+
 class EvaluationRequest(BaseModel):
-    scenarios: List[str] = ["CD", "DD", "CI"]
+    """Public contract for starting an evaluation task.
+
+    Unknown fields are rejected so route behavior cannot depend on attributes that
+    are absent from the API schema.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    scenarios: List[EvaluationScenario] = Field(default_factory=lambda: ["CD", "DD", "CI"])
     prediction_files: Optional[Dict[str, str]] = None
     use_default_predictions: bool = True
+    session_id: Optional[str] = Field(default=None, min_length=1)
+    run_id: Optional[str] = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def require_evaluation_input(self) -> "EvaluationRequest":
+        if not self.session_id and not self.prediction_files and not self.use_default_predictions:
+            raise ValueError(
+                "one of session_id, prediction_files, or use_default_predictions=true is required"
+            )
+        return self
+
+
+class EvaluationError(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    message: str
+
+
+class CorrelationContext(BaseModel):
+    """可用非秘密关联身份的投影（缺省字段不生成伪值）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: Optional[str] = None
     session_id: Optional[str] = None
+    task_id: Optional[str] = None
+    operation_id: Optional[str] = None
+    game_id: Optional[str] = None
+    report_id: Optional[str] = None
     run_id: Optional[str] = None
 
 
+class EvaluationProvenanceView(BaseModel):
+    """评分 provenance 公开视图（Task 8.3）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    provenance_id: str
+    namespace: str
+    rubric_version: str
+    evaluator_version: str
+    configuration_identity: str
+    model_identity: str
+    input_digest: str
+    degraded: bool = False
+    affected_metrics: List[str] = Field(default_factory=list)
+    report_status: Optional[str] = None
+    result_digest: Optional[str] = None
+
+
 class EvaluationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     report_id: str
-    status: str
+    status: EvaluationTaskStatus
     message: str
     results: Optional[Dict[str, Any]] = None
     report_path: Optional[str] = None
     session_id: Optional[str] = None
     run_id: Optional[str] = None
+    error: Optional[EvaluationError] = None
+    provenance: Optional[EvaluationProvenanceView] = None
+    correlation: Optional[CorrelationContext] = None
+
+
+class EvaluationReportSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    report_id: str
+    file_name: str
+    file_path: str
+    created_at: str
+    scenarios: List[str]
+
+
+class EvaluationReportsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reports: List[EvaluationReportSummary]
 
 
 class LawSearchRequest(BaseModel):
@@ -54,13 +134,14 @@ class ConversationStartRequest(BaseModel):
     scenario: str
     case_id: str
     input_json: Optional[Dict[str, Any]] = None
+    # 研究身份三元组：必须同现，经 freeze_role_snapshot 校验，未知 pack/cluster 拒绝
     dataset_id: Optional[str] = None
     cluster_id: Optional[str] = None
     pack_version: Optional[str] = None
     derived_from: Optional[str] = None
     visible_materials: Optional[Dict[str, Any]] = None
     experiment_conditions: Optional[Dict[str, Any]] = None
-    model_settings: Optional[Dict[str, Any]] = Field(default=None, alias="model_config")
+    model_config_: Optional[Dict[str, Any]] = Field(default=None, alias="model_config")
     visibility_grants: Optional[List[Dict[str, Any]]] = None
 
 
@@ -80,6 +161,8 @@ class ConversationStartResponse(BaseModel):
 class ConversationMessageRequest(BaseModel):
     message: str
     role: Optional[str] = None
+    # 幂等重试用的客户端 Operation ID；缺省由服务端生成
+    operation_id: Optional[str] = None
 
 
 class ConversationMessageResponse(BaseModel):
@@ -92,6 +175,8 @@ class ConversationMessageResponse(BaseModel):
     # CI 场景的推理元数据：judgment_status(ok/degraded/failed)、
     # citation_report（法条回查命中/未命中）、case_warnings（数据契约告警）
     reasoning_meta: Optional[Dict[str, Any]] = None
+    # 研究协议终态：material_insufficient | max_turns | completed（民事会话恒 None）
+    stop_reason: Optional[str] = None
 
 
 class ConversationInfo(BaseModel):
@@ -133,12 +218,14 @@ class AutoAdvanceResponse(BaseModel):
     current_stage: Optional[str] = None
     next_speaker: Optional[str] = None
     available_actions: List[str] = []
+    stop_reason: Optional[str] = None
 
 
 class FullSimulationRequest(BaseModel):
     case_info: Dict[str, Any]
     mode: str = "single"
     tournament_rounds: int = 3
+    operation_id: Optional[str] = None
 
 
 class FullSimulationStatusResponse(BaseModel):
@@ -179,6 +266,7 @@ class GameStrategySetRequest(BaseModel):
 
 class GameRoundRequest(BaseModel):
     evolution_method: Optional[str] = None
+    operation_id: Optional[str] = None
 
 
 class GameCounterfactualRequest(BaseModel):
