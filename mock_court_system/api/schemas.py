@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DialogMessage(BaseModel):
@@ -26,6 +26,8 @@ class EvaluationRequest(BaseModel):
     scenarios: List[str] = ["CD", "DD", "CI"]
     prediction_files: Optional[Dict[str, str]] = None
     use_default_predictions: bool = True
+    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
 class EvaluationResponse(BaseModel):
@@ -34,6 +36,8 @@ class EvaluationResponse(BaseModel):
     message: str
     results: Optional[Dict[str, Any]] = None
     report_path: Optional[str] = None
+    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
 class LawSearchRequest(BaseModel):
@@ -50,6 +54,14 @@ class ConversationStartRequest(BaseModel):
     scenario: str
     case_id: str
     input_json: Optional[Dict[str, Any]] = None
+    dataset_id: Optional[str] = None
+    cluster_id: Optional[str] = None
+    pack_version: Optional[str] = None
+    derived_from: Optional[str] = None
+    visible_materials: Optional[Dict[str, Any]] = None
+    experiment_conditions: Optional[Dict[str, Any]] = None
+    model_settings: Optional[Dict[str, Any]] = Field(default=None, alias="model_config")
+    visibility_grants: Optional[List[Dict[str, Any]]] = None
 
 
 class ConversationStartResponse(BaseModel):
@@ -57,6 +69,12 @@ class ConversationStartResponse(BaseModel):
     scenario: str
     case_id: str
     created_at: str
+    run_id: Optional[str] = None
+    dataset_id: Optional[str] = None
+    cluster_id: Optional[str] = None
+    pack_version: Optional[str] = None
+    derived_from: Optional[str] = None
+    materials_hash: Optional[str] = None
 
 
 class ConversationMessageRequest(BaseModel):
@@ -213,4 +231,3 @@ class MultiJudgeRequest(BaseModel):
     trial_summary: str = ""
     num_judges: int = 3
     aggregation: str = "meta_judge"
-

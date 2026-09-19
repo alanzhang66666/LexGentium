@@ -1,9 +1,19 @@
+import type { ResearchClaimNode, ResearchSessionMeta } from "@/lib/research/runtime"
+
 export type Scenario = "CD" | "DD" | "CI"
 
 export interface ConversationStartRequest {
   scenario: Scenario
   case_id: string
   input_json?: Record<string, unknown>
+  dataset_id?: string
+  cluster_id?: string
+  pack_version?: string
+  derived_from?: string
+  visible_materials?: Record<string, unknown>
+  experiment_conditions?: Record<string, unknown>
+  model_config?: Record<string, unknown>
+  visibility_grants?: Array<Record<string, unknown>>
 }
 
 export interface ConversationStartResponse {
@@ -11,6 +21,12 @@ export interface ConversationStartResponse {
   scenario: string
   case_id: string
   created_at: string
+  run_id?: string | null
+  dataset_id?: string | null
+  cluster_id?: string | null
+  pack_version?: string | null
+  derived_from?: string | null
+  materials_hash?: string | null
 }
 
 export interface ConversationMessageRequest {
@@ -153,7 +169,21 @@ export interface ConversationInfo {
   available_actions?: string[]
   is_finished?: boolean
   turn_count?: number
+  links?: SessionLinks
+  research?: ResearchSessionInfo | null
+  claim_chain?: ResearchClaimNode[]
+  task_protocol?: Record<string, unknown> | null
+  stop_reason?: string | null
 }
+
+export interface SessionLinks {
+  task_id?: string
+  game_id?: string
+  report_id?: string
+}
+
+export type { ResearchClaimNode } from "@/lib/research/runtime"
+export type ResearchSessionInfo = ResearchSessionMeta
 
 export interface ConversationSummary {
   session_id: string
@@ -163,6 +193,7 @@ export interface ConversationSummary {
   updated_at: string
   message_count: number
   is_finished?: boolean
+  links?: SessionLinks
 }
 
 export interface ConversationListResponse {

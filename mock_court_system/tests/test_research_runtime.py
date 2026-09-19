@@ -68,7 +68,7 @@ def _load_api_server(monkeypatch, db_path, claims_path=None):
         captured["input_json"] = json.loads(json.dumps(input_json))
         return "Lawyer", f"offline reply for {scenario}:{case_id}", False
 
-    state.run_agent_turn = fake_run_agent_turn
+    monkeypatch.setattr(state, "run_agent_turn", fake_run_agent_turn)
     return api_server, captured
 
 
@@ -214,7 +214,7 @@ def test_civil_path_unchanged(monkeypatch, tmp_path):
     split_dir = tmp_path / "data" / "dataset_1000" / "test"
     split_dir.mkdir(parents=True)
     row = {
-        "case_id": "CASE-CIVIL-1",
+        "case_id": "CASE-0001",
         "cause": "民间借贷纠纷",
         "case_description": "原告主张被告借款未还。",
         "plaintiff_claims": ["偿还本金"],
@@ -222,9 +222,14 @@ def test_civil_path_unchanged(monkeypatch, tmp_path):
         "defendant_name": "李四",
     }
     (split_dir / "case_info.jsonl").write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
+    dataset_root = tmp_path / "data" / "dataset_1000"
+    (dataset_root / "dataset_meta.json").write_text("{}", encoding="utf-8")
+    for scenario, fact_key in (("CD", "case_details"), ("DD", "plaintiff_facts"), ("CI", "case_facts")):
+        gt = {"id": f"{scenario}-0001", "scenario": scenario, "cause": row["cause"], fact_key: row["case_description"]}
+        (split_dir / f"{scenario}_ground_truth.jsonl").write_text(json.dumps(gt, ensure_ascii=False) + "\n", encoding="utf-8")
     state.project_root = tmp_path
 
-    result = start_session("CI", "CASE-CIVIL-1")
+    result = start_session("CI", "CASE-0001")
     record = state.conversation_store.get(result["session_id"])
     assert "research" not in record.input_json
     assert record.input_json["case_description"] == row["case_description"]

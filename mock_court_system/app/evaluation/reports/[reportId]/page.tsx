@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { WorkbenchShell } from "@/components/shell"
+import { evaluationMetrics, evaluationScenarios, evaluationScore } from "@/lib/evaluation-metrics"
 import { SCENARIO_LABELS } from "@/lib/labels"
 import { ApiError, getEvaluationReport, getEvaluationStatus } from "@/lib/api"
 import {
@@ -56,50 +57,10 @@ export default function EvaluationReportPage() {
     }
   }
 
-  const calculateMetrics = (scenarioData: any[]) => {
-    if (!scenarioData || scenarioData.length === 0) {
-      return { average: 0, total: 0, max: 0, min: 0 }
-    }
-
-    const scores = scenarioData
-      .map((item) => {
-        if (typeof item.score === "object" && item.score !== null) {
-          // 如果是对象，尝试提取总分或平均值
-          const scoreValues = Object.values(item.score).filter(
-            (v) => typeof v === "number"
-          ) as number[]
-          return scoreValues.length > 0
-            ? scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length
-            : 0
-        }
-        return typeof item.score === "number" ? item.score : 0
-      })
-      .filter((s) => s > 0)
-
-    if (scores.length === 0) {
-      return { average: 0, total: 0, max: 0, min: 0 }
-    }
-
-    return {
-      average: scores.reduce((a, b) => a + b, 0) / scores.length,
-      total: scores.length,
-      max: Math.max(...scores),
-      min: Math.min(...scores),
-    }
-  }
-
-  const formatScore = (score: any): string => {
-    if (typeof score === "number") {
-      return score.toFixed(2)
-    }
-    if (typeof score === "object" && score !== null) {
-      const values = Object.values(score).filter((v) => typeof v === "number") as number[]
-      if (values.length > 0) {
-        const avg = values.reduce((a, b) => a + b, 0) / values.length
-        return avg.toFixed(2)
-      }
-    }
-    return "N/A"
+  const calculateMetrics = evaluationMetrics
+  const formatScore = (score: unknown): string => {
+    const value = evaluationScore(score)
+    return value === null ? "N/A" : value.toFixed(2)
   }
 
   const getScoreTrend = (score: number): "up" | "down" | "neutral" => {
@@ -152,7 +113,7 @@ export default function EvaluationReportPage() {
     )
   }
 
-  const scenarios = Object.keys(reportData)
+  const scenarios = evaluationScenarios(reportData)
   const scenarioMetrics = scenarios.reduce((acc, scenario) => {
     acc[scenario] = calculateMetrics(reportData[scenario])
     return acc
@@ -175,6 +136,7 @@ export default function EvaluationReportPage() {
             导出
           </Button>
         </div>
+        <p className="mb-4 text-sm text-muted-foreground">民事文书分数仅表示结构关键词覆盖，不代表法律正确性或证据充分性。研究参考对照没有质量分数，请使用研究量表。</p>
         {/* 总体统计 */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {scenarios.map((scenario) => {
@@ -201,7 +163,7 @@ export default function EvaluationReportPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">平均分</span>
-                      <span className="text-2xl font-bold">{metrics.average.toFixed(2)}</span>
+                      <span className="text-2xl font-bold">{metrics.total ? metrics.average.toFixed(2) : "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">评测数量</span>
@@ -209,11 +171,11 @@ export default function EvaluationReportPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">最高分</span>
-                      <span className="font-semibold">{metrics.max.toFixed(2)}</span>
+                      <span className="font-semibold">{metrics.total ? metrics.max.toFixed(2) : "N/A"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">最低分</span>
-                      <span className="font-semibold">{metrics.min.toFixed(2)}</span>
+                      <span className="font-semibold">{metrics.total ? metrics.min.toFixed(2) : "N/A"}</span>
                     </div>
                   </div>
                 </CardContent>

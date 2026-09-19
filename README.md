@@ -18,7 +18,7 @@
 
 ## 5 分钟跑起来
 
-需要 **Python 3.9+**、**Node.js 20+**、一个 OpenAI 兼容的 LLM Key。
+需要 **Python 3.10+**、**Node.js 20+**、一个 OpenAI 兼容的 LLM Key。
 
 两个终端，都进 `mock_court_system`：
 
@@ -156,7 +156,7 @@ API、BibTeX、更细的架构：[`mock_court_system/README.md`](mock_court_syst
 | 评测任务 | `data/app_state.sqlite3` |
 | 博弈 / 调解 | `data/game_sessions.sqlite3`、`data/mediation_sessions.sqlite3` |
 | 法条 + 向量 | `database/legal_articles.db` 和旁边的 `.index` |
-| 开庭选案 | `data/dataset_1000/`（仓库里只有元数据 + 100 条摘要） |
+| 开庭选案 | `data/dataset_1000/`（train / val / test：600 / 200 / 200 条案件及配套 GT） |
 
 **不要提交** `.env` 和 SQLite。完整 1000 条按 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
 

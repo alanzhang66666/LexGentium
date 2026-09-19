@@ -312,7 +312,11 @@ class LawRetriever:
                 except:
                     pass
                     
-        return final_results
+        # Apply research visibility at the retrieval outlet. With no bound research
+        # context, the filter returns the legacy civil results unchanged.
+        from core.research.runtime import filter_retrieval_snippets
+
+        return filter_retrieval_snippets(final_results)
 
 
 _shared_law_retriever: "LawRetriever | None" = None

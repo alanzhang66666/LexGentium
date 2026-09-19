@@ -178,7 +178,7 @@ Web 对照主路是 **`POST /evaluate`**。别名：`/api/evaluation/status|resu
 
 `input_json.links`：`task_id` / `game_id` / `report_id`。独立 `med_*` 不在这些键里。前端本场：`lexgentium.lastSessionId`。
 
-仓库里的 `data/dataset_1000/` 只有 `dataset_meta.json` 加 100 条三因摘要——**没有**完整 train/val/test jsonl。选案走 `GET /reference/cases`。完整 1000 条用 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
+仓库里的 `data/dataset_1000/` 包含 `dataset_meta.json`、100 条三因摘要，以及 train/val/test 分别 600/200/200 条案件和配套 GT。选案走 `GET /reference/cases`。完整 1000 条用 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
 
 ## 开关
 

@@ -42,6 +42,9 @@ class EvaluatorWrapper:
         return {
             "score": out.score,
             "details": out.details,
+            "method": "structure_check",
+            "label": "文书结构检查",
+            "limitation": "仅检查结构关键词，不代表法律正确性、证据支持或参考答案一致性",
         }
 
     def _get_text(self, adapted_pred: Dict[str, Any]) -> str:
@@ -78,4 +81,3 @@ class EvaluatorWrapper:
         hit = sum(1 for k in must if k in t)
         score = hit / len(must)
         return EvaluationOutcome(score=float(score), details={"hits": hit, "must": must})
-

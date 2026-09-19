@@ -93,6 +93,7 @@ function metricCards(results: Record<string, unknown> | undefined) {
   if (!results || typeof results !== "object") return []
   const cards: { title: string; rows: { label: string; value: string }[] }[] = []
   for (const [key, value] of Object.entries(results)) {
+    if (!["CD", "DD", "CI"].includes(key)) continue
     const title = SCENARIO_LABELS[key] || key
     if (Array.isArray(value)) {
       const scores = value
@@ -642,7 +643,7 @@ function EvaluationInner() {
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div>
                   <CardTitle className="text-base">对照本场</CardTitle>
-                  <CardDescription>必须绑定会话。默认只评当前场景。</CardDescription>
+                  <CardDescription>仅评本场已确认的最终文书。民事分数是结构检查，不代表法律正确性；研究质量请使用研究量表。</CardDescription>
                 </div>
                 {evaluationResult ? (
                   <StatusBadge status={getStatusColor(evaluationResult.status)}>
@@ -699,6 +700,7 @@ function EvaluationInner() {
                         className="flex cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 hover:bg-secondary"
                       >
                         <Checkbox
+                          disabled={Boolean(bound && bound.scenario !== value)}
                           checked={selectedScenarios.includes(value)}
                           onCheckedChange={() =>
                             setSelectedScenarios((prev) =>
