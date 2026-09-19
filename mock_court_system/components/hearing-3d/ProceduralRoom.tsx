@@ -180,15 +180,19 @@ export function ProceduralRoom() {
       {/* 秘书桌 */}
       <Desk x={-0.9} z={1.0} w={1.2} d={0.5} topColor={PALETTE.desk_top} />
 
-      {/* 九席座椅（与 cast-manifest 席位一致，置于角色身后 ~0.28；Chair 默认朝 -Z） */}
+      {/* 十三席座椅（与 cast-manifest 席位一致，置于角色身后 ~0.28；Chair 默认朝 -Z） */}
       <Chair x={0} z={3.08} />                              {/* 首席仲裁员，朝 -Z */}
+      <Chair x={1.0} z={3.08} />                            {/* 审判员，朝 -Z */}
+      <Chair x={-1.0} z={3.08} />                           {/* 人民陪审员，朝 -Z */}
       <Chair x={-0.9} z={-0.03} rotation={Math.PI} />       {/* 仲裁庭秘书，朝 +Z */}
       <Chair x={-3.18} z={0.65} rotation={-Math.PI / 2} />  {/* 申请人代理，朝 +X */}
       <Chair x={-3.18} z={-1.15} rotation={-Math.PI / 2} /> {/* 申请人企业代表 */}
+      <Chair x={-3.18} z={-2.55} rotation={-Math.PI / 2} /> {/* 中方企业代表，朝 +X */}
       <Chair x={3.18} z={0.65} rotation={Math.PI / 2} />    {/* 被申请人代理，朝 -X */}
       <Chair x={3.18} z={-1.15} rotation={Math.PI / 2} />   {/* 被申请人企业代表 */}
       <Chair x={3.18} z={-2.6} rotation={Math.PI / 2} />    {/* 口译员 */}
       <Chair x={-4.0} z={-2.35} rotation={Math.PI} />        {/* 公诉人 */}
+      <Chair x={4.0} z={-0.8} rotation={Math.PI} />          {/* 技术专家证人，朝 -Z */}
       <Chair x={4.0} z={-2.35} rotation={Math.PI} />         {/* 外籍事实证人 */}
 
       {/* 证据屏 */}

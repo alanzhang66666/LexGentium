@@ -52,13 +52,17 @@ const roleModel = (actor_id: string, slug: string, sprite_url?: string): Charact
 /** 供应商新增的人物 OBJ 资产；保留 sprite_url 作为回退和身份参考。 */
 export const CHARACTER_ASSETS: Record<string, CharacterAsset> = {
   judge:             roleModel("judge", "judge", "/hearing-3d/reference/char-9-web.jpg"),
+  associate_judge:   roleModel("associate_judge", "associate-judge"),
+  people_juror:      roleModel("people_juror", "people-juror"),
   clerk:             roleModel("clerk", "clerk", "/hearing-3d/reference/char-6-web.jpg"),
   plaintiff_counsel: roleModel("plaintiff_counsel", "china-counsel", "/hearing-3d/reference/char-8-web.jpg"),
   plaintiff_party:   roleModel("plaintiff_party", "foreign-defendant", "/hearing-3d/reference/char-1-web.jpg"),
+  china_company_rep: roleModel("china_company_rep", "china-company-rep"),
   defendant_counsel: roleModel("defendant_counsel", "foreign-counsel", "/hearing-3d/reference/char-4-web.jpg"),
   defendant_party:   roleModel("defendant_party", "foreign-company", "/hearing-3d/reference/char-3-web.jpg"),
   interpreter:       roleModel("interpreter", "interpreter", "/hearing-3d/reference/char-5-web.jpg"),
   prosecutor:        roleModel("prosecutor", "prosecutor"),
+  technical_expert_witness: roleModel("technical_expert_witness", "technical-expert-witness"),
   fact_witness:      roleModel("fact_witness", "foreign-witness"),
 }
 

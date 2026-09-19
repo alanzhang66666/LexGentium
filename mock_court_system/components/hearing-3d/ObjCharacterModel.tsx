@@ -13,13 +13,17 @@ const TARGET_HEIGHT = 1.62
 const FACING: Record<string, number> = {
   // 供应商 OBJ 的正面为本地 +Z，与程序化人偶的 -Z 约定相反。
   judge: Math.PI,
+  associate_judge: Math.PI,
+  people_juror: Math.PI,
   clerk: 0,
   plaintiff_counsel: Math.PI / 2,
   plaintiff_party: Math.PI / 2,
+  china_company_rep: Math.PI / 2,
   defendant_counsel: -Math.PI / 2,
   defendant_party: -Math.PI / 2,
   interpreter: -Math.PI / 2,
   prosecutor: 0,
+  technical_expert_witness: 0,
   fact_witness: 0,
 }
 

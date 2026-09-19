@@ -14,6 +14,28 @@
       "model": "/hearing-3d/models/roles/judge/model-optimized.obj"
     },
     {
+      "actor_id": "associate_judge",
+      "label": "审判员",
+      "english": "Associate Judge",
+      "name": "审判员",
+      "variant": "supplier",
+      "reference": null,
+      "basis": "用户提供的审判员 OBJ 资产",
+      "status": "供应商 OBJ 已接入",
+      "model": "/hearing-3d/models/roles/associate-judge/model-optimized.obj"
+    },
+    {
+      "actor_id": "people_juror",
+      "label": "人民陪审员",
+      "english": "People's Juror",
+      "name": "人民陪审员",
+      "variant": "supplier",
+      "reference": null,
+      "basis": "用户提供的人民陪审员 OBJ 资产",
+      "status": "供应商 OBJ 已接入",
+      "model": "/hearing-3d/models/roles/people-juror/model-optimized.obj"
+    },
+    {
       "actor_id": "clerk",
       "label": "书记员",
       "english": "Court Clerk",
@@ -45,6 +67,17 @@
       "basis": "按原文字设定补造型图：44岁、藏蓝西装、淡蓝衬衫",
       "status": "供应商 OBJ 已接入",
       "model": "/hearing-3d/models/roles/foreign-defendant/model-optimized.obj"
+    },
+    {
+      "actor_id": "china_company_rep",
+      "label": "中方企业代表",
+      "english": "China Company Representative",
+      "name": "中方企业代表",
+      "variant": "supplier",
+      "reference": null,
+      "basis": "用户提供的中方企业代表 OBJ 资产",
+      "status": "供应商 OBJ 已接入",
+      "model": "/hearing-3d/models/roles/china-company-rep/model-optimized.obj"
     },
     {
       "actor_id": "defendant_counsel",
@@ -89,6 +122,17 @@
       "basis": "用户提供的公诉人 OBJ 资产",
       "status": "供应商 OBJ 已接入",
       "model": "/hearing-3d/models/roles/prosecutor/model-optimized.obj"
+    },
+    {
+      "actor_id": "technical_expert_witness",
+      "label": "技术专家证人",
+      "english": "Technical Expert Witness",
+      "name": "技术专家证人",
+      "variant": "supplier",
+      "reference": null,
+      "basis": "用户提供的技术专家证人 OBJ 资产",
+      "status": "供应商 OBJ 已接入",
+      "model": "/hearing-3d/models/roles/technical-expert-witness/model-optimized.obj"
     },
     {
       "actor_id": "fact_witness",
