@@ -51,6 +51,7 @@ class EvaluationInput:
     pack_version: Optional[str] = None
     degraded: bool = False
     affected_metrics: Tuple[str, ...] = ()
+    civil_case: Optional[Dict[str, Any]] = None
 
 
 def normalize_dialog(dialog_history: Optional[List[Dict[str, Any]]]) -> Tuple[Dict[str, Any], ...]:
@@ -128,6 +129,9 @@ class EvaluationInputBuilder:
             or research.get("degraded")
         )
         affected = tuple((record.input_json or {}).get("affected_metrics") or ())
+        civil_case = (record.input_json or {}).get("civil_case")
+        if not isinstance(civil_case, dict):
+            civil_case = None
 
         inputs: List[EvaluationInput] = []
         for scenario in scenarios:
@@ -146,6 +150,7 @@ class EvaluationInputBuilder:
                     pack_version=research.get("pack_version"),
                     degraded=degraded,
                     affected_metrics=affected,
+                    civil_case=civil_case,
                 )
             )
         return inputs
@@ -164,20 +169,29 @@ def materialize_legacy_files(
     """
     base = (root or runtime_data_root()) / "evaluation_inputs" / task_scope
     base.mkdir(parents=True, exist_ok=True)
+    from evaluation.bodies import final_document
+
     files: Dict[str, str] = {}
     for inp in inputs:
+        research = bool(inp.dataset_id and inp.cluster_id)
+        scoring_body = inp.model_output if research else (
+            final_document(list(inp.normalized_dialog)) or inp.model_output
+        )
         row: Dict[str, Any] = {
             "id": inp.prediction_identity,
             "scenario": inp.scenario,
             "dialog_history": list(inp.normalized_dialog),
-            "model_output": inp.model_output,
-            "generated_doc": inp.model_output,
+            "model_output": scoring_body,
+            "generated_doc": scoring_body,
             "input_digest": inp.input_digest,
+            "input_hash": inp.input_digest,
         }
         for key in ("session_id", "run_id", "case_id", "dataset_id", "cluster_id", "pack_version"):
             value = getattr(inp, key)
             if value:
                 row[key] = value
+        if inp.civil_case:
+            row["civil_case"] = inp.civil_case
         if inp.degraded:
             row["degraded"] = True
             row["affected_metrics"] = list(inp.affected_metrics)

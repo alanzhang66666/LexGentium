@@ -57,7 +57,7 @@ import { streamGameRound } from "@/lib/court3d/adapters/gameStream"
 import { SCENARIO_DESCRIPTIONS, SCENARIO_LABELS, STAGE_LABELS, STRATEGY_LABELS } from "@/lib/labels"
 import { writeLastSessionId } from "@/lib/session/last-session"
 import type { CounterfactualResult, GameState, StrategyHistory } from "@/lib/api/game"
-import type { EvaluationRequest, EvaluationResponse, EvaluationReportsList } from "@/lib/evaluation-types"
+import type { EvaluationRequest, EvaluationResponse, EvaluationReportsList, EvaluationScenario } from "@/lib/evaluation-types"
 import type { ConversationInfo, ConversationSummary, Scenario, SessionLinks } from "@/lib/conversation-types"
 import { cn } from "@/lib/utils"
 
@@ -144,7 +144,7 @@ function EvaluationInner() {
   const [bound, setBound] = useState<ConversationInfo | null>(null)
   const [sessions, setSessions] = useState<ConversationSummary[]>([])
   const [sessionsError, setSessionsError] = useState<string | null>(null)
-  const [selectedScenarios, setSelectedScenarios] = useState<string[]>(["CI"])
+  const [selectedScenarios, setSelectedScenarios] = useState<EvaluationScenario[]>(["CI"])
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<unknown>(null)
   const [lastAction, setLastAction] = useState<(() => void) | null>(null)
@@ -1152,7 +1152,7 @@ function EvaluationInner() {
                     <div className="space-y-2 rounded-md border border-border px-3 py-3">
                       <p className="text-[13px] font-medium">删除本局</p>
                       <p className="text-[12px] text-muted-foreground">
-                        仅清内存局，需二次确认。演示局请勿误删。
+                        仅清内存局，需二次确认。内存局，勿误删。
                       </p>
                       {!deleteArmed ? (
                         <Button variant="outline" size="sm" onClick={() => setDeleteArmed(true)} disabled={gameBusy}>

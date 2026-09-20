@@ -17,7 +17,7 @@ export function PlaceholderCharacter({ member, mode }: { member: CastMember; mod
       </mesh>
       <Html position={[0, 1.55, 0]} center distanceFactor={8}>
         <div className="rounded bg-slate-950/85 px-2 py-1 text-[10px] text-white whitespace-nowrap">
-          {member.label} · {mode === "talk" ? "发言" : "占位"}
+          {member.label} · {mode === "talk" ? "发言" : "等候"}
         </div>
       </Html>
     </group>

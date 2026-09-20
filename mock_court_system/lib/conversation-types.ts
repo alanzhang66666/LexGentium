@@ -190,12 +190,6 @@ export interface ConversationInfo {
   stop_reason?: string | null
 }
 
-export interface SessionLinks {
-  task_id?: string
-  game_id?: string
-  report_id?: string
-}
-
 export type { ResearchClaimNode } from "@/lib/research/runtime"
 export type ResearchSessionInfo = ResearchSessionMeta
 

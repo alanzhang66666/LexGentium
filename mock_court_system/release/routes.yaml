@@ -130,7 +130,7 @@ stable:
   - id: bff-health
     surfaces: [next_bff]
     methods: [GET]
-    path_patterns: ["/api/health"]
+    path_patterns: ["/api/health", "/api/health/live", "/api/health/ready"]
     auth: same_origin
     response_mode: json
     journey: system

@@ -33,9 +33,14 @@ class LLMConfig(BaseSettings):
     provider: str = Field(default="deepseek")
     api_key: str = Field(default="")
     base_url: str = Field(default="https://api.deepseek.com")
-    model: str = Field(default="deepseek-chat")
+    model: str = Field(default="deepseek-flash")
     fast_model: str = Field(default="")
     fast_max_tokens: int = Field(default=512)
+    thinking: str = Field(default="enabled")
+    reasoning_effort: str = Field(default="high")
+    fast_thinking: str = Field(default="disabled")
+    fast_reasoning_effort: str = Field(default="low")
+    demo_mode: bool = Field(default=False)
     temperature: float = Field(default=0.1)
     max_tokens: int = Field(default=4096)
     timeout: int = Field(default=60)
@@ -143,4 +148,3 @@ class Settings(BaseSettings):
 
 # 全局配置实例
 settings = Settings.from_yaml()
-

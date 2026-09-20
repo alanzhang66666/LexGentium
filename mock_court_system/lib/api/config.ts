@@ -5,6 +5,10 @@ export type LlmConfigPayload = {
   api_key: string
   base_url: string
   model: string
+  thinking: "enabled" | "disabled"
+  reasoning_effort: "low" | "high" | "max"
+  fast_thinking: "enabled" | "disabled"
+  fast_reasoning_effort: "low" | "high" | "max"
   temperature: number
   max_tokens: number
   timeout: number
@@ -16,10 +20,15 @@ export type CurrentLlmConfig = {
   api_key_set: boolean
   base_url: string
   model: string
+  thinking: "enabled" | "disabled"
+  reasoning_effort: "low" | "high" | "max"
+  fast_thinking: "enabled" | "disabled"
+  fast_reasoning_effort: "low" | "high" | "max"
   temperature: number
   max_tokens: number
   timeout: number
   chat_model_ready: boolean
+  demo_mode: boolean
 }
 
 export type LlmMutationResult = {
@@ -36,6 +45,10 @@ export function defaultLlmPayload(partial?: Partial<LlmConfigPayload>): LlmConfi
     api_key: "",
     base_url: "",
     model: "",
+    thinking: "enabled",
+    reasoning_effort: "high",
+    fast_thinking: "disabled",
+    fast_reasoning_effort: "low",
     temperature: 0.1,
     max_tokens: 4096,
     timeout: 60,

@@ -1,16 +1,16 @@
 import type { Metadata } from "next"
-import { Hearing3DExperience } from "@/components/hearing-3d/Hearing3DExperience"
+import { Hearing3DExperienceLoader } from "@/components/hearing-3d/Hearing3DExperienceLoader"
 import { WorkbenchShell } from "@/components/shell"
 
 export const metadata: Metadata = {
   title: "观庭 · 国际商事仲裁研究平台",
-  description: "法序智演 LexGentium 3D 观庭（供应商 OBJ 角色资产与 PBR 贴图，程序化人物作 fallback）。可挂本场 session。",
+  description: "法序智演 LexGentium 国际商事仲裁 3D 观庭，支持会话记录、角色状态、争点材料与自动镜头联动。",
 }
 
 export default function Hearing3DPage() {
   return (
     <WorkbenchShell footer={false}>
-      <Hearing3DExperience />
+      <Hearing3DExperienceLoader />
     </WorkbenchShell>
   )
 }

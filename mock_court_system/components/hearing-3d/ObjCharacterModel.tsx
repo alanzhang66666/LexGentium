@@ -2,11 +2,12 @@
 
 import { useMemo, useRef } from "react"
 import { Html } from "@react-three/drei"
-import { useFrame, useLoader } from "@react-three/fiber"
-import { Box3, Mesh, MeshStandardMaterial, NoColorSpace, Object3D, SRGBColorSpace, TextureLoader, Vector2, Vector3 } from "three"
+import { useFrame, useLoader, useThree } from "@react-three/fiber"
+import { Box3, Mesh, NoColorSpace, Object3D, SRGBColorSpace, TextureLoader, Vector3 } from "three"
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js"
 import type { ActorMode, CastMember } from "./contracts"
 import type { CharacterAsset } from "./asset-adapter"
+import { createHearingRoleMaterial, FACE_MATERIAL_PRESET, getStudioEnvMap, softenNormalMap } from "./face-material"
 
 const TARGET_HEIGHT = 1.62
 
@@ -17,14 +18,14 @@ const FACING: Record<string, number> = {
   people_juror: Math.PI,
   clerk: 0,
   plaintiff_counsel: Math.PI / 2,
-  plaintiff_party: Math.PI / 2,
+  prosecutor: Math.PI / 2,
   china_company_rep: Math.PI / 2,
   defendant_counsel: -Math.PI / 2,
   defendant_party: -Math.PI / 2,
   interpreter: -Math.PI / 2,
-  prosecutor: 0,
   technical_expert_witness: 0,
   fact_witness: 0,
+  judicial_police: Math.PI,
 }
 
 /** Static supplier OBJ with explicit PBR bindings and a small whole-body motion cue. */
@@ -48,6 +49,7 @@ export function ObjCharacterModel({
     asset.texture_urls.roughness,
     asset.texture_urls.normal,
   ])
+  const { gl } = useThree()
   const motionRef = useRef<Object3D>(null)
 
   const prepared = useMemo(() => {
@@ -55,28 +57,30 @@ export function ObjCharacterModel({
     metallic.colorSpace = NoColorSpace
     roughness.colorSpace = NoColorSpace
     normal.colorSpace = NoColorSpace
-    baseColor.needsUpdate = true
-    metallic.needsUpdate = true
-    roughness.needsUpdate = true
-    normal.needsUpdate = true
+
+    // Faces occupy small UV islands on the 2K atlas. Keep the highest cheap
+    // anisotropic filter the GPU allows so mid-shots stay readable.
+    const anisotropy = Math.min(FACE_MATERIAL_PRESET.maxAnisotropy, gl.capabilities.getMaxAnisotropy())
+    for (const texture of [baseColor, metallic, roughness, normal]) {
+      texture.anisotropy = anisotropy
+      texture.needsUpdate = true
+    }
+    const skinNormal = softenNormalMap(normal)
+    const envMap = getStudioEnvMap(gl)
 
     const object = source.clone(true)
     object.traverse((node: Object3D) => {
       if (!(node instanceof Mesh)) return
+
       const materials = Array.isArray(node.material) ? node.material : [node.material]
-      const pbrMaterials = materials.map((material) => {
-        const pbr = new MeshStandardMaterial({
-          name: `hearing-role-${member.actor_id}-${material.name || "material"}`,
-          map: baseColor,
-          metalnessMap: metallic,
-          roughnessMap: roughness,
-          normalMap: normal,
-          metalness: 0.3,
-          roughness: 0.7,
-        })
-        pbr.normalScale = new Vector2(1, 1)
-        return pbr
-      })
+      const pbrMaterials = materials.map((material) => createHearingRoleMaterial({
+        name: `hearing-role-${member.actor_id}-${material.name || "material"}`,
+        baseColor,
+        metallic,
+        roughness,
+        normal: skinNormal,
+        envMap,
+      }))
       node.material = Array.isArray(node.material) ? pbrMaterials : pbrMaterials[0]
       node.castShadow = true
       node.receiveShadow = true
@@ -89,7 +93,7 @@ export function ObjCharacterModel({
       minY: bounds.min.y,
       height: Math.max(bounds.max.y - bounds.min.y, 0.001),
     }
-  }, [baseColor, member.actor_id, metallic, normal, roughness, source])
+  }, [baseColor, gl, member.actor_id, metallic, normal, roughness, source])
 
   const [x, y, z] = member.position
   const facing = FACING[member.actor_id] ?? 0
@@ -101,10 +105,12 @@ export function ObjCharacterModel({
   useFrame((frameState) => {
     if (!motionRef.current) return
     const t = frameState.clock.getElapsedTime()
-    motionRef.current.position.y = Math.sin(t * 1.4 + member.position[0]) * 0.008
-    motionRef.current.rotation.y = mode === "talk" ? Math.sin(t * 1.8) * 0.035 : 0
-    motionRef.current.rotation.x = mode === "nod" ? Math.sin(t * 5.2) * 0.04 : 0
-    motionRef.current.scale.setScalar(scale * (isSpeaking ? 1 + Math.sin(t * 3) * 0.006 : 1))
+    // Whole-body bobbing makes static supplier models look weightless. Keep the
+    // silhouette grounded and reserve a restrained lean for active speech.
+    motionRef.current.position.y = 0
+    motionRef.current.rotation.y = mode === "talk" || isSpeaking ? Math.sin(t * 1.55) * 0.014 : 0
+    motionRef.current.rotation.x = mode === "nod" ? Math.sin(t * 4.6) * 0.022 : 0
+    motionRef.current.scale.setScalar(scale)
   })
 
   return (

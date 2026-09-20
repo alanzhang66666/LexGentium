@@ -104,12 +104,19 @@ def environment_identity() -> str:
 
 
 def _render_command(spec: CheckSpec, evidence_dir: Path) -> List[str]:
-    return [
+    rendered = [
         c.replace("{python}", sys.executable).replace(
             "{evidence_dir}", str(evidence_dir)
         )
         for c in spec.command
     ]
+    if rendered and not Path(rendered[0]).is_file():
+        from shutil import which
+
+        resolved = which(rendered[0])
+        if resolved:
+            rendered[0] = resolved
+    return rendered
 
 
 def _sanitized_env() -> Dict[str, str]:
@@ -176,6 +183,8 @@ def run_check(
                 env=_sanitized_env(),
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=spec.timeout_seconds,
             )
             exit_code = proc.returncode

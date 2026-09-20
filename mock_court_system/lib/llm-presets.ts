@@ -6,9 +6,9 @@ export type ProviderPreset = {
 
 export const PROVIDER_PRESETS: Record<string, ProviderPreset> = {
   deepseek: {
-    base_url: "https://api.deepseek.com/v1",
-    model: "deepseek-chat",
-    label: "DeepSeek",
+    base_url: "https://api.deepseek.com",
+    model: "deepseek-flash",
+    label: "DeepSeek V4.1 Flash",
   },
   openai: {
     base_url: "https://api.openai.com/v1",

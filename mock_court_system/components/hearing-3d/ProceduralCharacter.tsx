@@ -6,7 +6,7 @@
  * 正式 VRM/GLB 模型到位后由 asset-adapter 的 mode 切换，本组件保留为 procedural 模式。
  */
 
-import { useMemo, useRef } from "react"
+import { Component, Suspense, useMemo, useRef, type ReactNode } from "react"
 import type { Group, Mesh } from "three"
 import { useFrame, useLoader } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
@@ -14,11 +14,22 @@ import { CanvasTexture, DoubleSide, SRGBColorSpace, TextureLoader } from "three"
 import type { ActorMode, CastMember } from "./contracts"
 import { CHARACTER_ASSETS } from "./asset-adapter"
 
+class FaceLoadErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
 const SUIT: Record<string, string> = {
   judge: "#243448",
   clerk: "#526174",
   plaintiff_counsel: "#4a6274",
-  plaintiff_party: "#3d5166",
+  prosecutor: "#4a6274",
+  china_company_rep: "#3d5166",
   defendant_counsel: "#4a4a4a",
   defendant_party: "#5a4a3a",
   interpreter: "#5a5a6a",
@@ -119,12 +130,18 @@ function FaceOverlay({ sourceUrl }: { sourceUrl: string }) {
 /** 席位朝向（弧度）：模型正面为 -Z，与 ProceduralRoom 的 Chair 一致 */
 const FACING: Record<string, number> = {
   judge: 0,
+  associate_judge: 0,
+  people_juror: 0,
   clerk: Math.PI,
   plaintiff_counsel: -Math.PI / 2,
-  plaintiff_party: -Math.PI / 2,
+  prosecutor: -Math.PI / 2,
+  china_company_rep: -Math.PI / 2,
   defendant_counsel: Math.PI / 2,
   defendant_party: Math.PI / 2,
   interpreter: Math.PI / 2,
+  technical_expert_witness: 0,
+  fact_witness: 0,
+  judicial_police: 0,
 }
 
 export function ProceduralCharacter({ member, mode, isSpeaking }: { member: CastMember; mode: ActorMode; isSpeaking?: boolean }) {
@@ -249,7 +266,13 @@ export function ProceduralCharacter({ member, mode, isSpeaking }: { member: Cast
             <sphereGeometry args={[0.115, 20, 16]} />
             <meshStandardMaterial color={SKIN} />
           </mesh>
-          {faceUrl && <FaceOverlay sourceUrl={faceUrl} />}
+          {faceUrl && (
+            <FaceLoadErrorBoundary>
+              <Suspense fallback={null}>
+                <FaceOverlay sourceUrl={faceUrl} />
+              </Suspense>
+            </FaceLoadErrorBoundary>
+          )}
           {/* 头发：上半球罩，脑后略厚 */}
           <mesh position={[0, 0.025, 0.015]} scale={[1.05, 0.95, 1.06]}>
             <sphereGeometry args={[0.118, 20, 12, 0, Math.PI * 2, 0, Math.PI / 1.9]} />

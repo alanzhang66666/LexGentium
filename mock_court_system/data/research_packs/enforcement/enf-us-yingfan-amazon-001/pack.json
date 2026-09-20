@@ -1,0 +1,1436 @@
+{
+  "schema_version": "1",
+  "dataset_id": "enforcement",
+  "cluster_id": "enf-us-yingfan-amazon-001",
+  "pack_version": "0.1.0-draft",
+  "task_type": "enforcement_nyc",
+  "caption": {
+    "case_name": "Shenzhen Yingfan E-Commerce Co., Ltd. v. Amazon.com Services LLC and Amazon.com Inc.",
+    "case_number": "26-cv-00023 (LJL)",
+    "court": "United States District Court for the Southern District of New York",
+    "date": "2026-07-21",
+    "source": "SDNY Opinion and Order, Dated July 21, 2026; dockets.justia.com metadata 1:2026cv00023; 01单篇标注 王静怡 2026-09-14，独立复核格为空。candidate，非正式研究包。",
+    "procedure_chain": [
+      "BSA 与 AAA 商事仲裁",
+      "2025-03-25 Partial Final Award（全文未附）",
+      "损害赔偿听证通知与改期（判决转述；邮件原件未附）",
+      "2025-05-20 听证与补充机会",
+      "2025-06-05 Final Award（全文未附）",
+      "SDNY 部分确认 / 部分修改撤销动议",
+      "因 standing 驳回确认；修改撤销一并驳回"
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "001",
+      "title": "SDNY Opinion and Order 摘录（Yingfan v. Amazon，2026-07-21）",
+      "filename": "001.txt",
+      "source_tier": "historical",
+      "language": "en",
+      "review_state": "pending",
+      "notes": "从公开判决摘录时间线、听证通知、standing 与结论；不收录 33 页全文，不拷贝 PDF 至 public/。",
+      "original_ref": {
+        "raw_id": "1:2026cv00023",
+        "raw_locator": "research_packs/enforcement/enf-us-yingfan-amazon-001/documents/001.txt",
+        "catalog_no": "26-cv-00023 (LJL)",
+        "workbook_sheet": "01单篇标注"
+      },
+      "source_form": "official_full",
+      "completeness": "excerpt"
+    }
+  ],
+  "procedural_facts": [
+    {
+      "source_ids": [
+        "001:p2-aaa"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "判决写明 AAA commercial rules，未写明仲裁地。禁止补造。",
+      "revisions": [],
+      "speaker": "researcher",
+      "speech_type": "researcher_judgment",
+      "support_status": "unsupported",
+      "disclosure_status": null,
+      "missing_code": "NR",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-seat",
+      "field_key": "award_seat",
+      "value": "unknown"
+    },
+    {
+      "source_ids": [
+        "001:p2-aaa"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "tribunal",
+      "speech_type": "procedural_record",
+      "support_status": "direct",
+      "disclosure_status": "undisputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-institution",
+      "field_key": "arbitration_institution",
+      "value": "AAA"
+    },
+    {
+      "source_ids": [
+        "001:p1"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "tribunal",
+      "speech_type": "procedural_record",
+      "support_status": "direct",
+      "disclosure_status": "undisputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-forum",
+      "field_key": "enforcement_forum",
+      "value": "US-SDNY"
+    },
+    {
+      "source_ids": [
+        "001:p4-notice",
+        "001:p5-may7",
+        "001:p6-set-may20",
+        "001:gaps-nr"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "九条 notice_events 只采用判决转述 + 页码。BSA / 邮件 / 裁决书原文 NR。",
+      "revisions": [],
+      "speaker": "tribunal",
+      "speech_type": "procedural_record",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-notice",
+      "field_key": "notice_of_proceedings",
+      "value": "判决转述：2025-04-30 至 2025-05-20 损害赔偿听证通知与改期链；邮件原件未附。"
+    },
+    {
+      "source_ids": [
+        "001:p1-award-date",
+        "001:p8-final"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "tribunal",
+      "speech_type": "procedural_record",
+      "support_status": "direct",
+      "disclosure_status": "undisputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-fact-award-date",
+      "field_key": "award_date",
+      "value": "2025-06-05"
+    }
+  ],
+  "party_claims": [
+    {
+      "source_ids": [
+        "001:p11-claims",
+        "001:p16-10a3"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "applicant",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-claim-applicant",
+      "party": "applicant",
+      "claim_text": "请求部分确认责任认定（BSA §2、§3、§8 不可执行），并依 FAA 9 U.S.C. §§ 10、11 以仲裁员 misconduct、明显漠视法律及误算为由，部分撤销或修改损害赔偿。",
+      "facts": "申请人主张被拒绝延期 2025-05-20 听证，未能出示损害赔偿证据、盘问证人；主张利息、费用与金额计算有误。Partial Final Award / Final Award / 邮件原件未附。",
+      "norms": "FAA 9 U.S.C. §§ 10、10(a)(3)、11(a)。本包不回填纽约公约 V(1)(b)。",
+      "reasoning": "拒绝延期构成 §10(a)(3) misconduct；利息与费用构成明显漠视法律；扣除与利润方法构成 §11(a) 明显重大误算。"
+    },
+    {
+      "source_ids": [
+        "001:p11-standing-arg",
+        "001:p11-paid"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-claim-respondent",
+      "party": "respondent",
+      "claim_text": "反对确认：裁决已按 Final Award 支付 248,844.39 美元，申请人缺乏 standing。反对修改或撤销：不构成 misconduct、明显漠视法律或明显重大误算。",
+      "facts": "判决转述亚马逊支付 248,844.39 美元，申请人于 2025-08-22 确认收到。支付明细未附。",
+      "norms": "Article III standing；Stafford；FAA §§ 10、11。",
+      "reasoning": "已全额履行则确认请求不再构成活争议；听证多次通知且申请人未用补充书面机会。"
+    }
+  ],
+  "court_findings": [
+    {
+      "source_ids": [
+        "001:p13-all-fours",
+        "001:p13-no-standing",
+        "001:p33-confirm-denied"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "标注第 22、26 行：因 standing 驳回部分确认。不得写成已确认或已拒绝承认。",
+      "revisions": [],
+      "speaker": "other",
+      "speech_type": "court_operative",
+      "support_status": "direct",
+      "disclosure_status": "undisputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-finding-confirm-standing",
+      "finding": "部分确认责任认定的动议因缺乏 Article III standing 被驳回。法院未进入对裁决应否确认的实体审查；本份文书既未确认亦未拒绝承认该裁决。",
+      "reasons": "Stafford is on all fours。双方不争亚马逊已履行裁决；申请人已取得通过确认判决所能取得的全部救济。确认与撤销是不同救济，有撤销请求不能自动获得确认 standing。"
+    },
+    {
+      "source_ids": [
+        "001:p22-reasonable",
+        "001:p22-eschewed",
+        "001:p33-vacate-denied"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "标注第 22 行：修改/撤销因不构成 misconduct 等驳回。",
+      "revisions": [],
+      "speaker": "other",
+      "speech_type": "court_operative",
+      "support_status": "direct",
+      "disclosure_status": "undisputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-finding-vacatur-denied",
+      "finding": "部分修改或撤销损害赔偿的动议全部驳回。法院认定不构成 §10(a)(3) misconduct。",
+      "reasons": "仲裁员对不再次延期有合理依据，并曾提供听证前与听证后补充书面机会，申请人未利用。程序并非根本不公，申请人未证明偏见。"
+    },
+    {
+      "source_ids": [
+        "001:p30-not-math",
+        "001:p33-vacate-denied"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "other",
+      "speech_type": "court_reasons",
+      "support_status": "direct",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-finding-miscalculation",
+      "finding": "损害赔偿计算争议不是 §11(a) 表面上的明显重大误算。",
+      "reasons": "申请人争议的是 BSA 解释与利润方法，而非数学错误。"
+    },
+    {
+      "source_ids": [
+        "001:p33-confirm-denied",
+        "001:p33-vacate-denied",
+        "001:p33-close"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "标注第 25 行：整体动议 DENIED；关闭案件。不涉及执行许可。",
+      "revisions": [],
+      "speaker": "other",
+      "speech_type": "court_operative",
+      "support_status": "direct",
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-finding-disposition",
+      "finding": "申请人全部动议驳回；指令关闭 Dkt. No. 10 并关闭本案。本份文书不确认、不修改、不撤销仲裁裁决，也不作出执行令。",
+      "reasons": "确认因 standing 驳回；修改/撤销驳回。Clerk of Court directed to close Dkt. No. 10 and to close this case."
+    }
+  ],
+  "legal_bases": [
+    {
+      "source_ids": [
+        "001:p12-faa9"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-basis-faa9",
+      "rule_id": "faa-9usc-9",
+      "rule_version": "faa",
+      "citation": "9 U.S.C. § 9",
+      "application_note": "法院在讨论确认义务时引用 § 9；本案确认请求因 standing 未进入实体确认。不回填纽约公约 V(1)(b)。"
+    },
+    {
+      "source_ids": [
+        "001:p14-10a",
+        "001:p16-10a3"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-basis-faa10a3",
+      "rule_id": "faa-9usc-10a3",
+      "rule_version": "faa",
+      "citation": "9 U.S.C. § 10(a)(3)",
+      "application_note": "拒绝延期听证或拒绝听取关键证据是否构成 misconduct。法院认定不构成。"
+    },
+    {
+      "source_ids": [
+        "001:p14-11a",
+        "001:p30-not-math"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-basis-faa11a",
+      "rule_id": "faa-9usc-11a",
+      "rule_version": "faa",
+      "citation": "9 U.S.C. § 11(a)",
+      "application_note": "明显重大误算。法院认定争议属合同解释而非算术错误。"
+    },
+    {
+      "source_ids": [
+        "001:p12-stafford",
+        "001:p13-all-fours"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": null,
+      "speech_type": null,
+      "support_status": null,
+      "disclosure_status": null,
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "item_id": "enf-basis-stafford",
+      "rule_id": "stafford-v-ibm",
+      "rule_version": "2d-cir-2023",
+      "citation": "Stafford v. Int’l Bus. Machs. Corp., 78 F.4th 62 (2d Cir. 2023)",
+      "application_note": "裁决已全额履行则确认请求不再构成 Article III 活争议。法院写 Stafford is on all fours。"
+    }
+  ],
+  "material_gaps": [
+    {
+      "gap_id": "enf-gap-partial-award",
+      "description": "Partial Final Award（约 2025-03-25，Dkt. No. 10-2）全文未附。",
+      "related_field": "award_text",
+      "related_item_ids": [
+        "enf-fact-award-date"
+      ],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "已核读本判决摘录与标注缺口行；附件未收录。",
+      "impact": "责任认定细节不能脱离判决转述独立核验。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-final-award",
+      "description": "Final Award（2025-06-05，Dkt. No. 14-9）全文未附。",
+      "related_field": "award_text",
+      "related_item_ids": [
+        "enf-fact-award-date"
+      ],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "已核读本判决摘录与标注缺口行；附件未收录。",
+      "impact": "损害赔偿计算细节只能依判决转述，不能核验裁决书原文。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-bsa",
+      "description": "BSA 全文未附（判决仅转述 §2、§3、§8、§18）。",
+      "related_field": "award_text",
+      "related_item_ids": [],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "已核读本判决摘录与标注缺口行；附件未收录。",
+      "impact": "不能核验书面审理选择权的完整合同文本。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-emails",
+      "description": "听证日程邮件与通知原件未附（Dkt. No. 14-7、14-8、14-10、14-11 等）。",
+      "related_field": "notice_of_proceedings",
+      "related_item_ids": [
+        "enf-fact-notice"
+      ],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "已核读本判决摘录与标注缺口行；附件未收录。",
+      "impact": "九条时间线只能采用判决转述，不得编造邮件正文。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-payment",
+      "description": "支付证明明细未附；判决仅转述总额 248,844.39 美元及 2025-08-22 确认收到。",
+      "related_field": "court_findings",
+      "related_item_ids": [
+        "enf-finding-confirm-standing"
+      ],
+      "status": "missing_document",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "checked": "已核读本判决摘录与标注缺口行；附件未收录。",
+      "impact": "不能核验支付分项。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "gap_id": "enf-gap-appeal",
+      "description": "后续是否上诉或其他程序，本材料未披露。",
+      "related_field": "court_findings",
+      "related_item_ids": [
+        "enf-finding-disposition"
+      ],
+      "status": "unknown",
+      "missing_code": "UV",
+      "conflict_values": [],
+      "checked": "本 PDF 摘录止于 2026-07-21 结案指令。",
+      "impact": "不能把本案写成已终局或已上诉。",
+      "blocks": "no",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "source_anchors": [
+    {
+      "source_id": "001:p1",
+      "document_id": "001",
+      "locator": "p1",
+      "start_offset": 443,
+      "end_offset": 1325,
+      "quote": "UNITED STATES DISTRICT COURT SOUTHERN DISTRICT OF NEW YORK",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p1-petitioner",
+      "document_id": "001",
+      "locator": "p1",
+      "start_offset": 443,
+      "end_offset": 1325,
+      "quote": "Petitioner is a foreign corporation with its principal place of business in Shenzhen, China.",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p1-denied",
+      "document_id": "001",
+      "locator": "p1",
+      "start_offset": 443,
+      "end_offset": 1325,
+      "quote": "the Motion to Partially Confirm and Partially Modify the Arbitration Award is denied",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p1-award-date",
+      "document_id": "001",
+      "locator": "p1",
+      "start_offset": 443,
+      "end_offset": 1325,
+      "quote": "a final arbitration award issued by the Honorable Lynne Bernabei on June 5, 2025",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p2-aaa",
+      "document_id": "001",
+      "locator": "p2",
+      "start_offset": 1325,
+      "end_offset": 1899,
+      "quote": "before the American Arbitration Association under its commercial rules",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p3-partial",
+      "document_id": "001",
+      "locator": "p3",
+      "start_offset": 1899,
+      "end_offset": 2554,
+      "quote": "the arbitrator issued a Partial Final Award on March 25, 2025",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p4-notice",
+      "document_id": "001",
+      "locator": "p4",
+      "start_offset": 2554,
+      "end_offset": 2996,
+      "quote": "On April 30, 2025, the arbitrator issued an “Order Noticing Hearing on Damages.”",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p4-may15",
+      "document_id": "001",
+      "locator": "p4",
+      "start_offset": 2554,
+      "end_offset": 2996,
+      "quote": "scheduled a hearing on damages for May 15, 2025",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5-may7",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 2996,
+      "end_offset": 4459,
+      "quote": "on the evening of May 7, 2025",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5-affidavits",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 2996,
+      "end_offset": 4459,
+      "quote": "invited the parties to consider submitting affidavits from their business officers attesting to damages in lieu of a live hearing",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5-may12",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 2996,
+      "end_offset": 4459,
+      "quote": "did not meet the May 12 deadline to submit a suitable date or time for the damages hearing, nor did Amazon",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5-may13",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 2996,
+      "end_offset": 4459,
+      "quote": "On May 13, 2025, the arbitrator informed the parties that she was happy to rule on the basis of the filings",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p5-may16",
+      "document_id": "001",
+      "locator": "p5",
+      "start_offset": 2996,
+      "end_offset": 4459,
+      "quote": "Amazon responded on May 16 that its witness was available for a hearing on May 20, 2025, at 7:00 p.m. EST",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p6-set-may20",
+      "document_id": "001",
+      "locator": "p6",
+      "start_offset": 4459,
+      "end_offset": 5585,
+      "quote": "scheduled the hearing for 7:00 p.m. EST on May 20",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p6-may19",
+      "document_id": "001",
+      "locator": "p6",
+      "start_offset": 4459,
+      "end_offset": 5585,
+      "quote": "On May 19, 2026, the day before the hearing",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "判决该句写作 2026；同案听证为 2025-05-20。不另选年份。"
+    },
+    {
+      "source_id": "001:p6-bsa18",
+      "document_id": "001",
+      "locator": "p6",
+      "start_offset": 4459,
+      "end_offset": 5585,
+      "quote": "Section 18 of the Business Solutions Agreement (BSA)",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p6-late-notice",
+      "document_id": "001",
+      "locator": "p6",
+      "start_offset": 4459,
+      "end_offset": 5585,
+      "quote": "Due to the late notification of non-availability, we are having the hearing as scheduled",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p7-midnight",
+      "document_id": "001",
+      "locator": "p7",
+      "start_offset": 5585,
+      "end_offset": 5934,
+      "quote": "inviting Petitioner to make additional submissions by midnight that day",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p7-no-supplement",
+      "document_id": "001",
+      "locator": "p7",
+      "start_offset": 5585,
+      "end_offset": 5934,
+      "quote": "Petitioner did not do so",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p8-final",
+      "document_id": "001",
+      "locator": "p8",
+      "start_offset": 5934,
+      "end_offset": 6249,
+      "quote": "On June 5, 2025, the arbitrator issued her Final Award, which granted Petitioner the return of $199,805.64 in withheld funds and $49,038.75 in consequential damages",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p10-no-show",
+      "document_id": "001",
+      "locator": "p10",
+      "start_offset": 6249,
+      "end_offset": 6821,
+      "quote": "She did not show up for the hearing on May 20, 2025 or file additional pleadings",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p11-claims",
+      "document_id": "001",
+      "locator": "p11",
+      "start_offset": 6821,
+      "end_offset": 8057,
+      "quote": "confirm the award as to liability but to vacate or modify the award with respect to damages pursuant to Federal Arbitration Act (“FAA”), 9 U.S.C. §§ 10, 11",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p11-standing-arg",
+      "document_id": "001",
+      "locator": "p11",
+      "start_offset": 6821,
+      "end_offset": 8057,
+      "quote": "deny Petitioner’s motion for confirmation for lack of standing",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p11-paid",
+      "document_id": "001",
+      "locator": "p11",
+      "start_offset": 6821,
+      "end_offset": 8057,
+      "quote": "satisfied the Award by paying $248,844.39",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p12-stafford",
+      "document_id": "001",
+      "locator": "p12",
+      "start_offset": 8057,
+      "end_offset": 8727,
+      "quote": "Stafford v. Int’l Bus. Machs. Corp., 78 F.4th 62, 68 (2d Cir. 2023)",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p12-faa9",
+      "document_id": "001",
+      "locator": "p12",
+      "start_offset": 8057,
+      "end_offset": 8727,
+      "quote": "quoting 9 U.S.C. § 9",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p13-all-fours",
+      "document_id": "001",
+      "locator": "p13",
+      "start_offset": 8727,
+      "end_offset": 9391,
+      "quote": "Stafford is on all fours. It is not disputed that Respondents have satisfied the award",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p13-no-standing",
+      "document_id": "001",
+      "locator": "p13",
+      "start_offset": 8727,
+      "end_offset": 9391,
+      "quote": "Petitioner lacks standing to bring suit seeking confirmation of the Award",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p14-10a",
+      "document_id": "001",
+      "locator": "p14",
+      "start_offset": 9391,
+      "end_offset": 10127,
+      "quote": "9 U.S.C. § 10(a)",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p14-11a",
+      "document_id": "001",
+      "locator": "p14",
+      "start_offset": 9391,
+      "end_offset": 10127,
+      "quote": "9 U.S.C. § 11(a)",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p16-10a3",
+      "document_id": "001",
+      "locator": "p16",
+      "start_offset": 10127,
+      "end_offset": 10653,
+      "quote": "misconduct under Section 10(a)(3) of the FAA",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p22-reasonable",
+      "document_id": "001",
+      "locator": "p22",
+      "start_offset": 10653,
+      "end_offset": 11428,
+      "quote": "The arbitrator had a reasonable basis for not further adjourning the hearing",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p22-eschewed",
+      "document_id": "001",
+      "locator": "p22",
+      "start_offset": 10653,
+      "end_offset": 11428,
+      "quote": "Petitioner eschewed both opportunities",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p30-not-math",
+      "document_id": "001",
+      "locator": "p30",
+      "start_offset": 11428,
+      "end_offset": 11576,
+      "quote": "these are substantive claims that the arbitrator erred in her interpretation of the BSA, not a claim of mathematical mistake",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p33-confirm-denied",
+      "document_id": "001",
+      "locator": "p33",
+      "start_offset": 11576,
+      "end_offset": 11930,
+      "quote": "Petitioner’s motion to confirm the arbitral award as to liability is DENIED for lack of standing",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p33-vacate-denied",
+      "document_id": "001",
+      "locator": "p33",
+      "start_offset": 11576,
+      "end_offset": 11930,
+      "quote": "Petitioner’s motion to modify or vacate the award is DENIED",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p33-close",
+      "document_id": "001",
+      "locator": "p33",
+      "start_offset": 11576,
+      "end_offset": 11930,
+      "quote": "The Clerk of Court is respectfully directed to close Dkt. No. 10 and to close this case",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:p33-dated",
+      "document_id": "001",
+      "locator": "p33",
+      "start_offset": 11576,
+      "end_offset": 11930,
+      "quote": "Dated: July 21, 2026",
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "source_id": "001:gaps-nr",
+      "document_id": "001",
+      "locator": "gaps",
+      "start_offset": 11930,
+      "end_offset": null,
+      "quote": "Partial Final Award（Dkt. No. 10-2）全文；Final Award（Dkt. No. 14-9）全文；BSA 全文",
+      "source_tier": "researcher",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "argument_records": [
+    {
+      "source_ids": [
+        "001:p11-claims",
+        "001:p16-10a3"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "applicant",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": "NR",
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "enf-arg-applicant",
+      "target_id": "enf-claim-applicant",
+      "document_id": "001",
+      "kind": "historical",
+      "claim": "听证机会被剥夺，应部分撤销或修改损害赔偿。",
+      "reasoning": "拒绝延期 5/20 听证构成 §10(a)(3) misconduct；利息费用与金额计算另构成明显漠视法律与误算。",
+      "assumptions": "裁决书、邮件原件未附，不得补造未收录内容。",
+      "rebuttal_target": "",
+      "target_part": "",
+      "action": "first_raised",
+      "fact_ids": [
+        "enf-fact-notice",
+        "enf-notice-01",
+        "enf-notice-08"
+      ],
+      "rule_ids": [
+        "faa-9usc-10a3",
+        "faa-9usc-11a"
+      ],
+      "stage": "enforcement"
+    },
+    {
+      "source_ids": [
+        "001:p11-standing-arg",
+        "001:p22-eschewed"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": "",
+      "revisions": [],
+      "speaker": "respondent",
+      "speech_type": "party_claim",
+      "support_status": "indirect",
+      "disclosure_status": "disputed",
+      "missing_code": null,
+      "conflict_values": [],
+      "original_ref": null,
+      "argument_id": "enf-arg-respondent",
+      "target_id": "enf-claim-respondent",
+      "document_id": "001",
+      "kind": "historical",
+      "claim": "多次通知且申请人未用补充机会；裁决已履行，缺乏确认 standing。",
+      "reasoning": "Stafford：已全额支付则确认请求不是活争议。听证通知链见判决转述。",
+      "assumptions": "支付明细与邮件原件未附。",
+      "rebuttal_target": "enf-arg-applicant",
+      "target_part": "听证机会被剥夺",
+      "action": "first_raised",
+      "fact_ids": [
+        "enf-fact-notice",
+        "enf-notice-08",
+        "enf-notice-09"
+      ],
+      "rule_ids": [
+        "stafford-v-ibm",
+        "faa-9usc-9"
+      ],
+      "stage": "enforcement"
+    }
+  ],
+  "evidence_links": [
+    {
+      "link_id": "enf-link-app-source",
+      "object_id": "enf-arg-applicant",
+      "relation": "source_support",
+      "evidence_id": "001:p16-10a3",
+      "field": "claim",
+      "purpose": "申请人以 §10(a)(3) 主张听证 misconduct",
+      "limits": "仅判决转述，非裁决书或邮件原件"
+    },
+    {
+      "link_id": "enf-link-app-rule",
+      "object_id": "enf-arg-applicant",
+      "relation": "rule_basis",
+      "evidence_id": "faa-9usc-10a3",
+      "field": "norms",
+      "purpose": "FAA §10(a)(3)",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-resp-source",
+      "object_id": "enf-arg-respondent",
+      "relation": "source_support",
+      "evidence_id": "001:p13-all-fours",
+      "field": "claim",
+      "purpose": "法院转述已履行与 Stafford",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-resp-rule",
+      "object_id": "enf-arg-respondent",
+      "relation": "rule_basis",
+      "evidence_id": "stafford-v-ibm",
+      "field": "norms",
+      "purpose": "Stafford standing",
+      "limits": ""
+    },
+    {
+      "link_id": "enf-link-rebut",
+      "object_id": "enf-arg-respondent",
+      "relation": "rebuttal_target",
+      "evidence_id": "enf-arg-applicant",
+      "field": "",
+      "purpose": "针对听证机会被剥夺",
+      "limits": ""
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "faa-9usc-9",
+      "rule_version": "faa",
+      "title": "FAA 9 U.S.C. § 9（确认）",
+      "text": "法院在讨论确认义务时引用：court must grant motion to confirm unless the award is vacated, modified, or corrected。本卡只收录条号，不预判本案结果。",
+      "source": "9 U.S.C. § 9, as quoted in the SDNY opinion",
+      "applicability_conditions": [
+        "向有管辖权的美国法院申请确认仲裁裁决"
+      ],
+      "controversies": [
+        "已履行裁决后确认请求是否仍有 standing"
+      ],
+      "usage_boundary": "不得把本仿真写成纽约公约承认程序；本案未适用 nyc-v-1-b。",
+      "source_ids": [
+        "001:p12-faa9"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "rule_id": "faa-9usc-10a3",
+      "rule_version": "faa",
+      "title": "FAA 9 U.S.C. § 10(a)(3)（misconduct）",
+      "text": "where the arbitrators were guilty of misconduct in refusing to postpone the hearing, upon sufficient cause shown, or in refusing to hear evidence pertinent and material to the controversy.",
+      "source": "9 U.S.C. § 10(a)(3)",
+      "applicability_conditions": [
+        "以拒绝延期或拒绝听取关键证据申请撤销"
+      ],
+      "controversies": [
+        "迟到改期请求与书面补充机会是否仍构成根本不公"
+      ],
+      "usage_boundary": "不得把法院驳回写成对仲裁实体对错的评价。",
+      "source_ids": [
+        "001:p14-10a",
+        "001:p16-10a3"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "rule_id": "faa-9usc-11a",
+      "rule_version": "faa",
+      "title": "FAA 9 U.S.C. § 11(a)（明显误算）",
+      "text": "there was an evident material miscalculation of figures or an evident material mistake in the description of any person, thing, or property referred to in the award.",
+      "source": "9 U.S.C. § 11(a)",
+      "applicability_conditions": [
+        "以表面上的数字误算申请修改"
+      ],
+      "controversies": [
+        "合同解释与利润方法是否属于误算"
+      ],
+      "usage_boundary": "本包不把实体解释争点改写成已证明的算术错误。",
+      "source_ids": [
+        "001:p14-11a",
+        "001:p30-not-math"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    },
+    {
+      "rule_id": "stafford-v-ibm",
+      "rule_version": "2d-cir-2023",
+      "title": "Stafford v. IBM（已履行则无确认 standing）",
+      "text": "Article III’s case-or-controversy requirement applies to actions governed by the FAA. A party lacks standing to seek confirmation of an award that has already been satisfied in full.",
+      "source": "Stafford v. Int’l Bus. Machs. Corp., 78 F.4th 62 (2d Cir. 2023)",
+      "applicability_conditions": [
+        "确认之诉；裁决据称已全额履行"
+      ],
+      "controversies": [
+        "同时提出撤销请求能否维持确认 standing"
+      ],
+      "usage_boundary": "不得把因 standing 驳回确认写成已拒绝承认或已确认。",
+      "source_ids": [
+        "001:p12-stafford",
+        "001:p13-all-fours"
+      ],
+      "source_tier": "historical",
+      "review_state": "pending",
+      "notes": ""
+    }
+  ],
+  "task_labels": {
+    "task_type": "enforcement_nyc",
+    "enforcement_forum": "US-SDNY",
+    "procedure_type": "partial_confirm_modify_vacate",
+    "convention_issues": [],
+    "notice_events": [
+      {
+        "event_id": "enf-notice-01",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "损害赔偿听证通知（原定 5/15）",
+        "event_type": "sent",
+        "sender": "仲裁员 Lynne Bernabei",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-04-30",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：Order Noticing Hearing on Damages；当日预审后将损害赔偿听证排在 2025-05-15，以迁就中国律师档期；书状截止 2025-05-09。原件未附。",
+        "opportunity": "原定 2025-05-15 听证",
+        "objection": "",
+        "court_view": "后文认定仲裁员最初为迁就申请人将听证改到 5/15。",
+        "source_ids": [
+          "001:p4-notice",
+          "001:p4-may15"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤①。通知原件 Dkt. 14-7 未附。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-02",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "申请人改期请求",
+        "event_type": "objection",
+        "sender": "申请人律师",
+        "recipient": "仲裁员 / 对方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-05-07",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：5/7 晚以另一听证档期冲突为由，请求改到 2025-05-16 或 2025-05-19 上午 10:00 EST。邮件正文除判决引语外未收录。",
+        "opportunity": "",
+        "objection": "Due to a scheduling conflict with another hearing",
+        "court_view": "后文将其记为 5/15 前一周提出的改期。",
+        "source_ids": [
+          "001:p5-may7"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤②。邮件原件 Dkt. 14-8 未附。",
+        "revisions": [],
+        "speaker": "applicant",
+        "speech_type": "party_claim",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-03",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "仲裁员改期 / 书面替代邀请",
+        "event_type": "other",
+        "sender": "仲裁员",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "unknown",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：仲裁员表示无法接受申请人所提两个时段；要求协商 5/19 或 5/20 17:00–20:00 EST；邀请以商业负责人宣誓书代替现场听证；不迟于 2025-05-12 营业结束回复合适档期。回复当日未写明。",
+        "opportunity": "书面宣誓书替代现场听证；另给 5/19 或 5/20 晚间档期",
+        "objection": "",
+        "court_view": "后文认定仲裁员曾提出 5/19 或 5/20 作为可能日期。",
+        "source_ids": [
+          "001:p5-affidavits"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤③。仲裁员回复的日历日判决未单列，保持 unknown。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-04",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "书面意见提交、申请人未及时回复档期",
+        "event_type": "other",
+        "sender": "双方 / 仲裁员截止安排",
+        "recipient": "仲裁员",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-05-09",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：双方于 2025-05-09 提交损害赔偿书状。申请人与亚马逊均未在 5/12 截止前提交合适听证日期或时间。书状原文未附。",
+        "opportunity": "5/12 营业结束前回复档期",
+        "objection": "",
+        "court_view": "后文写申请人律师仅表示希望只依书面材料裁决。",
+        "source_ids": [
+          "001:p5-may12"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤④。书状原文未附。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-05",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "书面或 5/19 晚 7 点选项",
+        "event_type": "sent",
+        "sender": "仲裁员",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-05-13",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：仲裁员表示可以只依书面材料裁决，若任一方要听证，可在 5/19 19:00 进行。同日申请人律师同意只依书面材料裁决。邮件原件未附。",
+        "opportunity": "书面裁决，或 5/19 19:00 听证",
+        "objection": "",
+        "court_view": "判决脚注后文：仲裁员曾建议 5/19，但未正式排定 5/19 听证。",
+        "source_ids": [
+          "001:p5-may13"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤⑤。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-06",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "排定 5/20 晚 7 点",
+        "event_type": "sent",
+        "sender": "仲裁员",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-05-16",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：5/16 亚马逊称证人可出席 5/20 19:00 EST；同日仲裁员将听证排在 5/20 19:00 EST。邮件原件未附。",
+        "opportunity": "2025-05-20 19:00 EST 听证",
+        "objection": "",
+        "court_view": "后文认定 5/16 排定 5/20 听证，申请人直到听证前一日才通知不能出席。",
+        "source_ids": [
+          "001:p5-may16",
+          "001:p6-set-may20"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤⑥。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-07",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "再次无法出席、援引 BSA §18",
+        "event_type": "objection",
+        "sender": "申请人律师",
+        "recipient": "仲裁员 / 对方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "May 19, 2026, the day before the hearing",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：申请人称 5/20 不能出席，主张依 BSA §18 选择只进行书面审理，并要求不要开现场听证。邮件全文除判决引语外未收录。",
+        "opportunity": "",
+        "objection": "援引 BSA §18 书面审理选择权；另一听证档期冲突。BSA 全文未附。",
+        "court_view": "后文认定通知迟到，且申请人此前多次表示愿只依书面材料裁决。",
+        "source_ids": [
+          "001:p6-may19",
+          "001:p6-bsa18"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤⑦。判决该句写作 May 19, 2026，同时写 the day before the hearing。不另选年份。",
+        "revisions": [],
+        "speaker": "applicant",
+        "speech_type": "party_claim",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "CF",
+        "conflict_values": [
+          "2026-05-19（判决 p.6 字面）",
+          "2025-05-19（the day before the May 20, 2025 hearing）"
+        ],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-08",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "5/20 仍举行听证并允许午夜前补充",
+        "event_type": "hearing_opportunity",
+        "sender": "仲裁员",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-05-20",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：因迟到通知，听证如期举行；听证前允许补充；当晚告知已举行听证并邀请申请人于当日午夜前再交补充。补充与邮件原件未附。",
+        "opportunity": "听证前补充；听证后至午夜前再交补充",
+        "objection": "申请人晨间再次称当日不能出席。",
+        "court_view": "仲裁员有合理依据不再次延期；申请人放弃两次补充机会。不构成 §10(a)(3) misconduct。",
+        "source_ids": [
+          "001:p6-late-notice",
+          "001:p7-midnight",
+          "001:p22-eschewed"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤⑧。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "court_finding",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      },
+      {
+        "event_id": "enf-notice-09",
+        "document_id": "001",
+        "procedure_id": "aaa-damages-hearing",
+        "notice_name": "未提交补充 → Final Award",
+        "event_type": "other",
+        "sender": "仲裁员",
+        "recipient": "双方",
+        "channel": "unknown",
+        "address": "unknown",
+        "address_basis": "NR：邮件原件未附，仅有判决转述。",
+        "date_raw": "2025-06-05",
+        "arrival": "unknown",
+        "language": "unknown",
+        "content": "判决转述：申请人未提交补充。2025-06-05 Final Award：返还扣留资金 199,805.64 美元 + 间接损失 49,038.75 美元。裁决书全文未附。",
+        "opportunity": "5/20 午夜前补充（未用）",
+        "objection": "",
+        "court_view": "仲裁员事后重申：申请人未出席 5/20 听证也未再交书面，遂关闭记录并作出裁决。",
+        "source_ids": [
+          "001:p7-no-supplement",
+          "001:p8-final",
+          "001:p10-no-show"
+        ],
+        "source_tier": "historical",
+        "review_state": "pending",
+        "notes": "脚本步骤⑨。Final Award 全文未附。",
+        "revisions": [],
+        "speaker": "tribunal",
+        "speech_type": "procedural_record",
+        "support_status": "indirect",
+        "disclosure_status": null,
+        "missing_code": "NR",
+        "conflict_values": [],
+        "original_ref": null
+      }
+    ],
+    "role_protocol": [],
+    "review_state": "pending"
+  },
+  "reference": {
+    "reference_version": "0.1.0-draft",
+    "gold_labels": {
+      "convention_issue": "",
+      "outcome": "motion_denied; confirmation_not_reached_on_merits"
+    },
+    "acceptable_paths": [],
+    "notes": "对照材料：确认因 standing 驳回，未进入实体确认或拒绝承认。本层不得写入角色可见快照或模型提示词。非正式研究包。"
+  },
+  "review_state": "pending",
+  "review_records": [
+    {
+      "review_state": "pending",
+      "reviewer": "王静怡",
+      "reviewed_at": "2026-09-14",
+      "note": "01单篇标注初标。独立复核格为空。classify=candidate，不得计入 formal_pack_count，亦不是技术夹具。"
+    }
+  ],
+  "notes": "Yingfan v. Amazon SDNY 2026-07-21 candidate 预装。法源为 FAA §9 / §10(a)(3) / §11(a) 与 Stafford，不写 nyc-v-1-b。convention_issues=[]。正式研究包计数保持 0。"
+}

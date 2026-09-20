@@ -96,7 +96,7 @@ export const NAV_ACTIONS: NavAction[] = [
     id: "view-replay",
     group: "view",
     title: "样例回放",
-    description: "scripted_demo，不连本场会话",
+    description: "结构化样例，不连本场",
     href: "/hearing-3d",
   },
   {

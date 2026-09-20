@@ -10,10 +10,12 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from api import state
 from api.services.evaluation import (
     EvaluationAttributionError,
+    MissingFinalOutputError,
     evaluation_error,
     execute_evaluation_task,
     start_evaluation_task,
 )
+from api.services.evaluation_input import MissingEvaluationInputError
 from api.schemas import (
     ApiRequest, ApiResponse, AutoAdvanceRequest, AutoAdvanceResponse,
     ConversationImportRequest, ConversationImportResponse,
@@ -90,9 +92,23 @@ async def start_evaluation(
         )
     except HTTPException:
         raise
-    except EvaluationAttributionError as e:
+    except MissingFinalOutputError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": e.code, "message": str(e)},
+        )
+    except MissingEvaluationInputError as e:
         raise HTTPException(
             status_code=422,
+            detail={
+                "code": e.code,
+                "message": str(e),
+                "field_errors": e.field_errors,
+            },
+        )
+    except EvaluationAttributionError as e:
+        raise HTTPException(
+            status_code=400 if e.code in {"empty_body", "missing_final_output"} else 422,
             detail={
                 "code": e.code,
                 "message": str(e),

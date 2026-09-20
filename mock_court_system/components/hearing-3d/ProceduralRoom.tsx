@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { ContactShadows } from "@react-three/drei"
 
 /** 从全景渲染图匹配的色板 */
 const PALETTE = {
@@ -97,6 +98,7 @@ function DeskProp({ x, y, z, w, h, color, label }: { x: number; y: number; z: nu
 export function ProceduralRoom() {
   return (
     <group>
+      <ContactShadows position={[0, 0.018, 0]} opacity={0.28} scale={9.2} blur={2.6} far={4.8} color="#172033" />
       {/* 地毯 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[10, 8]} />
@@ -171,29 +173,28 @@ export function ProceduralRoom() {
         <meshBasicMaterial color="#dbeafe" />
       </mesh>
 
-      {/* 首席仲裁桌（正对入口） */}
+      {/* 仲裁庭席（正对入口） */}
       <Desk x={0} z={1.8} w={3.0} d={0.8} topColor={PALETTE.desk_top} />
       {/* 申请方桌（左侧长桌） */}
       <Desk x={-2.1} z={-0.65} w={0.8} d={4.5} topColor={PALETTE.desk_top} />
       {/* 被申请方桌（右侧长桌） */}
       <Desk x={2.1} z={-0.65} w={0.8} d={4.5} topColor={PALETTE.desk_top} />
-      {/* 秘书桌 */}
+      {/* 仲裁庭秘书桌 */}
       <Desk x={-0.9} z={1.0} w={1.2} d={0.5} topColor={PALETTE.desk_top} />
 
-      {/* 十三席座椅（与 cast-manifest 席位一致，置于角色身后 ~0.28；Chair 默认朝 -Z） */}
-      <Chair x={0} z={3.08} />                              {/* 首席仲裁员，朝 -Z */}
-      <Chair x={1.0} z={3.08} />                            {/* 审判员，朝 -Z */}
-      <Chair x={-1.0} z={3.08} />                           {/* 人民陪审员，朝 -Z */}
-      <Chair x={-0.9} z={-0.03} rotation={Math.PI} />       {/* 仲裁庭秘书，朝 +Z */}
-      <Chair x={-3.18} z={0.65} rotation={-Math.PI / 2} />  {/* 申请人代理，朝 +X */}
-      <Chair x={-3.18} z={-1.15} rotation={-Math.PI / 2} /> {/* 申请人企业代表 */}
-      <Chair x={-3.18} z={-2.55} rotation={-Math.PI / 2} /> {/* 中方企业代表，朝 +X */}
-      <Chair x={3.18} z={0.65} rotation={Math.PI / 2} />    {/* 被申请人代理，朝 -X */}
-      <Chair x={3.18} z={-1.15} rotation={Math.PI / 2} />   {/* 被申请人企业代表 */}
-      <Chair x={3.18} z={-2.6} rotation={Math.PI / 2} />    {/* 口译员 */}
-      <Chair x={-4.0} z={-2.35} rotation={Math.PI} />        {/* 公诉人 */}
-      <Chair x={4.0} z={-0.8} rotation={Math.PI} />          {/* 技术专家证人，朝 -Z */}
-      <Chair x={4.0} z={-2.35} rotation={Math.PI} />         {/* 外籍事实证人 */}
+      {/* 十二个就座席位；会务安保为入口站立角色 */}
+      <Chair x={0} z={3.08} />                              {/* 首席仲裁员 */}
+      <Chair x={1.0} z={3.08} />                            {/* 仲裁员 陈启澜 */}
+      <Chair x={-1.0} z={3.08} />                           {/* 仲裁员 何敬 */}
+      <Chair x={-0.9} z={-0.03} rotation={Math.PI} />       {/* 仲裁庭秘书 */}
+      <Chair x={-3.18} z={0.65} rotation={-Math.PI / 2} />  {/* 申请人首席代理律师 */}
+      <Chair x={-3.18} z={-1.15} rotation={-Math.PI / 2} /> {/* 申请人共同代理律师 */}
+      <Chair x={-3.18} z={-2.55} rotation={-Math.PI / 2} /> {/* 申请人代表 */}
+      <Chair x={3.18} z={0.65} rotation={Math.PI / 2} />    {/* 被申请人代理律师 */}
+      <Chair x={3.18} z={-1.15} rotation={Math.PI / 2} />   {/* 被申请人代表 */}
+      <Chair x={3.18} z={-2.6} rotation={Math.PI / 2} />    {/* 听证口译员 */}
+      <Chair x={4.0} z={-0.8} rotation={Math.PI} />          {/* 专家证人 */}
+      <Chair x={4.0} z={-2.35} rotation={Math.PI} />         {/* 事实证人 */}
 
       {/* 证据屏 */}
       <mesh position={[4.7, 1.6, 0]} rotation={[0, Math.PI / 2, 0]}>
@@ -228,11 +229,12 @@ export function ProceduralRoom() {
       </group>
 
       {/* 灯光：前侧冷光保证人脸可读，侧面暖光拉出桌体和墙板层次。 */}
-      <ambientLight intensity={0.9} />
-      <directionalLight castShadow position={[0, 6, -4]} intensity={2.25} shadow-mapSize={[1024, 1024]} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={5} shadow-camera-bottom={-4} />
-      <directionalLight position={[-4, 4, 2]} intensity={1.15} color="#fef3c7" />
-      <pointLight position={[0, 3, 0]} intensity={1.35} color={PALETTE.ceiling_light} distance={8} />
-      <pointLight position={[0, 2.2, 3.4]} intensity={1.1} color="#8be4ef" distance={5} />
+      <hemisphereLight intensity={0.68} color="#dbeafe" groundColor="#273449" />
+      <directionalLight castShadow position={[-3.5, 5.8, -4.2]} intensity={1.42} color="#fff7ed" shadow-mapSize={[1024, 1024]} shadow-bias={-0.00025} shadow-normalBias={0.035} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={5} shadow-camera-bottom={-4} />
+      <directionalLight position={[4.2, 3.4, 1.8]} intensity={0.42} color="#bae6fd" />
+      <directionalLight position={[0.1, 2.45, -4.8]} intensity={0.4} color="#fff1e0" />
+      <pointLight position={[0, 3, 0]} intensity={0.74} color={PALETTE.ceiling_light} distance={8} />
+      <pointLight position={[0, 2.2, 3.4]} intensity={0.52} color="#8be4ef" distance={5} />
     </group>
   )
 }

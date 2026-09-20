@@ -410,6 +410,29 @@ def persist_simulation_task(task_id: str) -> None:
         eval_logger.warning(f"模拟任务持久化失败 {task_id}: {exc}")
 
 
+def load_simulation_task(task_id: str) -> Optional[Dict[str, Any]]:
+    """先读内存，没有再从持久化任务表补。"""
+    live = simulation_tasks.get(task_id)
+    if live is not None:
+        return live
+    try:
+        rec = evaluation_task_store.get(task_id)
+    except Exception:
+        return None
+    if rec is None:
+        return None
+    restored = {
+        "status": rec.status,
+        "message": rec.message,
+        "current_stage": None,
+        "result": rec.results(),
+        "created_at": rec.created_at,
+        "session_id": rec.session_id,
+    }
+    simulation_tasks[task_id] = restored
+    return restored
+
+
 def _run_full_simulation_task(task_id: str, case_info: Dict[str, Any], permit=None):
     try:
         simulation_tasks[task_id]["status"] = "running"
@@ -504,6 +527,10 @@ def _persist_llm_env(cfg: LLMConfigRequest):
         "LLM_BASE_URL": cfg.base_url,
         "LLM_MODEL": cfg.model,
         "LLM_PROVIDER": cfg.provider,
+        "LLM_THINKING": cfg.thinking,
+        "LLM_REASONING_EFFORT": cfg.reasoning_effort,
+        "LLM_FAST_THINKING": cfg.fast_thinking,
+        "LLM_FAST_REASONING_EFFORT": cfg.fast_reasoning_effort,
     }
 
     written = set()

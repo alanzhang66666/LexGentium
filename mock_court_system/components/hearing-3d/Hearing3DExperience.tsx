@@ -5,9 +5,9 @@ import { castManifest } from "./cast-manifest"
 import { CameraMode } from "./CameraDirector"
 import { EventTimeline } from "./EventTimeline"
 import { Hearing3DScene } from "./Hearing3DScene"
-import { HearingHUD } from "./HearingHUD"
+import { HearingHUD, hearingSourceLabel } from "./HearingHUD"
 import { MaterialPanel } from "./MaterialPanel"
-import { loadSampleEvents, createPlaybackStore, appendAndConsume } from "./playback-store"
+import { createPlaybackStore, appendAndConsume } from "./playback-store"
 import { createInitialSceneState } from "./scene-reducer"
 import { conversationFinishedToEvent, conversationMessageToEvent, conversationToHearingEvents, type ConversationPayload } from "./backend-event-adapter"
 import { streamSessionMessage } from "@/lib/api/conversation"
@@ -28,24 +28,23 @@ export function Hearing3DExperience() {
   const storeRef = useRef(createPlaybackStore())
 
   useEffect(() => {
-    const sessionId = typeof window === "undefined"
+    const requestedSessionId = typeof window === "undefined"
       ? null
       : new URLSearchParams(window.location.search).get("sessionId")
-    setSessionId(sessionId)
-    if (sessionId) writeLastSessionId(sessionId)
-    const source = sessionId
-      ? fetch(`/api/conversation/${encodeURIComponent(sessionId)}`)
-          .then((response) => {
-            if (!response.ok) throw new Error(`会话加载失败（${response.status}）`)
-            return response.json()
-          })
-          .then((payload) => conversationToHearingEvents(payload))
-      : loadSampleEvents()
-    source
+    setSessionId(requestedSessionId)
+    if (!requestedSessionId) return
+
+    writeLastSessionId(requestedSessionId)
+    fetch(`/api/conversation/${encodeURIComponent(requestedSessionId)}`)
+      .then((response) => {
+        if (!response.ok) throw new Error(`会话加载失败（${response.status}）`)
+        return response.json()
+      })
+      .then((payload) => conversationToHearingEvents(payload))
       .then((loaded) => {
         setEvents(loaded)
         storeRef.current.append(loaded)
-        if (sessionId) storeRef.current.jumpToLatest()
+        storeRef.current.jumpToLatest()
         setState(storeRef.current.getState())
       })
       .catch((err) => setError(err instanceof Error ? err.message : "无法加载听证事件"))
@@ -131,9 +130,9 @@ export function Hearing3DExperience() {
       <div className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[13px] text-muted-foreground">观庭 · OBJ 角色资产</p>
+            <p className="text-[13px] text-muted-foreground">观庭 · 国际商事仲裁</p>
             <h1 className="text-[22px] font-medium tracking-tight">仲裁听证 3D</h1>
-            <p className="mt-1 text-sm text-muted-foreground">十三席供应商 OBJ 角色 + PBR 贴图 + 司法警察 OBJ 资产，不代表法律裁决。</p>
+            <p className="mt-1 text-sm text-muted-foreground">角色已按最新人物资料映射至仲裁庭、双方代理与当事人、证人及会务支持席位。</p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <button className="rounded-md border border-border px-3 py-2 hover:bg-secondary" onClick={() => setProfessional((v) => !v)}>
@@ -145,13 +144,18 @@ export function Hearing3DExperience() {
             </button>
             <select className="rounded-md border border-border bg-background px-3 py-2" value={cameraMode} onChange={(e) => { setAutomaticCamera(false); setCameraMode(e.target.value as CameraMode) }}>
               <option value="wide">全景</option>
-              <option value="presiding_medium">首席中景</option>
+              <option value="presiding_medium">仲裁庭中景</option>
               <option value="claimant_medium">申请方中景</option>
               <option value="respondent_medium">被申请方中景</option>
             </select>
           </div>
         </div>
         {error && <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+        {!sessionId && (
+          <div className="mb-4 rounded-md border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+            请从已创建的会话进入观庭，或通过带有 sessionId 的观庭链接接入听证记录。
+          </div>
+        )}
         {sessionId && (
           <div className="relative mb-4 flex gap-2 rounded-lg border border-border bg-card p-3">
             <input
@@ -171,14 +175,16 @@ export function Hearing3DExperience() {
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <section className="relative min-h-[620px]">
             <Hearing3DScene state={state} cameraMode={cameraMode} automatic={automaticCamera} />
-            <HearingHUD state={state} professional={professional} />
+            <HearingHUD state={state} professional={professional} hasSession={Boolean(sessionId)} />
             <div className="absolute bottom-4 left-4 right-4">
               <EventTimeline store={storeRef.current} onChange={refresh} />
             </div>
           </section>
           <MaterialPanel state={state} />
         </div>
-        <div className="mt-3 text-xs text-muted-foreground">十三席已加载：{castManifest.length} · 供应商 OBJ：已加载 · 司法警察 OBJ：已加载 · 事件总数：{events.length} · sourceType: {state.source_type ?? (sessionId ? "backend_run" : "scripted_demo")}</div>
+        <div className="mt-3 text-xs text-muted-foreground">
+          角色资料：{castManifest.length} 位 · 听证事件：{events.length} · {hearingSourceLabel(state.source_type, Boolean(sessionId))}
+        </div>
       </div>
     </main>
   )

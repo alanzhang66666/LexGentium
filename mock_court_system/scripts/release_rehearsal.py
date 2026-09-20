@@ -21,9 +21,10 @@ import sqlite3
 import sys
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 _PRODUCT_ROOT = Path(__file__).resolve().parents[1]
 if str(_PRODUCT_ROOT) not in sys.path:
@@ -44,6 +45,30 @@ from core.store.registry import StoreRegistry  # noqa: E402
 
 RTO_LIMIT_SECONDS = 4 * 3600
 RPO_LIMIT_SECONDS = 24 * 3600
+
+_STORE_PATH_ENV = (
+    "CONVERSATION_DB_PATH",
+    "EVALUATION_DB_PATH",
+    "OPERATION_DB_PATH",
+    "HEARING_CHECKPOINT_PATH",
+    "RESEARCH_CLAIMS_DB",
+    "GAME_DB_PATH",
+    "MEDIATION_DB_PATH",
+)
+
+
+@contextmanager
+def _isolated_store_paths() -> Iterator[None]:
+    """演练用显式 data_root 时，不要读到进程里残留的生产路径 env。"""
+    saved = {key: os.environ.pop(key, None) for key in _STORE_PATH_ENV}
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def _utcnow() -> str:
@@ -85,6 +110,11 @@ def _emit(transcript: Dict[str, Any], out: Optional[str]) -> int:
 
 
 def _cmd_backup(args: argparse.Namespace) -> int:
+    with _isolated_store_paths():
+        return _cmd_backup_body(args)
+
+
+def _cmd_backup_body(args: argparse.Namespace) -> int:
     steps: List[Dict[str, Any]] = []
     reasons: List[str] = []
     data_root = Path(args.data_root)
@@ -114,6 +144,11 @@ def _cmd_backup(args: argparse.Namespace) -> int:
 
 
 def _cmd_restore(args: argparse.Namespace) -> int:
+    with _isolated_store_paths():
+        return _cmd_restore_body(args)
+
+
+def _cmd_restore_body(args: argparse.Namespace) -> int:
     steps: List[Dict[str, Any]] = []
     reasons: List[str] = []
     data_root = Path(args.data_root)
@@ -148,6 +183,11 @@ def _cmd_restore(args: argparse.Namespace) -> int:
 
 
 def _cmd_rollback(args: argparse.Namespace) -> int:
+    with _isolated_store_paths():
+        return _cmd_rollback_body(args)
+
+
+def _cmd_rollback_body(args: argparse.Namespace) -> int:
     """升级失败回滚演练：生产 root 在失败时不得被切换/破坏。
 
     顺序：先升级前备份（备份会合法初始化 store），再快照业务内容；
@@ -263,6 +303,11 @@ def _seed_fixture_store(data_root: Path) -> None:
 
 
 def _cmd_full(args: argparse.Namespace) -> int:
+    with _isolated_store_paths():
+        return _cmd_full_body(args)
+
+
+def _cmd_full_body(args: argparse.Namespace) -> int:
     """全链路演练：fixture data root → backup → 新 root restore → 指纹一致 → 回滚。"""
     steps: List[Dict[str, Any]] = []
     reasons: List[str] = []

@@ -15,11 +15,11 @@
 | 研究工程 | 角色材料过滤、主张链、派生 `run_id`、六维量表、导出 | 不是已标完的 10–20 案 |
 | 研究数据 | SAMPLE：`enf-cn-notice-001`、`cisg-art79-sample-001` | 正式 pack = 0 |
 | 法学材料 | 指南 + 原始母表 + `案例材料/`（67 份素材、15 份已填标注） | 15 份均未完成独立复核；不是正式 pack |
-| 民事数据 | `dataset_1000/` 含 train/val/test 600/200/200 条案件和 GT | CASE 编号在不同划分重名，需保存完整数据集身份 |
+| 民事数据 | `dataset_1000/` 元数据声明 600/200/200，没有** train/val/test jsonl | CASE 编号在不同划分重名，需保存完整数据集身份 |
 | 3D | 观庭 = `/hearing-3d`（供应商 OBJ + PBR，程序化人物 fallback）。旧 `/court3d` 重定向 | 非正式 VRM。胶囊渲染已删；留下 parseSse / labels / gameStream |
 | 推理 | Phase 0/1 已合并：`case_bundle` / 台账 / IRAC / `reasoning_meta`；clerk/extract/score ≤512 token；自动 CI ≤30；研究 10/12 轮停 | LAB（P-RAG / Dual-Mode / Multi-Judge）不经听证 SSE |
 | 分层 | `core/lab` `core/offline` `core/store`；`evaluation/lab`。旧跑数在 `归档/评测化石/` | 旧跑数不是现役答案 |
-| 测试 | `tests/` 含 research / reasoning / property(59 属性) / contract / integration；`e2e/` 托管 Playwright（journey/legacy-redirect/perf，本机 node_modules 精简、尚未真跑） | E2E 已发现未全量执行 |
+| 测试 | `tests/` 含 research / reasoning / property(59 属性) / contract / integration；`e2e/` 托管 Playwright journey 7 条已过（不含观庭视觉）；release gate `verify` 对本 HEAD 为 GO | 观庭视觉不在 gate 内，需本机浏览器核对 `/hearing-3d` |
 
 ## 已接通的研究入口
 

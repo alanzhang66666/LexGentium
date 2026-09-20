@@ -27,14 +27,14 @@ def test_ci_stream_emits_delta_and_final_with_session_metadata(monkeypatch):
         case_warnings = ["sample only"]
         state_machine = SimpleNamespace(export_state=lambda: {"is_finished": True})
 
-        def process_turn(self, history, case_id, input_json, reasoning_state=None):
-            assert input_json["_session_id"] == "stream-session"
-            hooks["hook"]("最终")
-            hooks["hook"]("文书")
-            return "最终文书"
+    def run_turn(*, scenario, case_id, dialog_history, input_json, reasoning_state=None, ci_agent=None):
+        assert input_json["_session_id"] == "stream-session"
+        hooks["hook"]("最终")
+        hooks["hook"]("文书")
+        return "Final", "最终文书", True
 
-    agent = Agent()
-    monkeypatch.setattr(state, "new_session_ci_agent", lambda: agent)
+    monkeypatch.setattr(state, "run_agent_turn", run_turn)
+    monkeypatch.setattr(state, "new_session_ci_agent", lambda: Agent())
     monkeypatch.setattr(state, "save_ci_reasoning_state", lambda record, supplied: None)
     app = FastAPI()
     app.include_router(router)
@@ -43,10 +43,21 @@ def test_ci_stream_emits_delta_and_final_with_session_metadata(monkeypatch):
         json={"message": "请继续", "role": "Plaintiff"},
     )
     assert response.status_code == 200
-    events = [json.loads(frame.removeprefix("data: ")) for frame in response.text.strip().split("\n\n")]
-    assert [event["type"] for event in events] == ["delta", "delta", "final"]
-    assert events[-1]["response"] == {"role": "Final", "message": "最终文书"}
-    assert events[-1]["is_finished"] is True
-    assert events[-1]["reasoning_meta"]["judgment_status"] == "verified"
+    events = []
+    for chunk in response.text.strip().split("\n\n"):
+        if not chunk.strip():
+            continue
+        data_line = next((line[6:] for line in chunk.splitlines() if line.startswith("data: ")), None)
+        if data_line is not None:
+            events.append(json.loads(data_line))
+    assert events[0]["type"] == "start"
+    assert [event["type"] for event in events if event["type"] == "delta"] == ["delta", "delta"]
+    terminals = [event for event in events if event["type"] in ("complete", "error", "cancelled")]
+    assert len(terminals) == 1
+    final = terminals[0]["payload"]
+    assert final["event"] == "final"
+    assert final["response"] == {"role": "Final", "message": "最终文书"}
+    assert final["is_finished"] is True
+    assert final["reasoning_meta"]["judgment_status"] == "verified"
     assert store.get("stream-session").dialog_history[-1]["role"] == "Final"
     assert hooks == {}

@@ -1,11 +1,11 @@
 {
   "version": "1.1",
-  "status": "engineering_proposal_not_runtime_verified",
+  "status": "latest_character_archive_layout",
   "units": "meters",
   "axes": {
     "x": "right",
     "y": "up",
-    "z": "toward_presiding_arbitrator"
+    "z": "toward_arbitral_tribunal"
   },
   "room": {
     "x_min": -5,
@@ -21,216 +21,100 @@
     {
       "id": "bench_center",
       "actor_id": "judge",
-      "label": "首席仲裁员",
-      "position": [
-        0,
-        0.45,
-        2.8
-      ],
-      "look_at": [
-        0,
-        1.35,
-        0
-      ],
-      "note": "保留"
+      "label": "首席仲裁员 周屹",
+      "position": [0, 0.45, 2.8],
+      "look_at": [0, 1.35, 0]
     },
     {
       "id": "associate_judge",
       "actor_id": "associate_judge",
-      "label": "审判员",
-      "position": [
-        1.0,
-        0.45,
-        2.8
-      ],
-      "look_at": [
-        0,
-        1.35,
-        0
-      ],
-      "note": "新增供应商 OBJ 角色"
+      "label": "仲裁员 陈启澜",
+      "position": [1.0, 0.45, 2.8],
+      "look_at": [0, 1.35, 0]
     },
     {
       "id": "people_juror",
       "actor_id": "people_juror",
-      "label": "人民陪审员",
-      "position": [
-        -1.0,
-        0.45,
-        2.8
-      ],
-      "look_at": [
-        0,
-        1.35,
-        0
-      ],
-      "note": "新增供应商 OBJ 角色"
+      "label": "仲裁员 何敬",
+      "position": [-1.0, 0.45, 2.8],
+      "look_at": [0, 1.35, 0]
     },
     {
       "id": "clerk",
       "actor_id": "clerk",
-      "label": "仲裁庭秘书",
-      "position": [
-        -0.9,
-        0.45,
-        0.25
-      ],
-      "look_at": [
-        -0.9,
-        1.35,
-        1.05
-      ],
-      "note": "修订：前移，面向 +Z"
+      "label": "仲裁庭秘书 林澄",
+      "position": [-0.9, 0.45, 0.25],
+      "look_at": [-0.9, 1.35, 1.05]
     },
     {
       "id": "plaintiff_counsel",
       "actor_id": "plaintiff_counsel",
-      "label": "申请人代理",
-      "position": [
-        -2.9,
-        0.45,
-        0.65
-      ],
-      "look_at": [
-        0,
-        1.35,
-        0.65
-      ],
-      "note": "保留"
-    },
-    {
-      "id": "plaintiff_party",
-      "actor_id": "plaintiff_party",
-      "label": "申请人企业代表",
-      "position": [
-        -2.9,
-        0.45,
-        -1.15
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -1.15
-      ],
-      "note": "保留"
-    },
-    {
-      "id": "china_company_rep",
-      "actor_id": "china_company_rep",
-      "label": "中方企业代表",
-      "position": [
-        -2.9,
-        0.45,
-        -2.55
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -2.55
-      ],
-      "note": "新增供应商 OBJ 角色"
-    },
-    {
-      "id": "defendant_counsel",
-      "actor_id": "defendant_counsel",
-      "label": "被申请人代理",
-      "position": [
-        2.9,
-        0.45,
-        0.65
-      ],
-      "look_at": [
-        0,
-        1.35,
-        0.65
-      ],
-      "note": "保留"
-    },
-    {
-      "id": "defendant_party",
-      "actor_id": "defendant_party",
-      "label": "被申请人企业代表",
-      "position": [
-        2.9,
-        0.45,
-        -1.15
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -1.15
-      ],
-      "note": "保留"
-    },
-    {
-      "id": "interpreter",
-      "actor_id": "interpreter",
-      "label": "口译员",
-      "position": [
-        2.9,
-        0.45,
-        -2.6
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -2.6
-      ],
-      "note": "保留"
+      "label": "申请人首席代理律师 顾清衡",
+      "position": [-2.9, 0.45, 0.65],
+      "look_at": [0, 1.35, 0.65]
     },
     {
       "id": "prosecutor",
       "actor_id": "prosecutor",
-      "label": "公诉人",
-      "position": [
-        -4.0,
-        0.45,
-        -2.35
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -2.35
-      ],
-      "note": "新增供应商 OBJ 角色"
+      "label": "申请人共同代理律师 谢衡宁",
+      "position": [-2.9, 0.45, -1.15],
+      "look_at": [0, 1.35, -1.15]
     },
     {
-      "id": "fact_witness",
-      "actor_id": "fact_witness",
-      "label": "外籍事实证人",
-      "position": [
-        4.0,
-        0.45,
-        -2.35
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -2.35
-      ],
-      "note": "新增供应商 OBJ 角色"
+      "id": "china_company_rep",
+      "actor_id": "china_company_rep",
+      "label": "申请人代表 陆玮宁",
+      "position": [-2.9, 0.45, -2.55],
+      "look_at": [0, 1.35, -2.55]
+    },
+    {
+      "id": "defendant_counsel",
+      "actor_id": "defendant_counsel",
+      "label": "被申请人代理律师 沈嘉宁",
+      "position": [2.9, 0.45, 0.65],
+      "look_at": [0, 1.35, 0.65]
+    },
+    {
+      "id": "defendant_party",
+      "actor_id": "defendant_party",
+      "label": "被申请人代表 Marco Rossi",
+      "position": [2.9, 0.45, -1.15],
+      "look_at": [0, 1.35, -1.15]
+    },
+    {
+      "id": "interpreter",
+      "actor_id": "interpreter",
+      "label": "听证口译员 唐闻",
+      "position": [2.9, 0.45, -2.6],
+      "look_at": [0, 1.35, -2.6]
     },
     {
       "id": "technical_expert_witness",
       "actor_id": "technical_expert_witness",
-      "label": "技术专家证人",
-      "position": [
-        4.0,
-        0.45,
-        -0.8
-      ],
-      "look_at": [
-        0,
-        1.35,
-        -0.8
-      ],
-      "note": "新增供应商 OBJ 角色"
+      "label": "专家证人 Dr. Leila Haddad",
+      "position": [4.0, 0.45, -0.8],
+      "look_at": [0, 1.35, -0.8]
+    },
+    {
+      "id": "fact_witness",
+      "actor_id": "fact_witness",
+      "label": "事实证人 Adrian Tan",
+      "position": [4.0, 0.45, -2.35],
+      "look_at": [0, 1.35, -2.35]
+    },
+    {
+      "id": "venue_security",
+      "actor_id": "judicial_police",
+      "label": "会务安保 赵峥",
+      "position": [1.5, 0.45, -2.7],
+      "look_at": [0, 1.35, 0],
+      "note": "入口站立角色，不配置座椅"
     }
   ],
   "desks": [
     {
-      "id": "presiding",
-      "label": "首席桌",
+      "id": "tribunal",
+      "label": "仲裁庭席",
       "x_min": -1.5,
       "x_max": 1.5,
       "z_min": 1.4,
@@ -260,7 +144,7 @@
     },
     {
       "id": "secretary",
-      "label": "秘书桌",
+      "label": "仲裁庭秘书桌",
       "x_min": -1.5,
       "x_max": -0.3,
       "z_min": 0.75,
@@ -270,16 +154,8 @@
     }
   ],
   "evidence_screen": {
-    "position": [
-      4.7,
-      1.6,
-      0
-    ],
-    "normal": [
-      -1,
-      0,
-      0
-    ],
+    "position": [4.7, 1.6, 0],
+    "normal": [-1, 0, 0],
     "width": 1.8,
     "height": 1.02
   },
@@ -287,76 +163,38 @@
     {
       "id": "wide",
       "label": "全景",
-      "position": [
-        0,
-        2.5,
-        -7.6
-      ],
-      "target": [
-        0,
-        1.15,
-        0.25
-      ],
-      "horizontal_fov_deg": 74,
+      "position": [0, 2.65, -7.8],
+      "target": [0, 1.16, 0.45],
+      "vertical_fov_deg": 36,
       "aspect": 1.7777777778,
-      "hidden_nodes": [
-        "wall_front"
-      ],
-      "note": "前墙外摄影机；隐藏前墙与附属遮挡件"
+      "hidden_nodes": ["wall_front"]
     },
     {
       "id": "presiding_medium",
-      "label": "首席中景",
-      "position": [
-        0.75,
-        1.45,
-        0
-      ],
-      "target": [
-        0,
-        1.35,
-        2.8
-      ],
-      "horizontal_fov_deg": 40,
+      "label": "仲裁庭中景",
+      "position": [0, 2.1, -3.35],
+      "target": [0, 1.42, 2.68],
+      "vertical_fov_deg": 31,
       "aspect": 1.7777777778,
-      "hidden_nodes": [],
-      "note": "校验秘书与桌面遮挡"
+      "hidden_nodes": []
     },
     {
       "id": "claimant_medium",
       "label": "申请方中景",
-      "position": [
-        0,
-        1.4,
-        0.15
-      ],
-      "target": [
-        -2.9,
-        1.3,
-        0.65
-      ],
-      "horizontal_fov_deg": 46,
+      "position": [0.2, 2.05, -3.7],
+      "target": [-2.72, 1.22, -0.1],
+      "vertical_fov_deg": 34,
       "aspect": 1.7777777778,
-      "hidden_nodes": [],
-      "note": "代理为主要焦点；企业代表发言时 target 切换其头部"
+      "hidden_nodes": []
     },
     {
       "id": "respondent_medium",
       "label": "被申请方中景",
-      "position": [
-        0,
-        1.4,
-        0.15
-      ],
-      "target": [
-        2.9,
-        1.3,
-        0.65
-      ],
-      "horizontal_fov_deg": 46,
+      "position": [-0.2, 2.05, -3.7],
+      "target": [2.72, 1.22, -0.1],
+      "vertical_fov_deg": 34,
       "aspect": 1.7777777778,
-      "hidden_nodes": [],
-      "note": "代理为主要焦点；其他角色使用席位头部目标"
+      "hidden_nodes": []
     }
   ]
 }

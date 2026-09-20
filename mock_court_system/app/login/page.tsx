@@ -37,6 +37,7 @@ export default function LoginPage() {
         setProvider(data.provider || "deepseek")
         setBaseUrl(data.base_url || "")
         setModel(data.model || "")
+        setApiKey(data.demo_mode ? "sk-demo-deepseek-v41-flash" : "")
       })
       .catch((err) => setLoadError(err))
   }
@@ -59,7 +60,7 @@ export default function LoginPage() {
 
   const runTest = async (operationId: string) => {
     const payload = buildPayload()
-    if (!payload.api_key || !payload.base_url || !payload.model) {
+    if ((!payload.api_key && !current?.demo_mode) || !payload.base_url || !payload.model) {
       setError("请填写模型密钥、Base URL 与模型名，以便测通已有配置。")
       return
     }
@@ -144,7 +145,7 @@ export default function LoginPage() {
                 id="login-base-url"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.deepseek.com/v1"
+                placeholder="https://api.deepseek.com"
                 className="font-mono"
                 autoComplete="off"
               />
@@ -156,7 +157,7 @@ export default function LoginPage() {
                 id="login-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="deepseek-chat"
+                placeholder="deepseek-flash"
                 className="font-mono"
                 autoComplete="off"
               />

@@ -126,3 +126,28 @@ def test_release_within_10s_gauge(monkeypatch):
     elapsed = time.monotonic() - t0
     assert guard.in_flight == 0
     assert elapsed < 10
+
+
+def test_load_simulation_task_missing_returns_none():
+    import api.state as state
+
+    assert state.load_simulation_task("not-a-task") is None
+
+
+def test_load_simulation_task_reads_memory():
+    import api.state as state
+
+    task_id = "sim_load_roundtrip"
+    state.simulation_tasks[task_id] = {
+        "status": "pending",
+        "message": "task created",
+        "current_stage": None,
+        "result": None,
+    }
+    try:
+        loaded = state.load_simulation_task(task_id)
+        assert loaded is not None
+        assert loaded["status"] == "pending"
+        assert loaded["message"] == "task created"
+    finally:
+        state.simulation_tasks.pop(task_id, None)

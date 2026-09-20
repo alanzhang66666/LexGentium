@@ -91,7 +91,7 @@ def test_stream_idempotent_replay_no_second_llm(monkeypatch):
         calls["n"] += 1
         return original(**kw)
 
-    state.run_agent_turn = counting
+    monkeypatch.setattr(state, "run_agent_turn", counting)
     op_id = f"op-{uuid.uuid4().hex[:12]}"
 
     first = client.post("/conversation/s-sse/message/stream",
@@ -131,7 +131,7 @@ def test_worker_error_emits_single_error_terminal(monkeypatch):
     def boom(**kw):
         raise RuntimeError("llm down")
 
-    state.run_agent_turn = boom
+    monkeypatch.setattr(state, "run_agent_turn", boom)
     res = client.post("/conversation/s-sse/message/stream", json={"message": "x"})
     assert res.status_code == 200
     frames = _parse_stream(res.text)

@@ -3,7 +3,7 @@ evaluation:
   api:
     base_url: "https://api.deepseek.com"
     api_key: "${EVAL_API_KEY}"
-    model: "deepseek-chat"
+    model: "deepseek-flash"
 
   # 基础路径配置
   paths:

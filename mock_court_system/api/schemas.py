@@ -226,6 +226,7 @@ class FullSimulationRequest(BaseModel):
     mode: str = "single"
     tournament_rounds: int = 3
     operation_id: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class FullSimulationStatusResponse(BaseModel):
@@ -241,13 +242,38 @@ class LLMConfigRequest(BaseModel):
     api_key: str
     base_url: str
     model: str
+    thinking: Literal["enabled", "disabled"] = "enabled"
+    reasoning_effort: Literal["low", "high", "max"] = "high"
+    fast_thinking: Literal["enabled", "disabled"] = "disabled"
+    fast_reasoning_effort: Literal["low", "high", "max"] = "low"
     temperature: float = 0.1
     max_tokens: int = 4096
     timeout: int = 60
 
 
+class DeepSeekChatMessage(BaseModel):
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str
+
+
+class DeepSeekChatCompletionRequest(BaseModel):
+    """DeepSeek/OpenAI-compatible Chat Completions demo contract."""
+
+    model_config = ConfigDict(extra="allow")
+
+    model: Literal["deepseek-flash"] = "deepseek-flash"
+    messages: List[DeepSeekChatMessage]
+    stream: bool = False
+    stream_options: Optional[Dict[str, Any]] = None
+    max_tokens: Optional[int] = Field(default=None, ge=1)
+    thinking: Optional[Dict[str, Literal["enabled", "disabled"]]] = None
+    reasoning_effort: Optional[Literal["low", "high", "max"]] = None
+    response_format: Optional[Dict[str, str]] = None
+
+
 class GameCreateRequest(BaseModel):
     case_info: Dict[str, Any]
+    session_id: Optional[str] = None
     plaintiff_strategy: str = "compromising"
     defendant_strategy: str = "compromising"
     max_rounds: int = 5

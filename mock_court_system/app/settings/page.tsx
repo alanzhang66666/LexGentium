@@ -44,6 +44,7 @@ interface CurrentConfig {
   max_tokens: number
   timeout: number
   chat_model_ready: boolean
+  demo_mode: boolean
 }
 
 export default function SettingsPage() {
@@ -80,6 +81,7 @@ export default function SettingsPage() {
         setProvider(data.provider || "custom")
         setBaseUrl(data.base_url || "")
         setModel(data.model || "")
+        setApiKey(data.demo_mode ? "sk-demo-deepseek-v41-flash" : "")
         setTemperature(String(data.temperature ?? 0.1))
         setMaxTokens(String(data.max_tokens ?? 4096))
         setTimeout_(String(data.timeout ?? 60))
@@ -268,11 +270,11 @@ export default function SettingsPage() {
                 <Input
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://api.deepseek.com/v1"
+                  placeholder="https://api.deepseek.com"
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  API 调用地址，须包含 <code>/v1</code>，兼容 OpenAI Chat Completions 接口
+                  DeepSeek 官方地址使用 <code>https://api.deepseek.com</code>，兼容 OpenAI Chat Completions 接口
                 </p>
               </div>
 
@@ -309,7 +311,7 @@ export default function SettingsPage() {
                 <Input
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="deepseek-chat / gpt-4o / ..."
+                  placeholder="deepseek-flash / gpt-4o / ..."
                   className="font-mono text-sm"
                 />
               </div>

@@ -63,8 +63,8 @@ test("full-case journey: task accepted, terminal or pollable; bad input rejected
   const res = await request.post("/api/case/full-simulation", {
     data: { case_id: "E2E-FULL", case_info: { case_id: "E2E-FULL" } },
   })
-  expect(res.ok()).toBeTruthy()
-  const body = await res.json()
+  const body = await res.json().catch(() => ({}))
+  expect(res.ok(), `status=${res.status()} body=${JSON.stringify(body)}`).toBeTruthy()
   const taskId = body.task_id || body.operation_id
   expect(taskId).toBeTruthy()
 

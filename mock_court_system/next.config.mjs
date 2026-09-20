@@ -3,6 +3,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  allowedDevOrigins: ["127.0.0.1"],
   transpilePackages: ["three", "@react-three/fiber", "@react-three/drei", "@pixiv/three-vrm"],
   async redirects() {
     return [

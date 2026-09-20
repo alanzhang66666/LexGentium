@@ -22,6 +22,9 @@ from typing import Iterator as _Iterator
 
 CACHEABLE_PURPOSES = frozenset({"clerk", "extract", "score"})
 DEGRADED_JSON_KEY = "_degraded"
+DEEPSEEK_FLASH_ALIASES = frozenset(
+    {"deepseek-chat", "deepseek-reasoner", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"}
+)
 
 
 def degraded_json(reason: str = "llm_unavailable") -> Dict[str, Any]:
@@ -137,25 +140,50 @@ class LLMClient:
         provider: str = "deepseek",
         fast_model: Optional[str] = None,
         fast_max_tokens: int = 512,
+        thinking: str = "enabled",
+        reasoning_effort: str = "high",
+        fast_thinking: str = "disabled",
+        fast_reasoning_effort: str = "low",
+        demo_mode: bool = False,
         cache_path: Optional[str] = None,
     ):
         self.api_key = api_key
-        self.model = model or "deepseek-chat"
-        self.fast_model = fast_model or self.model
-        self.base_url = base_url or "https://api.deepseek.com/v1"
+        self.demo_mode = bool(demo_mode)
+        self.provider = (provider or "deepseek").strip().lower()
+        requested_model = (model or "deepseek-flash").strip()
+        self.model = (
+            "deepseek-flash"
+            if self.provider == "deepseek" and requested_model in DEEPSEEK_FLASH_ALIASES
+            else requested_model
+        )
+        requested_fast_model = (fast_model or self.model).strip()
+        self.fast_model = (
+            "deepseek-flash"
+            if self.provider == "deepseek" and requested_fast_model in DEEPSEEK_FLASH_ALIASES
+            else requested_fast_model
+        )
+        self.base_url = base_url or "https://api.deepseek.com"
         
         # 确保 base_url 包含协议头
         if self.base_url:
             self.base_url = self.base_url.strip()
             if not self.base_url.startswith("http://") and not self.base_url.startswith("https://"):
                 self.base_url = f"https://{self.base_url}"
+            self.base_url = self.base_url.rstrip("/")
             
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
         self.fast_max_tokens = max(64, int(fast_max_tokens or 512))
-        self.provider = provider
-        self.mock_mode = False
+        self.thinking = thinking if thinking in {"enabled", "disabled"} else "enabled"
+        self.reasoning_effort = reasoning_effort if reasoning_effort in {"low", "high", "max"} else "high"
+        self.fast_thinking = fast_thinking if fast_thinking in {"enabled", "disabled"} else "disabled"
+        self.fast_reasoning_effort = (
+            fast_reasoning_effort if fast_reasoning_effort in {"low", "high", "max"} else "low"
+        )
+        # Demo mode is an explicit no-network provider. It keeps the public
+        # DeepSeek contract while serving the already-prepared local content.
+        self.mock_mode = self.demo_mode
         self._mock_map = {}
         self.mock_delay_s = 0.0
         # 线程局部流式钩子：请求级隔离（每个请求跑在独立线程），并发互不串流
@@ -173,23 +201,35 @@ class LLMClient:
 
         # 初始化 LangChain ChatModel
         self.chat_model: Optional[BaseChatModel] = None
-        if api_key and base_url:
+        if api_key and base_url and not self.demo_mode:
             # 确保 base_url 包含协议头
             base_url = base_url.strip()
             if not base_url.startswith("http://") and not base_url.startswith("https://"):
                 base_url = f"https://{base_url}"
+            base_url = base_url.rstrip("/")
             
             try:
-                _inner = ChatOpenAI(
-                    api_key=api_key,
-                    base_url=base_url,
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    timeout=timeout,
+                chat_kwargs: Dict[str, Any] = {
+                    "api_key": api_key,
+                    "base_url": base_url,
+                    "model": self.model,
+                    "max_tokens": max_tokens,
+                    "timeout": timeout,
                     # LangChain 层重试降为 2：外层 tenacity(5 次) 已兜底，
                     # 两层叠加时一次网络抖动最坏 25 连击（25×2-10s 退避）
-                    max_retries=2,
+                    "max_retries": 2,
+                }
+                if self.provider == "deepseek":
+                    chat_kwargs.update({
+                        "temperature": None if self.thinking == "enabled" else temperature,
+                        "extra_body": {"thinking": {"type": self.thinking}},
+                    })
+                    if self.thinking == "enabled":
+                        chat_kwargs["reasoning_effort"] = self.reasoning_effort
+                else:
+                    chat_kwargs["temperature"] = temperature
+                _inner = ChatOpenAI(
+                    **chat_kwargs,
                 )
                 self.chat_model = _HookableChatModel(inner=_inner, stream_local=self._stream_local)
             except Exception as e:
@@ -210,6 +250,11 @@ class LLMClient:
             provider=config.get("provider", "deepseek"),
             fast_model=config.get("fast_model") or None,
             fast_max_tokens=int(config.get("fast_max_tokens") or 512),
+            thinking=config.get("thinking", "enabled"),
+            reasoning_effort=config.get("reasoning_effort", "high"),
+            fast_thinking=config.get("fast_thinking", "disabled"),
+            fast_reasoning_effort=config.get("fast_reasoning_effort", "low"),
+            demo_mode=bool(config.get("demo_mode", False)),
         )
 
     def _init_cache(self) -> None:
@@ -229,6 +274,34 @@ class LLMClient:
         if tier == "fast":
             return self.fast_model or self.model
         return self.model
+
+    def provider_request_options(
+        self,
+        *,
+        tier: str,
+        temperature: Optional[float],
+        stream: bool = False,
+    ) -> Dict[str, Any]:
+        """Provider-specific Chat Completions fields.
+
+        DeepSeek V4.1 Flash uses the canonical ``deepseek-flash`` model id.
+        Strong calls explicitly enable thinking; fast clerk/extract/score calls
+        explicitly disable it so their 512-token budget is reserved for JSON.
+        """
+        resolved_temperature = self.temperature if temperature is None else temperature
+        if self.provider != "deepseek":
+            return {"temperature": resolved_temperature}
+
+        thinking = self.fast_thinking if tier == "fast" else self.thinking
+        effort = self.fast_reasoning_effort if tier == "fast" else self.reasoning_effort
+        options: Dict[str, Any] = {"thinking": {"type": thinking}}
+        if thinking == "enabled":
+            options["reasoning_effort"] = effort
+        else:
+            options["temperature"] = resolved_temperature
+        if stream:
+            options["stream_options"] = {"include_usage": True}
+        return options
 
     def reset_metrics(self) -> None:
         with self._metrics_lock:
@@ -318,6 +391,11 @@ class LLMClient:
                 "max_tokens": self.max_tokens,
                 "fast_max_tokens": self.fast_max_tokens,
                 "provider": self.provider,
+                "thinking": self.thinking,
+                "reasoning_effort": self.reasoning_effort,
+                "fast_thinking": self.fast_thinking,
+                "fast_reasoning_effort": self.fast_reasoning_effort,
+                "demo_mode": self.demo_mode,
             },
             sort_keys=True,
         )
@@ -405,17 +483,29 @@ class LLMClient:
             return min(self.max_tokens, self.fast_max_tokens)
         return self.max_tokens
 
-    def _chat_model_for(self, temperature: Optional[float] = None):
-        """按调用绑定温度，不改写共享 chat_model。"""
+    def _chat_model_for(self, temperature: Optional[float] = None, tier: str = "strong"):
+        """按调用绑定模型与 DeepSeek 思考参数，不改写共享 chat_model。"""
         model = self.chat_model
-        if model is None or temperature is None:
+        if model is None:
             return model
         inner = getattr(model, "inner", None)
         target = inner if inner is not None else model
         if not hasattr(target, "bind"):
             return model
         try:
-            bound = target.bind(temperature=temperature)
+            bind_kwargs: Dict[str, Any] = {"model": self.model_for_tier(tier)}
+            if self.provider == "deepseek":
+                options = self.provider_request_options(
+                    tier=tier,
+                    temperature=temperature,
+                    stream=False,
+                )
+                thinking = options.pop("thinking")
+                bind_kwargs["extra_body"] = {"thinking": thinking}
+                bind_kwargs.update(options)
+            elif temperature is not None:
+                bind_kwargs["temperature"] = temperature
+            bound = target.bind(**bind_kwargs)
             if inner is not None:
                 return type(model)(inner=bound, stream_local=model.stream_local)
             return bound
@@ -467,11 +557,11 @@ class LLMClient:
         if text is None:
             hook = getattr(self._stream_local, "hook", None)
             if hook is not None:
-                text = self._chat_with_stream_hook(messages, temperature, hook)
+                text = self._chat_with_stream_hook(messages, temperature, hook, tier=tier)
             elif self.chat_model:
-                text = self._chat_with_langchain(messages, temperature)
+                text = self._chat_with_langchain(messages, temperature, tier=tier)
             else:
-                text = self._chat_with_api(messages, temperature)
+                text = self._chat_with_api(messages, temperature, tier=tier)
             if self._maybe_cache(purpose, temperature) and text:
                 self._cache_set(
                     self._cache_key(model_name, messages, temperature or self.temperature, purpose, context),
@@ -504,10 +594,10 @@ class LLMClient:
     def clear_stream_hook(self) -> None:
         self._stream_local.hook = None
 
-    def _chat_with_stream_hook(self, messages, temperature, hook) -> str:
+    def _chat_with_stream_hook(self, messages, temperature, hook, tier: str = "strong") -> str:
         chunks: List[str] = []
         try:
-            for delta in self.chat_completion_stream(messages, temperature):
+            for delta in self.chat_completion_stream(messages, temperature, tier=tier):
                 chunks.append(delta)
                 try:
                     hook(delta)
@@ -520,7 +610,12 @@ class LLMClient:
             raise
         return "".join(chunks)
 
-    def chat_completion_stream(self, messages: List[Dict[str, str]], temperature: Optional[float] = None):
+    def chat_completion_stream(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: Optional[float] = None,
+        tier: str = "strong",
+    ):
         """流式生成：yield 增量文本片段。离线兜底时整段 yield 一次。"""
         if self.chat_model:
             lc_messages = []
@@ -533,7 +628,7 @@ class LLMClient:
                     lc_messages.append(AIMessage(content=content))
                 else:
                     lc_messages.append(HumanMessage(content=content))
-            model = self._chat_model_for(temperature)
+            model = self._chat_model_for(temperature, tier=tier)
             for chunk in model.stream(lc_messages):
                 piece = getattr(chunk, "content", "") or ""
                 if piece:
@@ -541,17 +636,17 @@ class LLMClient:
             return
 
         # 直接 API 路径（requests SSE）
-        if not self.api_key:
+        if self.demo_mode or not self.api_key:
             yield self._offline_reply(messages)
             return
         url = f"{self.base_url}/chat/completions"
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         payload = {
-            "model": self.model,
+            "model": self.model_for_tier(tier),
             "messages": messages,
-            "temperature": temperature or self.temperature,
-            "max_tokens": self.max_tokens,
+            "max_tokens": self.max_tokens_for("chat" if tier != "fast" else "clerk"),
             "stream": True,
+            **self.provider_request_options(tier=tier, temperature=temperature, stream=True),
         }
         resp = requests.post(url, headers=headers, json=payload, stream=True, timeout=self.timeout)
         resp.raise_for_status()
@@ -754,8 +849,8 @@ class LLMClient:
         payload = {
             "model": model_name,
             "messages": messages,
-            "temperature": temperature or self.temperature,
             "response_format": {"type": "json_object"},
+            **self.provider_request_options(tier=tier, temperature=temperature),
             **kwargs,
         }
 
@@ -835,7 +930,8 @@ class LLMClient:
     def _chat_with_langchain(
         self,
         messages: List[Dict[str, str]],
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
+        tier: str = "strong",
     ) -> str:
         """使用 LangChain 进行对话"""
         try:
@@ -851,20 +947,21 @@ class LLMClient:
                 else:
                     lc_messages.append(HumanMessage(content=content))
 
-            model = self._chat_model_for(temperature)
+            model = self._chat_model_for(temperature, tier=tier)
             response = model.invoke(lc_messages)
             return response.content
         except Exception as e:
             print(f"[WARN] LangChain 调用失败: {e}，回退到 API 调用")
-            return self._chat_with_api(messages, temperature)
+            return self._chat_with_api(messages, temperature, tier=tier)
 
     def _chat_with_api(
         self,
         messages: List[Dict[str, str]],
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
+        tier: str = "strong",
     ) -> str:
         """直接使用 API 进行对话"""
-        if not self.api_key:
+        if self.demo_mode or not self.api_key:
             # 离线兜底：生成“可收敛”的短模板，避免全流程在无密钥场景下卡在对话循环。
             # 注意：这里只是用于本地演示/录屏/无网环境，不影响有密钥的正常调用。
             last = messages[-1].get("content", "") if messages else ""
@@ -914,10 +1011,10 @@ class LLMClient:
         }
 
         payload = {
-            "model": self.model,
+            "model": self.model_for_tier(tier),
             "messages": messages,
-            "temperature": temperature or self.temperature,
-            "max_tokens": self.max_tokens,
+            "max_tokens": self.fast_max_tokens if tier == "fast" else self.max_tokens,
+            **self.provider_request_options(tier=tier, temperature=temperature),
         }
 
         try:

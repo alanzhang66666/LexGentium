@@ -11,11 +11,34 @@ export interface ConversationPayload {
   reasoning_meta?: Record<string, unknown> | null
 }
 
-function actorForRole(role: string): string {
-  const value = role.toLowerCase()
-  if (value.includes("judge") || value.includes("法官") || value.includes("审判长")) return "judge"
-  if (value.includes("client") || value.includes("plaintiff") || value.includes("原告")) return "plaintiff_counsel"
-  if (value.includes("defendant") || value.includes("被告")) return "defendant_counsel"
+const includesAny = (value: string, candidates: string[]) => candidates.some((candidate) => value.includes(candidate))
+
+/** Map backend/legacy role names to stable HearingEvent 1.1 actor IDs. */
+export function actorForRole(role: string): string {
+  const value = role.trim().toLowerCase().replace(/[_-]+/g, " ")
+
+  if (includesAny(value, ["venue security", "security officer", "会务安保", "安保"])) return "judicial_police"
+  if (includesAny(value, ["tribunal secretary", "hearing secretary", "仲裁庭秘书", "记录员", "速记员", "clerk", "书记员"])) return "clerk"
+  if (includesAny(value, ["co arbitrator 2", "second co arbitrator", "第二仲裁员"])) return "people_juror"
+  if (includesAny(value, ["co arbitrator", "共同仲裁员", "第一仲裁员"])) return "associate_judge"
+  if (includesAny(value, ["presiding arbitrator", "arbitrator", "tribunal", "judge", "首席仲裁员", "仲裁员", "仲裁庭", "法官", "审判长"])) return "judge"
+  if (includesAny(value, ["interpreter", "口译", "翻译"])) return "interpreter"
+  if (includesAny(value, ["expert witness", "expert", "专家证人", "专家"])) return "technical_expert_witness"
+  if (includesAny(value, ["witness", "事实证人", "证人"])) return "fact_witness"
+
+  const respondent = includesAny(value, ["respondent", "defendant", "被申请人", "被申请方", "被告"])
+  if (respondent) {
+    if (includesAny(value, ["representative", "company", "party", "代表", "当事人"])) return "defendant_party"
+    return "defendant_counsel"
+  }
+
+  const claimant = includesAny(value, ["claimant", "applicant", "petitioner", "client", "plaintiff", "申请人", "申请方", "原告"])
+  if (claimant) {
+    if (includesAny(value, ["co counsel", "second counsel", "共同代理", "第二代理"])) return "prosecutor"
+    if (includesAny(value, ["representative", "company", "party", "代表", "当事人"])) return "china_company_rep"
+    return "plaintiff_counsel"
+  }
+
   return "clerk"
 }
 

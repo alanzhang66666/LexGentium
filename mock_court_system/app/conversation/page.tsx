@@ -22,6 +22,22 @@ function packKey(pack: Pick<PackSummary, "dataset_id" | "cluster_id" | "pack_ver
 }
 
 const TKI_KEYS = Object.keys(STRATEGY_LABELS)
+const YINGFAN_CLUSTER_ID = "enf-us-yingfan-amazon-001"
+const SAMPLE_ENFORCEMENT_CLUSTER_ID = "enf-cn-notice-001"
+
+function preferHearingPack(rows: PackSummary[]): PackSummary | undefined {
+  return (
+    rows.find((row) => row.dataset_id === "enforcement" && row.cluster_id === YINGFAN_CLUSTER_ID) ||
+    rows.find((row) => row.dataset_id === "enforcement" && row.cluster_id === SAMPLE_ENFORCEMENT_CLUSTER_ID) ||
+    rows[0]
+  )
+}
+
+function rankHearingPack(pack: PackSummary): number {
+  if (pack.dataset_id === "enforcement" && pack.cluster_id === YINGFAN_CLUSTER_ID) return 0
+  if (pack.dataset_id === "enforcement" && pack.cluster_id === SAMPLE_ENFORCEMENT_CLUSTER_ID) return 1
+  return 2
+}
 
 export default function ConversationListPage() {
   const router = useRouter()
@@ -61,11 +77,11 @@ export default function ConversationListPage() {
   useEffect(() => {
     listResearchPacks()
       .then((data) => {
-        const rows = (data.packs || []) as PackSummary[]
+        const rows = [...((data.packs || []) as PackSummary[])].sort(
+          (left, right) => rankHearingPack(left) - rankHearingPack(right),
+        )
         setPacks(rows)
-        const preferred =
-          rows.find((row) => row.dataset_id === "enforcement" && row.cluster_id === "enf-cn-notice-001") ||
-          rows[0]
+        const preferred = preferHearingPack(rows)
         if (preferred) {
           setSelectedPackKey((current) => current || packKey(preferred))
         }

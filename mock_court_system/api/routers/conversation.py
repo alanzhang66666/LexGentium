@@ -589,7 +589,7 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                         yield frame
                     return
                 else:  # done
-                    role, text, finished, session_ci = payload
+                    role, text, finished, ci_agent = payload
                     if handle.token.cancelled:
                         frame = coordinator.emit_domain(handle, "cancelled", {"reason": "client_disconnect"})
                         if frame:
@@ -612,9 +612,9 @@ async def stream_message(session_id: str, req: ConversationMessageRequest):
                         "is_finished": finished,
                         "degraded": degraded,
                         "reasoning_meta": ({
-                            "judgment_status": getattr(session_ci, "judgment_status", "failed"),
-                            "citation_report": getattr(session_ci, "citation_report", None),
-                            "case_warnings": list(getattr(session_ci, "case_warnings", [])),
+                            "judgment_status": getattr(ci_agent, "judgment_status", "failed"),
+                            "citation_report": getattr(ci_agent, "citation_report", None),
+                            "case_warnings": list(getattr(ci_agent, "case_warnings", [])),
                         } if scenario == "CI" else None),
                     }
                     fingerprint = canonical_digest(dialog_history)

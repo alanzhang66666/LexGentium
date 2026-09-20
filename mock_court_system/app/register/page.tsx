@@ -124,7 +124,7 @@ export default function RegisterPage() {
                 id="register-base-url"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.deepseek.com/v1"
+                placeholder="https://api.deepseek.com"
                 className="font-mono"
                 autoComplete="off"
               />
@@ -136,7 +136,7 @@ export default function RegisterPage() {
                 id="register-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="deepseek-chat"
+                placeholder="deepseek-flash"
                 className="font-mono"
                 autoComplete="off"
               />

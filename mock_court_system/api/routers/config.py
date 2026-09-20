@@ -2,7 +2,9 @@
 from typing import Optional, Dict, Any, List
 import asyncio
 import json
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+import time
+import uuid
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from api import state
@@ -16,6 +18,7 @@ from api.schemas import (
     GameCounterfactualRequest, GameCreateRequest, GameEvaluateRequest,
     GameRoundRequest, GameStrategySetRequest, LawSearchRequest,
     LawSearchResponse, LiabilityCounterfactualRequest, LLMConfigRequest,
+    DeepSeekChatCompletionRequest,
     MediationBargainRequest, MediationCreateRequest, MediationStatementRequest,
     MultiJudgeRequest, ProgressiveRAGRequest,
 )
@@ -24,16 +27,22 @@ router = APIRouter()
 
 @router.get("/config/llm")
 async def get_llm_config():
+    demo_mode = bool(getattr(state.llm_client, "demo_mode", False))
     return {
         "provider": state.llm_client.provider,
-        "api_key_masked": state._mask_key(state.llm_client.api_key or ""),
-        "api_key_set": bool(state.llm_client.api_key),
+        "api_key_masked": "demo-****" if demo_mode else state._mask_key(state.llm_client.api_key or ""),
+        "api_key_set": demo_mode or bool(state.llm_client.api_key),
         "base_url": state.llm_client.base_url,
         "model": state.llm_client.model,
+        "thinking": state.llm_client.thinking,
+        "reasoning_effort": state.llm_client.reasoning_effort,
+        "fast_thinking": state.llm_client.fast_thinking,
+        "fast_reasoning_effort": state.llm_client.fast_reasoning_effort,
         "temperature": state.llm_client.temperature,
         "max_tokens": state.llm_client.max_tokens,
         "timeout": state.llm_client.timeout,
-        "chat_model_ready": state.llm_client.chat_model is not None,
+        "chat_model_ready": demo_mode or state.llm_client.chat_model is not None,
+        "demo_mode": demo_mode,
     }
 
 
@@ -48,6 +57,11 @@ async def update_llm_config(req: LLMConfigRequest):
             max_tokens=req.max_tokens,
             timeout=req.timeout,
             provider=req.provider,
+            thinking=req.thinking,
+            reasoning_effort=req.reasoning_effort,
+            fast_thinking=req.fast_thinking,
+            fast_reasoning_effort=req.fast_reasoning_effort,
+            demo_mode=bool(getattr(state.llm_client, "demo_mode", False)),
         )
         state._reinit_llm_and_agents(new_llm)
         state._persist_llm_env(req)
@@ -55,7 +69,7 @@ async def update_llm_config(req: LLMConfigRequest):
         return {
             "success": True,
             "message": "LLM 配置已更新并持久化，所有 Agent 已重新初始化",
-            "chat_model_ready": new_llm.chat_model is not None,
+            "chat_model_ready": new_llm.demo_mode or new_llm.chat_model is not None,
             "base_url": new_llm.base_url,
             "model": new_llm.model,
         }
@@ -67,6 +81,14 @@ async def update_llm_config(req: LLMConfigRequest):
 @router.post("/config/llm/test")
 async def test_llm_config(req: LLMConfigRequest):
     try:
+        if bool(getattr(state.llm_client, "demo_mode", False)):
+            return {
+                "success": True,
+                "message": "DeepSeek V4.1 Flash 演示接口连接成功",
+                "reply": "connection successful (simulated; preset content active)",
+                "simulated": True,
+                "model": "deepseek-flash",
+            }
         test_llm = state.LLMClient(
             api_key=req.api_key,
             base_url=req.base_url,
@@ -75,6 +97,10 @@ async def test_llm_config(req: LLMConfigRequest):
             max_tokens=req.max_tokens,
             timeout=min(req.timeout, 30),
             provider=req.provider,
+            thinking=req.thinking,
+            reasoning_effort=req.reasoning_effort,
+            fast_thinking=req.fast_thinking,
+            fast_reasoning_effort=req.fast_reasoning_effort,
         )
         reply = await asyncio.to_thread(
             test_llm.chat_completion,
@@ -103,6 +129,99 @@ async def test_llm_config(req: LLMConfigRequest):
         }
 
 
+def _deepseek_demo_text(messages: List[Dict[str, str]]) -> str:
+    last_content = messages[-1].get("content", "") if messages else ""
+    if "connection successful" in last_content.lower():
+        return "connection successful"
+    return "[DeepSeek V4.1 Flash 演示响应] 预制案例内容已加载，可继续比赛流程。"
+
+
+@router.post("/mock/deepseek/chat/completions")
+async def mock_deepseek_chat_completions(
+    req: DeepSeekChatCompletionRequest,
+    authorization: Optional[str] = Header(default=None),
+):
+    """Local, no-network DeepSeek Chat Completions-compatible demo endpoint."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication Fails (simulated)")
+
+    created = int(time.time())
+    completion_id = f"chatcmpl-demo-{uuid.uuid4().hex[:20]}"
+    messages = [message.model_dump() for message in req.messages]
+    content = _deepseek_demo_text(messages)
+    prompt_tokens = max(1, sum(len(message.get("content", "")) for message in messages) // 4)
+    completion_tokens = max(1, len(content) // 4)
+
+    if req.stream:
+        include_usage = bool((req.stream_options or {}).get("include_usage"))
+
+        def event_stream():
+            chunks = [
+                {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": req.model,
+                    "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": None}],
+                },
+                {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": req.model,
+                    "choices": [{"index": 0, "delta": {"content": content}, "finish_reason": None}],
+                },
+                {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": req.model,
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+                },
+            ]
+            for chunk in chunks:
+                yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+            if include_usage:
+                usage_chunk = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": req.model,
+                    "choices": [],
+                    "usage": {
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": prompt_tokens + completion_tokens,
+                    },
+                }
+                yield f"data: {json.dumps(usage_chunk, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    return {
+        "id": completion_id,
+        "object": "chat.completion",
+        "created": created,
+        "model": req.model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": content,
+                    "reasoning_content": "" if (req.thinking or {}).get("type") == "enabled" else None,
+                },
+                "logprobs": None,
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        },
+    }
 @router.get("/reference/dispute-causes")
 async def get_dispute_causes_taxonomy():
     return {"taxonomy": state.DISPUTE_CAUSES_TAXONOMY}

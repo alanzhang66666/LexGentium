@@ -269,7 +269,10 @@ def _seed_session(conv, session_id="sess-prov", input_json=None):
         case_id="CD-Test",
         input_json=input_json or {},
     )
-    record.dialog_history = [{"turn": 0, "role": "Client", "message": "起诉借款纠纷"}]
+    record.dialog_history = [
+        {"turn": 0, "role": "Client", "message": "起诉借款纠纷"},
+        {"turn": 1, "role": "Final", "message": "已确认文书"},
+    ]
     conv.save(record)
     return record
 

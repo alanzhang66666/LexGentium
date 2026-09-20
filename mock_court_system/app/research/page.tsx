@@ -13,6 +13,16 @@ import type { DatasetId, PackSummary } from "@/lib/research"
 
 type ListedPack = PackSummary & { overlay_count?: number; classification?: string }
 
+const YINGFAN_CLUSTER_ID = "enf-us-yingfan-amazon-001"
+
+function isTechnicalFixturePack(pack: ListedPack): boolean {
+  return pack.classification === "technical_fixture" && pack.cluster_id !== YINGFAN_CLUSTER_ID
+}
+
+function isCandidatePack(pack: ListedPack): boolean {
+  return pack.cluster_id === YINGFAN_CLUSTER_ID || pack.classification === "candidate" || !pack.classification
+}
+
 export default function ResearchPackListPage() {
   const [packs, setPacks] = useState<ListedPack[]>([])
   const [inventory, setInventory] = useState<ResearchInventory | null>(null)
@@ -88,12 +98,19 @@ export default function ResearchPackListPage() {
                           </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
-                          {pack.classification === "technical_fixture" ? (
+                          {isTechnicalFixturePack(pack) ? (
                             <span className="rounded border border-muted-foreground/30 px-1.5 py-0.5 text-[11px] text-muted-foreground">
                               技术夹具
                             </span>
+                          ) : isCandidatePack(pack) ? (
+                            <span className="rounded border border-amber-500/30 px-1.5 py-0.5 text-[11px] text-amber-800 dark:text-amber-200">
+                              待复核
+                            </span>
                           ) : null}
-                          <ReviewBadge state={pack.review_state} />
+                          {isTechnicalFixturePack(pack) ||
+                          (pack.review_state && pack.review_state !== "pending") ? (
+                            <ReviewBadge state={pack.review_state} />
+                          ) : null}
                         </div>
                       </div>
                     </CardHeader>

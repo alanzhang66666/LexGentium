@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { conversationToHearingEvents } from "./backend-event-adapter"
+import { actorForRole, conversationToHearingEvents } from "./backend-event-adapter"
 
 describe("conversation backend event adapter", () => {
   it("maps conversation history into ordered backend_run events", () => {
@@ -31,5 +31,22 @@ describe("conversation backend event adapter", () => {
       session_id: "s2", scenario: "CI", case_id: "case-2", is_finished: true,
     }).slice(-1)
     expect(finished.payload.note).toContain("不自动等同于法律裁决")
+  })
+
+  it("maps current international-arbitration role aliases to the cast", () => {
+    const aliases = [
+      ["Presiding Arbitrator", "judge"],
+      ["Co-Arbitrator", "associate_judge"],
+      ["Second Co-Arbitrator", "people_juror"],
+      ["Tribunal Secretary", "clerk"],
+      ["Claimant Co-Counsel", "prosecutor"],
+      ["申请人代表", "china_company_rep"],
+      ["被申请人代表", "defendant_party"],
+      ["Expert Witness", "technical_expert_witness"],
+      ["Fact Witness", "fact_witness"],
+      ["Venue Security", "judicial_police"],
+    ] as const
+
+    for (const [role, actorId] of aliases) expect(actorForRole(role)).toBe(actorId)
   })
 })

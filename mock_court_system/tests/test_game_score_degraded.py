@@ -141,9 +141,15 @@ def test_http_round_returns_degraded_and_restores_snapshot(tmp_path, monkeypatch
     assert response.status_code == 200, response.text
     if stream:
         assert "event: error" not in response.text
-        assert "event: round_complete" in response.text
         payloads = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")]
-        completion = next(item for item in payloads if "rounds_completed" in item)
+
+        def _domain(item: dict) -> dict:
+            payload = item.get("payload")
+            return payload if isinstance(payload, dict) else item
+
+        domains = [_domain(item) for item in payloads]
+        assert any(item.get("event") == "round_complete" for item in domains)
+        completion = next(item for item in domains if "rounds_completed" in item)
     else:
         completion = response.json()
     assert completion["degraded"] is True

@@ -41,6 +41,11 @@ def create_llm_client(settings: Any) -> LLMClient:
         provider=settings.llm.provider,
         fast_model=getattr(settings.llm, "fast_model", None) or None,
         fast_max_tokens=getattr(settings.llm, "fast_max_tokens", 512) or 512,
+        thinking=getattr(settings.llm, "thinking", "enabled") or "enabled",
+        reasoning_effort=getattr(settings.llm, "reasoning_effort", "high") or "high",
+        fast_thinking=getattr(settings.llm, "fast_thinking", "disabled") or "disabled",
+        fast_reasoning_effort=getattr(settings.llm, "fast_reasoning_effort", "low") or "low",
+        demo_mode=bool(getattr(settings.llm, "demo_mode", False)),
     )
 
 
