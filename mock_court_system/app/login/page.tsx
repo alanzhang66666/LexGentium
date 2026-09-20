@@ -15,7 +15,10 @@ import {
   type CurrentLlmConfig,
   type LlmConfigPayload,
 } from "@/lib/api/config"
+import { listConversations } from "@/lib/api/conversation"
+import { resolveDemoOpeningPath } from "@/lib/demo-entry"
 import { markUnlocked } from "@/lib/session/unlock"
+import { writeLastSessionId } from "@/lib/session/last-session"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -72,7 +75,18 @@ export default function LoginPage() {
         return
       }
       markUnlocked()
-      router.push("/conversation")
+      let entryPath = "/conversation"
+      if (current?.demo_mode) {
+        try {
+          const conversations = await listConversations(50, 0)
+          entryPath = resolveDemoOpeningPath(conversations.sessions || [])
+          const matched = entryPath.match(/^\/conversation\/([^?]+)/)
+          if (matched?.[1]) writeLastSessionId(decodeURIComponent(matched[1]))
+        } catch {
+          // 演示会话不可用时仍进入开庭工作台，不阻断登录。
+        }
+      }
+      router.replace(entryPath)
     } catch (err) {
       setError(err)
     } finally {

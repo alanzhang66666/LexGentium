@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -37,6 +37,7 @@ import type {
 
 function ConversationSessionInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { sessionId, info, refresh } = useSession()
 
   const [messages, setMessages] = useState<DialogEntry[]>([])
@@ -59,6 +60,7 @@ function ConversationSessionInner() {
   const [claimBusy, setClaimBusy] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendAbortRef = useRef<AbortController | null>(null)
+  const openingScrollPreservedRef = useRef(false)
   // 同一条消息的重试复用同一 Operation ID（服务端幂等回放）
   const sendOpIdRef = useRef<string | null>(null)
 
@@ -71,8 +73,17 @@ function ConversationSessionInner() {
   }, [sessionId])
 
   useEffect(() => {
+    if (
+      searchParams.get("view") === "opening" &&
+      messages.length > 0 &&
+      !streamingText &&
+      !openingScrollPreservedRef.current
+    ) {
+      openingScrollPreservedRef.current = true
+      return
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, streamingText])
+  }, [messages, searchParams, streamingText])
 
   useEffect(() => {
     if (!scenario) return
