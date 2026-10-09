@@ -1,8 +1,8 @@
 # LexGentium 1.0 CODEMAP
 
-盘点截止 **2026-09-15**。B–F 已搬家。本页是现役分层地图，不是施工前标签稿。
+盘点截止 **2026-10-09**。B–F 已搬家。本页是现役分层地图，不是施工前标签稿。
 
-观庭产品入口是 `/hearing-3d`（LIVE Phase A，程序化占位）。旧 `/court3d` `/court3d/[id]` `/court3d/replay` **重定向**到这里。胶囊渲染、导播、TTS、conversation/full/replay 适配器已删。留下 `labels` / `parseSse` / `gameStream`。没有独立 3D FastAPI。
+观庭产品入口是 `/hearing-3d`（LIVE Phase A，供应商 OBJ + PBR，程序化人物 fallback，非正式 VRM）。旧 `/court3d` `/court3d/[id]` `/court3d/replay` **重定向**到这里。胶囊渲染、导播、TTS、conversation/full/replay 适配器已删。留下 `labels` / `parseSse` / `gameStream`。没有独立 3D FastAPI。
 
 权威现状仍是 [`SYSTEM_STATUS.md`](SYSTEM_STATUS.md)。本页只回答：每个夹什么身份、谁在用、删了主环会死吗。
 
@@ -28,9 +28,9 @@
 | `app/court3d/` | REDIRECT | 三页都转到 `/hearing-3d` | 产品观庭不走这里 |
 | `lib/court3d/` | 管子 | parseSse / protocol（labels）/ gameStream | 删了复盘博弈 SSE 会疼 |
 | `public/court3d/` | LEGACY | 旧剧组 JSON / 空 models。replay 已删 | 产品页不读 |
-| `app/hearing-3d/` | LIVE Phase A | 现役观庭 | **会死观庭**。非正式 VRM |
-| `components/hearing-3d/` | LIVE Phase A | 场景、占位人、HUD、事件适配 | 同上 |
-| `public/hearing-3d/` | LIVE Phase A | 事件/卡司/布局合同 + 样例 | 同上 |
+| `app/hearing-3d/` | LIVE Phase A | 现役观庭（供应商 OBJ + PBR，程序化人物 fallback） | **会死观庭**。非正式 VRM |
+| `components/hearing-3d/` | LIVE Phase A | 场景、OBJ/PBR 角色、程序化 fallback、HUD、事件适配 | 同上 |
+| `public/hearing-3d/` | LIVE Phase A | 事件/卡司/布局合同 + OBJ/PBR 运行资产与样例 | 同上 |
 | `docs/COURT3D_ASSET_SPEC.md` | FROZEN | 换 VRM 说明书 | 不会。换模型的人会迷路 |
 | 仓库根 `3D建模方案/` | FROZEN | 设计稿 | 不会。不是运行时 |
 
@@ -61,7 +61,7 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 | 8 | `evaluation/lib/` | LIVE + RESEARCH | `api/state`、`api/services/evaluation.py`、`research_eval.py`、`game.py`、`sim_agent` | **复盘会死**。量表在这里。旧 `CD.py` `DD.py` `CI.py` `game_eval.py` 已去 `lab/legacy/` |
 | 9 | `evaluation/results/` | LIVE 输出 | `eval_config.yaml` `output.root`；Web 对照新报告 | 不会。空夹 + README。旧跑数在 `归档/评测化石/results/` |
 | 10 | `scripts/` | 混（见下） | 人跑 | 不会。Web 不依赖 |
-| 11 | `tests/` | LIVE 护栏 | pytest 24 个文件 | 不会立刻死。搬 `core/` / research 前先跑 |
+| 11 | `tests/` | LIVE 护栏 | pytest 68 个 test 模块 | 不会立刻死。搬 `core/` / research 前先跑 |
 | 12 | `docs/` | 混 | 人读 | 不会。`COURT3D_ASSET_SPEC` 冻。旧 76 项表 / 离线备选 / 申请书图已去 `归档/` |
 
 ### `api/` 拆档
@@ -85,7 +85,7 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 | 路径 | 标签 |
 |------|------|
 | `app/court3d/**` | REDIRECT → `/hearing-3d` |
-| `app/hearing-3d/**` | LIVE 观庭（程序化占位，非正式 VRM） |
+| `app/hearing-3d/**` | LIVE 观庭（供应商 OBJ + PBR，程序化人物 fallback，非正式 VRM） |
 | `app/conversation/**` `app/full-simulation/` `app/evaluation/**` | LIVE；观庭 href 走 `/hearing-3d` |
 | `app/research/**` | RESEARCH |
 | `app/mediation/` | LIVE 半官方 |
@@ -100,7 +100,7 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 
 | 文件 | 标签 | 干什么 |
 |------|------|--------|
-| `build_dataset.py` `verify_dataset.py` | LIVE 数据 | 民事 1000 条重建。仓库里现在没有 jsonl |
+| `build_dataset.py` `verify_dataset.py` | LIVE 数据 | 民事 1000 条重建；仓库已含 train / val / test JSONL 与配套 GT |
 | `reindex_database.py` | LIVE 数据 | 法条 FAISS |
 | `bench_hearing.py` `bench_plead.py` | LIVE 基线 | 听证/书状窗口 |
 | `eval_ci_with_j1bench.py` | OFFLINE | J1 批跑 |
@@ -108,7 +108,7 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 | `run_experiments.py` `run_preliminary_experiments.py` | LAB | 论文实验 |
 | `test_api_endpoints.py` | LAB | 手搓接口检查 |
 
-### `tests/` 24 个
+### `tests/` 68 个 test 模块
 
 | 文件 | 护哪 |
 |------|------|
@@ -120,7 +120,7 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 | `test_law_retrieval` `test_faiss` `test_new_db` | LIVE 法条 |
 | `test_offline_governance` | OFFLINE 边界 |
 
-无前端 E2E。`/hearing-3d` 有 Vitest（`components/hearing-3d/*.test.ts`，`npm run test:3d`）。旧胶囊页无单测，渲染已删。
+`e2e/` 有 3 个 Playwright spec：主流程 smoke、旧 `/court3d` 重定向、冷启动性能；`/hearing-3d` 另有 Vitest（`components/hearing-3d/*.test.ts`，`npm run test:3d`）。旧胶囊页无单测，渲染已删。
 
 ---
 
@@ -166,8 +166,8 @@ SSE 发言最小字段：`role` / `text` / `degraded?` / `sub_stage?`。一场�
 
 | 路径 | 标签 | 说明 |
 |------|------|------|
-| `data/research_packs/` 两个 SAMPLE | RESEARCH 夹具 | **不算**正式案 |
-| `data/dataset_1000/` | LIVE 民事 | 只有 meta + 100 条摘要 |
+| `data/research_packs/` | RESEARCH 夹具 / 候选包 | `enf-cn-notice-001`、`cisg-art79-sample-001` 是 SAMPLE；`enf-us-yingfan-amazon-001` 是 `0.1.0-draft` 候选演示包，均不算正式案 |
+| `data/dataset_1000/` | LIVE 民事 | `train / val / test：600 / 200 / 200`，各有 `case_info.jsonl` 和配套 CD/DD/CI GT |
 | `data/*.sqlite3` | LIVE 运行时 | 不提交 |
 | `database/` | LIVE | 法条 + FAISS |
 | `components/` | LIVE | 导航、听证文字、研究控件、ui；`hearing-3d/` 为现役观庭。旧 `court3d/` 渲染已删 |

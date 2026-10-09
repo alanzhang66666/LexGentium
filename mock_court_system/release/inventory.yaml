@@ -2,14 +2,15 @@ schema_version: 1
 version: 1.0.0
 authoritative_status:
   path: docs/SYSTEM_STATUS.md
-  summary: 民事工作台能开庭、观庭、复盘；研究工作台已接通；正式法学研究案为 0；两个 SAMPLE 包仅为技术夹具。
+  summary: 民事工作台能开庭、观庭、复盘；研究工作台已接通；正式法学研究案为 0；两个 SAMPLE 包仅为技术夹具，英帆包为待复核候选演示包。
   required_statements:
     - "正式法学研究案 **0**"
     - "enf-cn-notice-001"
     - "cisg-art79-sample-001"
     - "15 份均未完成独立复核"
     - "案例 25 仍是 AI 辅助初标待确认"
-    - "没有** train/val/test jsonl"
+    - "train / val / test：600 / 200 / 200"
+    - "enf-us-yingfan-amazon-001"
 research:
   formal_pack_count: 0
   technical_fixtures:
@@ -19,6 +20,12 @@ research:
     - id: cisg-art79-sample-001
       path: data/research_packs/cisg/cisg-art79-sample-001
       classification: technical_fixture
+  candidate_packs:
+    - id: enf-us-yingfan-amazon-001
+      path: data/research_packs/enforcement/enf-us-yingfan-amazon-001
+      classification: candidate
+      independent_review_complete: false
+      formal_eligible: false
   unreviewed_annotations:
     count: 15
     independent_review_complete: false
@@ -32,10 +39,10 @@ civil_dataset:
   track: civil
   separate_from: research
   required_split_files:
-    train: train.jsonl
-    validation: validation.jsonl
-    test: test.jsonl
-  expected_missing_splits: [train, validation, test]
+    train: train/case_info.jsonl
+    validation: val/case_info.jsonl
+    test: test/case_info.jsonl
+  expected_missing_splits: []
 observation_presentation:
   gate_effect: none
   entry_route: /hearing-3d

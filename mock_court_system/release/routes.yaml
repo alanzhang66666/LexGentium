@@ -199,6 +199,14 @@ stable:
     journey: system
 
 experimental:
+  - id: api-demo-completion
+    surfaces: [fastapi]
+    methods: [POST]
+    path_patterns: ["/mock/deepseek/chat/completions"]
+    auth: bearer
+    response_mode: json_or_sse
+    journey: configuration
+    label: 本地模型演示
   - id: web-experimental
     surfaces: [next_page]
     methods: [GET]

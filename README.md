@@ -9,7 +9,7 @@
 | 步 | 做什么 | 打开 |
 |----|--------|------|
 | 1 开庭 | 申请 / 答辩 / 听证 | [`/conversation`](http://localhost:3000/conversation) |
-| 2 观庭 | 程序化 3D（Phase A，非正式 VRM） | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
+| 2 观庭 | 供应商 OBJ + PBR，程序化人物 fallback（Phase A，非正式 VRM） | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 复盘 | 对照、策略、程序合规 | [`/evaluation`](http://localhost:3000/evaluation) |
 
 **能跑的代码只在 [`mock_court_system/`](mock_court_system/)。** 从那里启动。版本 `1.0.0`。
@@ -24,8 +24,8 @@
 
 ```bash
 cd mock_court_system
-pip install -r requirements.txt    # 可复现：requirements.lock
-npm install
+pip install -r requirements.lock
+npm ci
 cp .env.example .env               # 填 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
 ```
 
@@ -41,12 +41,12 @@ npm run dev                        # 前端  http://localhost:3000
 
 1. 打开 [`/register`](http://localhost:3000/register) 写入模型，或 [`/login`](http://localhost:3000/login) 测通已有配置（软解锁，没有用户表）。
 2. [`/conversation`](http://localhost:3000/conversation) 开一场，记下 `session_id`。
-3. [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) 看庭（程序化占位 Phase A）。旧 `/court3d` 会转到这里。
+3. [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) 看庭（供应商 OBJ + PBR，程序化人物 fallback；Phase A，非正式 VRM）。旧 `/court3d` 会转到这里。
 4. [`/evaluation?session=…`](http://localhost:3000/evaluation) 复盘。
 
 逐步排错：[`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md)。
 
-**Windows 建议先建虚拟环境：** `python -m venv venv` → `.\venv\Scripts\Activate.ps1`，再 `pip install`。
+**Windows 建议先建虚拟环境：** `python -m venv venv` → `.\venv\Scripts\Activate.ps1`，再 `pip install -r requirements.lock`。
 
 ---
 
@@ -105,7 +105,7 @@ flowchart TB
 |----|------|--------|
 | 开庭 | `/conversation` `/full-simulation` `/mediation` | 单场、全案 CD→DD→CI、独立调解 |
 | 研究 | `/research` `/research/packs/[dataset]/[cluster]` | 材料标注工作台（RESEARCH 路径） |
-| 观庭 | `/hearing-3d` | 程序化占位 Phase A；可挂 `sessionId`。`/court3d` 重定向 |
+| 观庭 | `/hearing-3d` | 供应商 OBJ + PBR，程序化人物 fallback；Phase A，非正式 VRM；可挂 `sessionId`。`/court3d` 重定向 |
 | 复盘 | `/evaluation` `/evaluation/reports/[id]` | 对照 / 策略 / 合规 / 研究量表 |
 | 系统 | `/login` `/register` `/system` `/settings` `/database` | 测 LLM、健康、法条 |
 
@@ -120,7 +120,7 @@ flowchart TB
 ├── mock_court_system/     # 唯一启动入口
 ├── 法学材料/              # 指南、工作簿、原始母表。不是运行入口
 ├── 3D建模方案/            # 设计稿（说明书在 说明/）。不要拷进 public/
-├── 归档/                  # 申报、商计、论文。不是运行入口
+├── 归档/                  # 申报、商计、论文、产品演示。不是运行入口
 ├── README.md
 └── README.en.md
 ```
@@ -184,7 +184,7 @@ API、BibTeX、更细的架构：[`mock_court_system/README.md`](mock_court_syst
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | 要改页面或代理 |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | 要跑复盘或离线评测 |
 | [`AGENTS.md`](AGENTS.md) | 下次开会话前先看：现役边界，避免混线 |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 2026-09-15 现役现状；旧 76 项表已归档 |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | 现役现状；旧 76 项表已归档 |
 | [`docs/CODEMAP.md`](mock_court_system/docs/CODEMAP.md) | 分层标签：LIVE / LAB / OFFLINE / FOSSIL / FROZEN |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | 要换 3D 角色 |
 | [`归档/README.md`](归档/README.md) | 要找申报、参考文献、外仓推理对照稿 |

@@ -215,7 +215,12 @@ def build_inventory_report(root: Path = PROJECT_ROOT) -> dict[str, Any]:
 
     fixture_checks = []
     for fixture in inventory["research"]["technical_fixtures"]:
-        fixture_checks.append({**fixture, "exists": (root / fixture["path"]).is_dir()})
+        fixture_checks.append({**fixture, "exists": (root / fixture["path"] / "pack.json").is_file()})
+
+    candidate_checks = [
+        {**pack, "exists": (root / pack["path"] / "pack.json").is_file()}
+        for pack in inventory["research"].get("candidate_packs", [])
+    ]
 
     split_files = inventory["civil_dataset"]["required_split_files"]
     data_root = root / inventory["civil_dataset"]["path"]
@@ -229,6 +234,7 @@ def build_inventory_report(root: Path = PROJECT_ROOT) -> dict[str, Any]:
         "missing_authoritative_statements": missing_statements,
         "formal_pack_count": inventory["research"]["formal_pack_count"],
         "technical_fixtures": fixture_checks,
+        "candidate_packs": candidate_checks,
         "unreviewed_annotations": inventory["research"]["unreviewed_annotations"],
         "case_25": inventory["research"]["case_25"],
         "missing_civil_splits": missing_splits,
@@ -239,6 +245,7 @@ def build_inventory_report(root: Path = PROJECT_ROOT) -> dict[str, Any]:
             not missing_statements
             and inventory["research"]["formal_pack_count"] == 0
             and all(item["exists"] for item in fixture_checks)
+            and all(item["exists"] for item in candidate_checks)
             and missing_splits == expected_missing
             and inventory["observation_presentation"]["gate_effect"] == "none"
         ),

@@ -7,7 +7,7 @@ gaps:
     classification: legal_content_gap
     trigger: candidate release inventory
     expected: 至少一个正式研究包完成全部复核
-    actual: 正式研究包 = 0；enforcement/cisg 两个目录是技术夹具（SAMPLE）
+    actual: 正式研究包 = 0；两个 SAMPLE 为技术夹具，英帆包为待复核候选演示包
     owner: legal-content
     status: open
     evidence_link: docs/SYSTEM_STATUS.md
@@ -34,9 +34,9 @@ gaps:
     classification: data_limitation
     trigger: candidate release inventory
     expected: 民事 dataset_1000 产出完整 train/val/test split
-    actual: build_dataset.py 存在但未产出完整 split
+    actual: 已核验 train/val/test 各有 600/200/200 条 case_info.jsonl 及配套 CD/DD/CI GT
     owner: data
-    status: open
+    status: closed
     evidence_link: docs/SYSTEM_STATUS.md
 
   - gap_id: gap-observation-visual
