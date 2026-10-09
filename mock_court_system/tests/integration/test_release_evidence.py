@@ -158,8 +158,8 @@ def test_inventory_disclosure_from_real_yaml():
     assert set(d.fixture_identities) == {"enf-cn-notice-001", "cisg-art79-sample-001"}
     assert d.unreviewed_annotation_count == 15
     assert d.case_25_status == "pending"
-    assert d.civil_dataset_complete is False
-    assert set(d.civil_missing_splits) == {"train", "validation", "test"}
+    assert d.civil_dataset_complete is True
+    assert d.civil_missing_splits == ()
     assert d.observation_gate_effect == "none"
 
 

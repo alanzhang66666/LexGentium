@@ -31,4 +31,15 @@ data/operations.sqlite3*
 data/*.db*
 data/evidence/
 test-results/
+playwright-report/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+runtime_data/
+
+# Generated reports; keep the output directory's tracked documentation/package.
+evaluation/results/*
+!evaluation/results/README.md
+!evaluation/results/__init__.py
 .kiro-validate-*.cmd
