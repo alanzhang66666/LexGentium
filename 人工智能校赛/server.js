@@ -5,6 +5,8 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { validateCase, buildAnalysis } from './engine/legal.js';
 import { analyze } from './engine/llm.js';
+import { competitionPrompts,getPrompt } from './engine/prompts.js';
+import { sessionValid,allowAnalysis,finishAnalysis } from './engine/limits.js';
 import { buildHearing, buildReview, compareStrategies } from './engine/journey.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -28,10 +30,11 @@ export async function handler(req, res) {
   try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'invalid_url' }); }
   if (req.method === 'GET' && url.pathname === '/hearing-ui.js') return send(res,200,hearingScript,'text/javascript; charset=utf-8');
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { status:'ok', mode:'synthetic_replay', version:'0.1.0', port:8080 });
+  if (req.method === 'GET' && url.pathname === '/api/prompts') return send(res,200,{prompts:competitionPrompts});
   if (req.method === 'GET' && url.pathname === '/api/case') return send(res, 200, caseData);
   if (req.method === 'GET' && ['/api/hearing','/api/strategy','/api/review'].includes(url.pathname)) {
     const sid=url.searchParams.get('session_id');
-    if (!sid || !sessions.has(sid)) return send(res,404,{error:'session_not_found'});
+    if (!sid || !sessionValid(sessions,sid)) return send(res,404,{error:'session_not_found'});
     if (url.pathname==='/api/hearing') return send(res,200,buildHearing(caseData,sid));
     if (url.pathname==='/api/strategy') return send(res,200,{...compareStrategies(caseData),session_id:sid});
     return send(res,200,buildReview(caseData,sid,sessions.get(sid).analyses));
@@ -39,16 +42,19 @@ export async function handler(req, res) {
   if (req.method === 'POST' && url.pathname === '/api/analyze') {
     let body;
     try {body=await readJSON(req);}catch(err){return send(res,err.status||400,{error:err.message});}
-    if (!body || typeof body.question!=='string') return send(res,400,{error:'question_required'});
-    if (typeof body.session_id!=='string' || !sessions.has(body.session_id)) return send(res,404,{error:'session_not_found'});
+    if (!body || (typeof body.question!=='string' && typeof body.prompt_id!=='string')) return send(res,400,{error:'question_required'});
+    if(body.prompt_id){const predefined=getPrompt(body.prompt_id);if(!predefined)return send(res,400,{error:'invalid_prompt'});body.question=predefined.question;body.role=predefined.role;}
+    if (typeof body.session_id!=='string' || !sessionValid(sessions,body.session_id)) return send(res,404,{error:'session_not_found'});
     if (body.role!==undefined && !['claimant','respondent','neutral'].includes(body.role)) return send(res,400,{error:'invalid_role'});
     body.role=body.role||'neutral';
+    const session=sessions.get(body.session_id);
+    const limit=allowAnalysis(session);
+    if(!limit.ok)return send(res,limit.status,{error:limit.reason});
     let response;
-    try {response=await analyze(caseData,body.question,{role:body.role});}catch(err){return send(res,400,{error:'invalid_question'});}
+    try {response=await analyze(caseData,body.question,{role:body.role});}catch(err){return send(res,400,{error:'invalid_question'});}finally{finishAnalysis(session)}
     const stored={id:randomUUID(),role:body.role,question:body.question,mode:response.mode,
       source_ids:[...new Set((response.structured?.arguments||[]).flatMap(a=>[...a.fact_ids,...a.rule_ids,...a.evidence_ids]))],
       created_at:new Date().toISOString(),output:response};
-    const session=sessions.get(body.session_id);
     session.analyses.push(stored);
     if(session.analyses.length>20)session.analyses.shift();
     return send(res,200,{...response,analysis_id:stored.id,session_id:body.session_id});
@@ -56,12 +62,12 @@ export async function handler(req, res) {
   if (req.method === 'POST' && url.pathname === '/api/session') {
     if (sessions.size >= 200) sessions.delete(sessions.keys().next().value);
     const id = randomUUID();
-    sessions.set(id, { id, caseId:caseData.id, mode:'synthetic_replay', createdAt:new Date().toISOString(),analyses:[] });
+    sessions.set(id, { id, caseId:caseData.id, mode:'synthetic_replay', createdAt:new Date().toISOString(),analyses:[],analysis_count_total:0,inflight:false });
     return send(res, 201, sessions.get(id));
   }
   if (req.method === 'GET' && url.pathname.startsWith('/api/session/')) {
     const id = url.pathname.slice('/api/session/'.length);
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !sessions.has(id)) return send(res,404,{error:'session_not_found'});
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !sessionValid(sessions,id)) return send(res,404,{error:'session_not_found'});
     const record=sessions.get(id); return send(res,200,{id:record.id,caseId:record.caseId,mode:record.mode,createdAt:record.createdAt,analysis_count:record.analyses.length});
   }
   if (req.method === 'GET' && pages.has(url.pathname)) return send(res,200,html,'text/html; charset=utf-8');
