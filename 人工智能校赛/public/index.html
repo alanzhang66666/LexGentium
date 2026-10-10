@@ -4,7 +4,7 @@
 :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#142238;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}header{padding:20px 5%;background:#132b42;color:white;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}header strong{font-size:22px}header small{display:block;color:#c6d7e7;margin-top:5px}nav{display:flex;flex-wrap:wrap;gap:9px}a{color:inherit;text-decoration:none}nav a{color:#f2f7fd;padding:7px 10px;border:1px solid #597084;border-radius:8px}nav a.active{background:#f2f7fd;color:#132b42}main{max-width:1090px;margin:35px auto;padding:0 20px 60px}h1{font-size:30px;margin:0 0 8px}.lead{color:#52667e;line-height:1.7}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px}.card{background:white;border:1px solid #dde5ec;border-radius:13px;padding:22px;margin:14px 0;box-shadow:0 5px 16px #132b4210}.card h3{margin:0 0 12px}p,li{line-height:1.75}button,.cta{background:#17496b;color:white;border:0;border-radius:8px;padding:11px 16px;font-size:15px;cursor:pointer;display:inline-block}button:disabled{opacity:.6}.muted{color:#62788b;font-size:13px}.notice{padding:12px 16px;background:#fff7df;border-left:4px solid #c99222;border-radius:7px;color:#77551b}.speaker{font-weight:700;color:#17496b}.stage{background:linear-gradient(145deg,#273e59,#111d2b);color:#fff;border-radius:14px;padding:35px;text-align:center}.stage .chairs{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:25px auto}.chair{border:1px solid #7896b2;border-radius:10px;padding:18px;min-width:95px}.bar{background:#dce6f1;height:12px;border-radius:20px;overflow:hidden}.bar div{width:65%;height:100%;background:#34769a}footer{padding:22px;text-align:center;color:#56697a;font-size:13px}.tag{display:inline-block;background:#e6edf5;border-radius:5px;padding:4px 8px;font-size:12px;margin-right:6px}@media(max-width:600px){h1{font-size:24px}header{padding:16px}nav a{font-size:12px}}
 </style></head><body><header><div><strong>法序智演 LexGentium</strong><small>人工智能校赛 · 通用赛道「出海」</small></div><nav id="nav"></nav></header><main id="root"><p>正在加载示范案件…</p></main><footer>研究与辅助推演用途 · 合成演示数据 · 不构成法律意见 · 无真实用户账户</footer>
 <script>
-const routes=[['/global-dispute','案件接入'],['/research','规则研究'],['/conversation','双方准备'],['/hearing-3d','听证回放'],['/evaluation','结果复盘']];
+const routes=[['/global-dispute','案件接入'],['/research','规则研究'],['/conversation','双方准备'],['/hearing-3d','听证回放'],['/strategy','策略比较'],['/evaluation','结果复盘']];
 const qs=(s)=>document.querySelector(s); let data=null; let hearingIndex=0;
 function esc(x){return String(x??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
 function box(t,c){return '<article class="card"><h3>'+esc(t)+'</h3>'+c+'</article>'}
@@ -24,6 +24,18 @@ async function askModel(){
   qs('#answer').textContent='模式：'+result.mode+'\\n'+(result.draft||result.answer)+'\\n\\n待补证据：'+result.evidence_gaps.map(x=>x.source_id+' '+x.text).join('；')+'\\n'+(result.notice||'法律意见需专业复核');
  }catch(err){qs('#answer').textContent='分析失败：'+err.message}
 }
+async function loadJourney(panel, endpoint, display) {
+ const id=sessionStorage.getItem('lg_school_session');
+ const el=qs(panel);
+ if(!el)return;
+ if(!id){el.textContent='请先从案件接入页面开始示范案件。';return}
+ try {
+  const response=await fetch(endpoint+'?session_id='+encodeURIComponent(id));
+  if(!response.ok)throw new Error('会话不存在或已过期');
+  const payload=await response.json();
+  if(qs(panel))qs(panel).innerHTML=display(payload);
+ }catch(e){if(qs(panel))qs(panel).textContent=e.message}
+}
 function next(){hearingIndex=(hearingIndex+1)%data.hearing.length;render()}
 function render(){
  const page=location.pathname==='/'?'/global-dispute':location.pathname;
@@ -34,6 +46,7 @@ function render(){
  else if(page==='/research')out+='<h1>跨境规则与事实研究</h1><p class="lead">Case Bundle + Fact Ledger；事实状态与法律来源区分展示。</p><div class="grid">'+box('事实台账',data.facts.map(x=>'<p><span class="tag">'+esc(x.status)+'</span>'+esc(x.id)+' · '+esc(x.text)+'</p>').join(''))+box('争议焦点','<ul>'+data.issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>')+box('法律来源',data.rules.map(x=>'<p><strong>'+esc(x.label)+'</strong> · '+esc(x.note)+' <em>'+ (x.reviewed?'已复核':'未复核')+'</em></p>').join(''))+'</div><a class="cta" href="/conversation">进入申请与答辩准备 →</a>';
  else if(page==='/conversation')out+='<h1>申请与答辩准备</h1><p class="lead">展示双边议题清单，非实时 LLM 生成的 CD/DD。</p><div class="grid">'+box('申请方 · CD','<p>需要组织交付记录、合同履行义务和付款请求。</p><p>应确认迟延与损失范围，不能凭空认定。</p>')+box('被申请方 · DD','<p>需要核对验收记录、性能争议和供应链障碍证据。</p><p>对于 CISG 第79条要件，目前不能直接判断成立。</p>')+'</div>'+box('争议辅助分析 · 可选实时模型','<p>只使用示范案件公开字段，输出明确区分实时模型草稿与结构化演示。</p><textarea id="question" maxlength="1500" rows="3" style="width:100%;padding:12px;border:1px solid #ccd6df;border-radius:8px" placeholder="例如：CISG第79条有哪些待补证据？"></textarea><p><button id="ask">分析此争议</button></p><pre id="answer" style="white-space:pre-wrap;line-height:1.7"></pre>')+'<a class="cta" href="/hearing-3d">进入听证回放 →</a>';
  else if(page==='/hearing-3d'){const e=data.hearing[hearingIndex];out+='<h1>仲裁听证可视化 · 回放</h1><p class="lead">当前二维舞台占位；正式 Three.js 场景尚待复用。事件和事实来源同属黄金案例。</p><div class="stage"><h2>国际商事仲裁庭</h2><div class="chairs"><div class="chair">首席仲裁员</div><div class="chair">申请方代理</div><div class="chair">被申请方代理</div></div><p><span class="speaker">'+esc(e.role)+'</span>　'+esc(e.text)+'</p><p>事件 '+(hearingIndex+1)+' / '+data.hearing.length+'</p><button id="next">下一条听证事件</button></div><p><a class="cta" href="/evaluation">查看复盘 →</a></p>'}
+ else if(page==='/strategy')out+='<h1>争议解决策略比较</h1><p class="lead">比较补证、谈判与仲裁准备的定性路径，不预测胜诉率。</p><div id="strategy-panel" class="grid"><p>正在读取策略…</p></div><a class="cta" href="/evaluation">进入复盘 →</a>';
  else if(page==='/evaluation')out+='<h1>四维复盘</h1><p class="lead">本页为明确标注的演示状态，不使用捏造的性能分数。</p><div class="grid">'+data.evaluation.map(x=>box(x.label,'<p><span class="tag">'+esc(x.status)+'</span></p><p>'+esc(x.detail)+'</p>')).join('')+'</div><a class="cta" href="/global-dispute">重新查看案例 →</a>';
  else out='<h1>页面不存在</h1>';
  const sid=sessionStorage.getItem('lg_school_session');out+='<p class="muted">案件：'+esc(data.id)+(sid?' · 临时 session：'+esc(sid):' · 尚未建立 session')+' · 数据不会持久保存</p>';
@@ -41,6 +54,7 @@ function render(){
  if(qs('#start'))qs('#start').onclick=start;
  if(qs('#next'))qs('#next').onclick=next;
  if(qs('#ask'))qs('#ask').onclick=askModel;
+ if(page==='/strategy')loadJourney('#strategy-panel','/api/strategy',p=>p.strategies.map(x=>box(x.title,'<p>'+esc(x.benefit)+'</p><p><strong>风险：</strong>'+esc(x.risk)+'</p><p class="muted">事实引用：'+x.needed_sources.map(esc).join(' / ')+'</p>')).join('')+'<p class="notice">'+esc(p.disclaimer)+'</p>');
 }
 fetch('/api/case').then(r=>{if(!r.ok)throw Error('case');return r.json()}).then(d=>{data=d;render()}).catch(()=>qs('#root').textContent='案例加载失败。');
 </script></body></html>
