@@ -10,7 +10,7 @@ import logging
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 # 根日志配置必须先于 api.state 导入（agents 在 import 阶段即完成 BM25 初始化并输出日志）
@@ -51,11 +51,28 @@ app = FastAPI(lifespan=_lifespan)
 # 请求处理顺序为 RequestContext -> bearer -> origin -> body limit -> route。
 
 @app.middleware("http")
-async def enforce_body_limit(request, call_next):
+async def enforce_body_limit(request: Request, call_next):
     if request.method in security._STATE_CHANGING_METHODS:
+        limit = security.max_body_bytes()
         content_length = request.headers.get("content-length", "").strip()
-        if content_length.isdigit() and int(content_length) > security.max_body_bytes():
+        if content_length.isdigit() and int(content_length) > limit:
             return _public_error(413, "request_too_large", "request body too large")
+
+        # Inspect the actual stream, including chunked/unknown-length requests.
+        # Reject before invoking the route, without trusting Content-Length.
+        chunks = []
+        total = 0
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > limit:
+                return _public_error(413, "request_too_large", "request body too large")
+            chunks.append(chunk)
+        body = b"".join(chunks)
+
+        async def replay_body():
+            return {"type": "http.request", "body": body, "more_body": False}
+
+        request._receive = replay_body
     return await call_next(request)
 
 
