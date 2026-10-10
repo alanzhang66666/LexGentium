@@ -23,7 +23,9 @@ async function askModel(){
   const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id,question,role:qs('#analysis-role')?.value||'neutral'})});
   const result=await r.json();
   if(!r.ok)throw new Error(result.error||'请求失败');
-  qs('#answer').textContent='模式：'+result.mode+'\\n'+(result.draft||result.answer)+'\\n\\n待补证据：'+result.evidence_gaps.map(x=>x.source_id+' '+x.text).join('；')+'\\n'+(result.notice||'法律意见需专业复核');
+  const units=result.structured?.arguments||[];
+  const lines=units.map(a=>'【'+a.id+' / '+a.stance+' / '+a.confidence+'】 '+a.claim+'\\n事实：'+(a.fact_ids.join('、')||'无')+'；证据：'+(a.evidence_ids.join('、')||'无')+'；规则：'+(a.rule_ids.join('、')||'无')).join('\\n\\n');
+  qs('#answer').textContent='运行模式：'+result.mode+'\\n角色：'+result.role+'\\n\\n'+lines+'\\n\\n待补证据：'+result.evidence_gaps.map(x=>x.source_id+' '+x.text).join('；')+'\\n'+(result.notice||'法律论证需人工复核');
  }catch(err){qs('#answer').textContent='分析失败：'+err.message}
 }
 async function loadJourney(panel, endpoint, display) {
