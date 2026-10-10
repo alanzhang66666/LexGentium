@@ -61,3 +61,12 @@ JoyCode 项目根目录选择 `人工智能校赛/`；启动命令 `npm start`�
 - 从 `GET /api/hearing?session_id=...` 加载当前会话的合成事件；支持上一条、下一条、自动播放、暂停与时间线跳转。
 - 仅对可识别的模拟角色显示座席，保留 `synthetic_replay` 标识。播放不调用 Python HearingRuntime，也不暗示运行了真实多智能体听证。
 - `tests/hearing-ui.test.js` 检查浏览器模块可访问、页面载入与同一会话的事件协议；视觉及键盘操作仍需浏览器 E2E 验证。
+
+## 本轮补充：黄金案证据和动态会话复盘
+
+- `data/golden-case.json` 增加 E1–E4 合成证据摘要和案件时间线；这些是**合成示范材料**，不是经过法律复核的真实合同、邮件或仲裁卷宗。F1–F3 的证据引用按材料 ID 显示，F3 继续保持 unknown。
+- `engine/legal.js` 校验每个事实、时间线和听证事件引用都指向已登记的合成材料，防止不存在的引用进入演示。
+- `POST /api/analyze` 现在支持 `role=claimant|respondent|neutral`，返回 `analysis_id` 并保存最多 20 条当前 session 的分析记录，**仅进程内存保存，容器重启即消失**。
+- `GET /api/review` 根据 session 的实际分析次数与来源记录生成四维报告，不再仅返回静态示例状态；未做正式法律评测的维度继续标识“待复核/模拟/定性比较”。
+- `/research` 显示合成证据与时间线；`/conversation` 可选择分析立场；`/evaluation` 从本场 API 取报告。新增 `tests/evidence-session.test.js`。
+- **尚未完成**：模型输出的逐主张来源验证及可靠的 JSON Schema、真正的 Agent 编排、正式法学复核、跨重启持久化和 JoyCode 实测。
