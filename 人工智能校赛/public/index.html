@@ -13,14 +13,14 @@ function box(t,c){return '<article class="card"><h3>'+esc(t)+'</h3>'+c+'</articl
 function show(page){history.pushState({},'',page);render()}
 window.onpopstate=render;
 function start(){fetch('/api/session',{method:'POST'}).then(r=>r.json()).then(d=>{sessionStorage.setItem('lg_school_session',d.id);show('/research')}).catch(()=>alert('启动失败，请刷新重试'))}
-async function askModel(){
+async function askModel(promptId=null){
  const session_id=sessionStorage.getItem('lg_school_session');
  if(!session_id){alert('请先在案件接入页点击开始示范案件');return}
  const question=qs('#question')?.value.trim();
- if(!question)return;
+ if(!question&&!promptId)return;
  qs('#answer').textContent='正在进行分析…';
  try{
-  const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id,question,role:qs('#analysis-role')?.value||'neutral'})});
+  const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(promptId?{session_id,prompt_id:promptId}:{session_id,question,role:qs('#analysis-role')?.value||'neutral'})});
   const result=await r.json();
   if(!r.ok)throw new Error(result.error||'请求失败');
   const units=result.structured?.arguments||[];
@@ -59,7 +59,8 @@ function render(){
  if(qs('#start'))qs('#start').onclick=start;
  if(page==='/hearing-3d')mountHearing(sessionStorage.getItem('lg_school_session'));
  if(qs('#next'))qs('#next').onclick=next;
- if(qs('#ask'))qs('#ask').onclick=askModel;
+ if(qs('#ask'))qs('#ask').onclick=()=>askModel();
+ document.querySelectorAll('[data-prompt]').forEach(el=>el.onclick=()=>askModel(el.dataset.prompt));
  if(page==='/evaluation')loadJourney('#review-panel','/api/review',p=>'<p class="muted">报告模式：'+esc(p.mode)+' · 本场分析次数：'+p.analysis_count+'</p><div class="grid">'+p.dimensions.map(x=>box(x.label,'<p><span class="tag">'+esc(x.status)+'</span></p><p>'+esc(x.detail)+'</p>')).join('')+'</div>'+box('会话分析记录',p.analysis_history.length?p.analysis_history.map(x=>'<p><strong>'+esc(x.role)+' / '+esc(x.mode)+'</strong>：'+esc(x.question)+'<br><span class="muted">'+x.source_ids.map(esc).join('、')+'</span></p>').join(''):'<p>暂无本场分析记录</p>'));
  if(page==='/strategy')loadJourney('#strategy-panel','/api/strategy',p=>p.strategies.map(x=>box(x.title,'<p>'+esc(x.benefit)+'</p><p><strong>风险：</strong>'+esc(x.risk)+'</p><p class="muted">事实引用：'+x.needed_sources.map(esc).join(' / ')+'</p>')).join('')+'<p class="notice">'+esc(p.disclaimer)+'</p>');
 }
