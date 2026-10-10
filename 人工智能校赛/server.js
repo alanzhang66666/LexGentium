@@ -11,6 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const caseData = JSON.parse(await readFile(path.join(here, 'data/golden-case.json'), 'utf8'));
 validateCase(caseData);
 const html = await readFile(path.join(here, 'public/index.html'), 'utf8');
+const hearingScript = await readFile(path.join(here, 'public/hearing-ui.js'), 'utf8');
 const sessions = new Map();
 const pages = new Set(['/', '/global-dispute', '/research', '/conversation', '/hearing-3d', '/strategy', '/evaluation']);
 const send = (res, code, value, contentType = 'application/json; charset=utf-8') => {
@@ -25,6 +26,7 @@ async function readJSON(req) {
 export async function handler(req, res) {
   let url;
   try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'invalid_url' }); }
+  if (req.method === 'GET' && url.pathname === '/hearing-ui.js') return send(res,200,hearingScript,'text/javascript; charset=utf-8');
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { status:'ok', mode:'synthetic_replay', version:'0.1.0', port:8080 });
   if (req.method === 'GET' && url.pathname === '/api/case') return send(res, 200, caseData);
   if (req.method === 'GET' && ['/api/hearing','/api/strategy','/api/review'].includes(url.pathname)) {
