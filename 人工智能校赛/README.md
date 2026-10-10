@@ -70,3 +70,11 @@ JoyCode 项目根目录选择 `人工智能校赛/`；启动命令 `npm start`�
 - `GET /api/review` 根据 session 的实际分析次数与来源记录生成四维报告，不再仅返回静态示例状态；未做正式法律评测的维度继续标识“待复核/模拟/定性比较”。
 - `/research` 显示合成证据与时间线；`/conversation` 可选择分析立场；`/evaluation` 从本场 API 取报告。新增 `tests/evidence-session.test.js`。
 - **尚未完成**：模型输出的逐主张来源验证及可靠的 JSON Schema、真正的 Agent 编排、正式法学复核、跨重启持久化和 JoyCode 实测。
+
+## 结构化 CD/DD 论证（2026-10-11）
+
+- 新增 `engine/arguments.js`：验证 `stance`、`claim`、`confidence`、`fact_ids`、`rule_ids`，仅接受当前合成案例中的 F/R 引用；由事实索引自动取得 E 证据引用。
+- 当模型把 unknown（如 F3）作为确定事实支持时拒绝 `supported_demo` 论证；非法 JSON/引用自动回退到已标记 `structured_demo` 的模板。
+- 申请方/被申请方模板不同；模型可按角色生成 JSON 论证，但**引用 ID 合法并不证明论证语义或规则适用已获法律复核**。
+- `/conversation` 显示论证单元及 F/E/R 引用；会话来源记录只保存实际论证使用的 ID。新增 `tests/structured-arguments.test.js`。
+- 仍未实现正式法律审查、跨会话持久存储和强认证；公开比赛环境上线前应增加调用限流和模型端点出站白名单，避免滥用。
