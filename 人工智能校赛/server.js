@@ -5,13 +5,14 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { validateCase, buildAnalysis } from './engine/legal.js';
 import { analyze } from './engine/llm.js';
+import { buildHearing, buildReview, compareStrategies } from './engine/journey.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const caseData = JSON.parse(await readFile(path.join(here, 'data/golden-case.json'), 'utf8'));
 validateCase(caseData);
 const html = await readFile(path.join(here, 'public/index.html'), 'utf8');
 const sessions = new Map();
-const pages = new Set(['/', '/global-dispute', '/research', '/conversation', '/hearing-3d', '/evaluation']);
+const pages = new Set(['/', '/global-dispute', '/research', '/conversation', '/hearing-3d', '/strategy', '/evaluation']);
 const send = (res, code, value, contentType = 'application/json; charset=utf-8') => {
   res.writeHead(code, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options':'nosniff', 'Referrer-Policy':'no-referrer' });
   res.end(contentType.startsWith('application/json') ? JSON.stringify(value) : value);
@@ -26,6 +27,13 @@ export async function handler(req, res) {
   try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'invalid_url' }); }
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { status:'ok', mode:'synthetic_replay', version:'0.1.0', port:8080 });
   if (req.method === 'GET' && url.pathname === '/api/case') return send(res, 200, caseData);
+  if (req.method === 'GET' && ['/api/hearing','/api/strategy','/api/review'].includes(url.pathname)) {
+    const sid=url.searchParams.get('session_id');
+    if (!sid || !sessions.has(sid)) return send(res,404,{error:'session_not_found'});
+    if (url.pathname==='/api/hearing') return send(res,200,buildHearing(caseData,sid));
+    if (url.pathname==='/api/strategy') return send(res,200,{...compareStrategies(caseData),session_id:sid});
+    return send(res,200,buildReview(caseData,sid));
+  }
   if (req.method === 'POST' && url.pathname === '/api/analyze') {
     let body;
     try {body=await readJSON(req);}catch(err){return send(res,err.status||400,{error:err.message});}
