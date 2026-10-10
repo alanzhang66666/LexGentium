@@ -13,8 +13,19 @@ export function compareStrategies(data) {
   };
 }
 export function buildHearing(data, sessionId) {
-  return {session_id:sessionId,case_id:data.id,mode:'synthetic_replay',events:data.hearing.map(event=>({...event,source_ids:['F1','F2','F3']}))};
+  return {session_id:sessionId,case_id:data.id,mode:'synthetic_replay',events:data.hearing.map(event=>({...event,source_ids:event.source_ids||[]}))};
 }
-export function buildReview(data,sessionId) {
-  return {session_id:sessionId,case_id:data.id,mode:'demo_status',dimensions:data.evaluation,evidence_gaps:data.facts.filter(f=>f.status==='unknown').map(f=>f.id),formal_legal_review:false};
+export function buildReview(data,sessionId,history=[]) {
+  const evaluated=history.filter(x=>x && ['structured_demo','live_llm'].includes(x.mode));
+  const dimensions=[
+    {label:'法律依据',status:'待法律复核',detail:'规则材料尚未独立复核；本场保存 '+evaluated.length+' 次辅助分析。'},
+    {label:'事实一致性',status:'有证据缺口',detail:'未知事实：'+data.facts.filter(f=>f.status==='unknown').map(f=>f.id).join('、')+'。'},
+    {label:'程序合规',status:'模拟记录',detail:'仅有 '+data.hearing.length+' 条合成事件，尚未执行正式程序合规量表。'},
+    {label:'策略效果',status:'定性比较',detail:'没有 GameEngine 实测收益或胜诉概率。'}
+  ];
+  return {session_id:sessionId,case_id:data.id,mode:'session_report',dimensions,
+    evidence_gaps:data.facts.filter(f=>f.status==='unknown').map(f=>f.id),
+    analysis_count:evaluated.length,
+    analysis_history:evaluated.map(x=>({id:x.id,role:x.role,question:x.question,mode:x.mode,created_at:x.created_at,source_ids:x.source_ids})),
+    formal_legal_review:false};
 }
