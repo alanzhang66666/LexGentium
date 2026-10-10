@@ -30,6 +30,7 @@ export async function handler(req, res) {
   try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'invalid_url' }); }
   if (req.method === 'GET' && url.pathname === '/hearing-ui.js') return send(res,200,hearingScript,'text/javascript; charset=utf-8');
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { status:'ok', mode:'synthetic_replay', version:'0.1.0', port:8080 });
+  if (req.method === 'GET' && url.pathname === '/api/budget') return send(res,200,{...globalBudgetStatus(),scope:'single_process_demo',note:'This is not a billing guarantee'});
   if (req.method === 'GET' && url.pathname === '/api/prompts') return send(res,200,{prompts:competitionPrompts});
   if (req.method === 'GET' && url.pathname === '/api/case') return send(res, 200, caseData);
   if (req.method === 'GET' && ['/api/hearing','/api/strategy','/api/review'].includes(url.pathname)) {
