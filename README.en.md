@@ -9,7 +9,7 @@ One hearing = one `session_id`. Three steps share that session:
 | Step | What you do | Open |
 |------|-------------|------|
 | 1 Hearing | Application / defence / oral hearing | [`/conversation`](http://localhost:3000/conversation) |
-| 2 Watch | Procedural 3D (Phase A, not formal VRM) | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
+| 2 Watch | Supplier OBJ + PBR with procedural character fallback (Phase A, not formal VRM) | [`/hearing-3d`](http://localhost:3000/hearing-3d) · [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) |
 | 3 Review | Contrast, strategy, procedural compliance | [`/evaluation`](http://localhost:3000/evaluation) |
 
 **Runnable code lives only in [`mock_court_system/`](mock_court_system/).** Start there. Version `1.0.0`.
@@ -24,8 +24,8 @@ Two terminals, both inside `mock_court_system`:
 
 ```bash
 cd mock_court_system
-pip install -r requirements.txt    # pinned: requirements.lock
-npm install
+pip install -r requirements.lock
+npm ci
 cp .env.example .env               # set LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
 ```
 
@@ -41,12 +41,12 @@ Then:
 
 1. Open [`/register`](http://localhost:3000/register) to write a model, or [`/login`](http://localhost:3000/login) to test an existing config (soft unlock, no user table).
 2. Start a hearing at [`/conversation`](http://localhost:3000/conversation). Keep the `session_id`.
-3. Watch at [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) (Phase A placeholders). Old `/court3d` redirects here.
+3. Watch at [`/hearing-3d?sessionId=`](http://localhost:3000/hearing-3d) (supplier OBJ + PBR with procedural character fallback; Phase A, not formal VRM). Old `/court3d` redirects here.
 4. Review at [`/evaluation?session=…`](http://localhost:3000/evaluation).
 
 Step-by-step troubleshooting: [`docs/INSTALL.md`](mock_court_system/docs/INSTALL.md).
 
-**On Windows, use a venv first:** `python -m venv venv` → `.\venv\Scripts\Activate.ps1`, then `pip install`.
+**On Windows, use a venv first:** `python -m venv venv` → `.\venv\Scripts\Activate.ps1`, then `pip install -r requirements.lock`.
 
 ---
 
@@ -105,7 +105,7 @@ Marketing: `/` `/about` `/docs`. Four workbench groups (`Ctrl+K` uses the same s
 |-------|--------|------|
 | Hearing | `/conversation` `/full-simulation` `/mediation` | Single hearing, full CD→DD→CI case, standalone mediation |
 | Research | `/research` `/research/packs/[dataset]/[cluster]` | Annotation workbench (RESEARCH path) |
-| Watch | `/hearing-3d` | Phase A placeholders; optional `sessionId`. `/court3d` redirects |
+| Watch | `/hearing-3d` | Supplier OBJ + PBR with procedural character fallback; Phase A, not formal VRM; optional `sessionId`. `/court3d` redirects |
 | Review | `/evaluation` `/evaluation/reports/[id]` | Contrast / strategy / compliance / research rubric |
 | System | `/login` `/register` `/system` `/settings` `/database` | LLM check, health, statutes |
 
@@ -120,7 +120,7 @@ Palettes: `ink` (default) / `parchment` / `seal`. See [`DESIGN.md`](mock_court_s
 ├── mock_court_system/     # Only launch entry
 ├── 法学材料/              # Guides, workbook, source tables. Not a runtime
 ├── 3D建模方案/            # Design docs (manuals in 说明/). Do not copy into public/
-├── 归档/                  # Filings, business plan, papers. Not a runtime
+├── 归档/                  # Filings, business plan, papers, product demos. Not a runtime
 ├── README.md
 └── README.en.md
 ```
@@ -184,7 +184,7 @@ A hearing can also link `task_id` (full case), `game_id` (strategy play), and `r
 | [`docs/ARCHITECTURE.md`](mock_court_system/docs/ARCHITECTURE.md) | You are changing pages or proxies |
 | [`docs/EVALUATION_GUIDE.md`](mock_court_system/docs/EVALUATION_GUIDE.md) | You are running review or offline eval |
 | [`AGENTS.md`](AGENTS.md) | Read first in a new session: live boundaries |
-| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | Current status as of 2026-09-15; the old 76-item table is archived |
+| [`docs/SYSTEM_STATUS.md`](mock_court_system/docs/SYSTEM_STATUS.md) | Current status; the old 76-item table is archived |
 | [`docs/CODEMAP.md`](mock_court_system/docs/CODEMAP.md) | Layer tags: LIVE / LAB / OFFLINE / FOSSIL / FROZEN |
 | [`docs/COURT3D_ASSET_SPEC.md`](mock_court_system/docs/COURT3D_ASSET_SPEC.md) | You are swapping 3D characters |
 | [`归档/README.md`](归档/README.md) | You need filings, papers, or the external inference memo |

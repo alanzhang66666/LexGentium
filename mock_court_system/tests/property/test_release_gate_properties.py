@@ -196,12 +196,8 @@ def test_property_4_version_surface_consistency():
 def test_property_5_civil_missing_splits_exact_difference(tmp_path_factory, present):
     """构造伪 root：复制 release 声明 + SYSTEM_STATUS + 可控 split 文件。"""
     tmp_root = Path(tmp_path_factory.mktemp("inv"))
-    inv = _manifest()
-    del inv
     shutil.copytree(ROOT / "release", tmp_root / "release")
     (tmp_root / "docs").mkdir()
-    status_rel = json.loads("{}") or {}
-    del status_rel
     status_src = ROOT / "docs" / "SYSTEM_STATUS.md"
     shutil.copy(status_src, tmp_root / "docs" / "SYSTEM_STATUS.md")
 
@@ -212,12 +208,17 @@ def test_property_5_civil_missing_splits_exact_difference(tmp_path_factory, pres
     data_root = tmp_root / inventory["civil_dataset"]["path"]
     data_root.mkdir(parents=True)
     for name in present:
-        (data_root / split_files[name]).write_text("x", encoding="utf-8")
-    for fixture in inventory["research"]["technical_fixtures"]:
-        (tmp_root / fixture["path"]).mkdir(parents=True, exist_ok=True)
+        path = data_root / split_files[name]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}\n", encoding="utf-8")
+    for pack in inventory["research"]["technical_fixtures"] + inventory["research"]["candidate_packs"]:
+        path = tmp_root / pack["path"] / "pack.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
 
     report = build_inventory_report(tmp_root)
     assert report["missing_civil_splits"] == sorted({"train", "validation", "test"} - present)
+    assert report["is_consistent"] is (len(present) == 3)
 
 
 # ---------- Property 16: 契约身份不匹配必定拒绝发布 ----------

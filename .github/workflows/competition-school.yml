@@ -1,0 +1,33 @@
+name: School competition Node checks
+on:
+  pull_request:
+    paths:
+      - '人工智能校赛/**'
+      - '.github/workflows/competition-school.yml'
+  push:
+    branches: [competition/joycode-school]
+    paths:
+      - '人工智能校赛/**'
+      - '.github/workflows/competition-school.yml'
+permissions:
+  contents: read
+jobs:
+  node-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 人工智能校赛
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - name: Validate container build
+        run: docker build -t lexgentium-school .
+      - name: Smoke container on port 8080
+        run: |
+          docker run -d --rm --name school -p 8080:8080 lexgentium-school
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/api/health && break || sleep 1; done
+          curl -fsS http://127.0.0.1:8080/global-dispute
+          docker stop school

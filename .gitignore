@@ -25,6 +25,7 @@ logs/
 output/
 *.log
 *.sqlite3
+*.sqlite3-*
 
 # 本地大体积答辩/展示材料（超过 GitHub 单文件 100MB 限制，勿再提交）
 归档/答辩与展示材料/

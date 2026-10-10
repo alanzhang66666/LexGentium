@@ -1,0 +1,177 @@
+{
+  "id": "global-equipment-dispute-demo",
+  "title": "跨境自动化生产线采购争议",
+  "classification": "synthetic_demo",
+  "disclaimer": "合成比赛示范案例，非真实仲裁案件，亦非完成独立复核的正式研究包。",
+  "parties": [
+    "中国智能装备出口企业（申请方）",
+    "欧洲设备采购商（被申请方）"
+  ],
+  "subject": "自动化生产线出口",
+  "issues": [
+    "交付延期是否构成根本违约",
+    "设备验收标准与异议是否成立",
+    "尾款与损害赔偿范围",
+    "供应链事件能否满足 CISG 第79条免责条件"
+  ],
+  "facts": [
+    {
+      "id": "F1",
+      "text": "双方签订自动化生产线跨境采购合同。",
+      "status": "demo_assumption",
+      "source_ids": [
+        "E1"
+      ]
+    },
+    {
+      "id": "F2",
+      "text": "部分设备交付延期，双方对验收和尾款支付产生争议。",
+      "status": "demo_assumption",
+      "source_ids": [
+        "E2",
+        "E3",
+        "E4"
+      ]
+    },
+    {
+      "id": "F3",
+      "text": "供应链事件的不可预见性和合理克服措施尚无充分材料。",
+      "status": "unknown",
+      "source_ids": []
+    }
+  ],
+  "rules": [
+    {
+      "id": "R1",
+      "label": "CISG 第79条",
+      "note": "履约障碍与免责要件；比赛版只展示研究入口，正式解释需人工复核。",
+      "reviewed": false,
+      "source_url": "https://uncitral.un.org/en/texts/salegoods/conventions/sale_of_goods/cisg",
+      "source_status": "official_reference_pending_independent_review"
+    }
+  ],
+  "hearing": [
+    {
+      "seq": 1,
+      "role": "arbitrator",
+      "text": "现在开始审理本次跨境设备采购争议（示范回放）。",
+      "source_ids": [
+        "E1"
+      ]
+    },
+    {
+      "seq": 2,
+      "role": "claimant",
+      "text": "申请方主张交付与付款应结合合同义务和验收证据分析。",
+      "source_ids": [
+        "E1",
+        "E2",
+        "E4"
+      ]
+    },
+    {
+      "seq": 3,
+      "role": "respondent",
+      "text": "被申请方认为迟延和性能验收争议仍需核对合同与往来材料。",
+      "source_ids": [
+        "E2",
+        "E3"
+      ]
+    },
+    {
+      "seq": 4,
+      "role": "arbitrator",
+      "text": "关于供应链障碍是否免责，目前证据不足，维持 unknown。",
+      "source_ids": []
+    }
+  ],
+  "evaluation": [
+    {
+      "label": "法律依据",
+      "status": "待复核",
+      "detail": "目前仅有规则索引，未形成复核后的正式法律意见。"
+    },
+    {
+      "label": "事实一致性",
+      "status": "演示验证",
+      "detail": "F3 信息不足，保持 unknown。"
+    },
+    {
+      "label": "程序合规",
+      "status": "演示验证",
+      "detail": "预置四条听证事件，非实时仲裁运行。"
+    },
+    {
+      "label": "策略效果",
+      "status": "未评分",
+      "detail": "尚无真实 GameEngine 实测收益，不填虚构分数。"
+    }
+  ],
+  "documents": [
+    {
+      "id": "E1",
+      "type": "contract",
+      "title": "合成设备买卖合同摘录",
+      "text": "双方约定分批交付自动化生产线，具体交付日期、验收标准、付款节点及争议解决条款应以完整签署合同为准。本演示不假定具体仲裁机构或适用法已获确认。",
+      "classification": "synthetic_demo",
+      "reviewed": false
+    },
+    {
+      "id": "E2",
+      "type": "correspondence",
+      "title": "合成交付沟通纪要",
+      "text": "双方就部分设备延期交付交换意见，延期原因及实际通知时间需进一步核对。",
+      "classification": "synthetic_demo",
+      "reviewed": false
+    },
+    {
+      "id": "E3",
+      "type": "inspection",
+      "title": "合成验收争议记录",
+      "text": "采购方提出性能验收异议；缺少完整测试参数、签署的验收报告及双方确认文件。",
+      "classification": "synthetic_demo",
+      "reviewed": false
+    },
+    {
+      "id": "E4",
+      "type": "payment",
+      "title": "合成尾款争议记录",
+      "text": "双方对剩余价款的付款条件与到期时间存在分歧，未提供银行流水。",
+      "classification": "synthetic_demo",
+      "reviewed": false
+    }
+  ],
+  "timeline": [
+    {
+      "order": 1,
+      "label": "合同订立",
+      "source_ids": [
+        "E1"
+      ],
+      "status": "demo_assumption"
+    },
+    {
+      "order": 2,
+      "label": "分批交付与延期沟通",
+      "source_ids": [
+        "E2"
+      ],
+      "status": "demo_assumption"
+    },
+    {
+      "order": 3,
+      "label": "验收异议与尾款争议",
+      "source_ids": [
+        "E3",
+        "E4"
+      ],
+      "status": "disputed"
+    },
+    {
+      "order": 4,
+      "label": "供应链障碍证据核查",
+      "source_ids": [],
+      "status": "unknown"
+    }
+  ]
+}
