@@ -46,7 +46,7 @@ export async function handler(req, res) {
     let response;
     try {response=await analyze(caseData,body.question,{role:body.role});}catch(err){return send(res,400,{error:'invalid_question'});}
     const stored={id:randomUUID(),role:body.role,question:body.question,mode:response.mode,
-      source_ids:[...response.facts.map(f=>f.source_id),...response.evidence_gaps.map(f=>f.source_id),...response.legal_research.map(r=>r.source_id)],
+      source_ids:[...new Set((response.structured?.arguments||[]).flatMap(a=>[...a.fact_ids,...a.rule_ids,...a.evidence_ids]))],
       created_at:new Date().toISOString(),output:response};
     const session=sessions.get(body.session_id);
     session.analyses.push(stored);
