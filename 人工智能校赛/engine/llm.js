@@ -1,7 +1,7 @@
 import { buildAnalysis } from './legal.js';
 const allowed = new Set(['https:', 'http:']);
-export async function analyze(data, question) {
- const grounded = buildAnalysis(data, question);
+export async function analyze(data, question, options={}) {
+ const grounded = {...buildAnalysis(data, question),role:options.role||'neutral'};
  const key=process.env.LLM_API_KEY;
  const base=process.env.LLM_BASE_URL;
  const model=process.env.LLM_MODEL;
@@ -11,7 +11,7 @@ export async function analyze(data, question) {
  if(!allowed.has(url.protocol) || (url.protocol!=='https:' && process.env.NODE_ENV==='production')) return {...grounded,notice:'生产环境只允许 HTTPS 模型接口'};
  const ac=new AbortController(); const timeout=setTimeout(()=>ac.abort(),10000);
  try {
-   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:JSON.stringify({model,temperature:0.1,max_tokens:550,messages:[{role:'system',content:'你是跨境商事争议准备助手。只能基于提供的合成示范事实和规则索引。unknown 一律保持未知，法律规则未经人工复核。不可预测仲裁裁决、胜诉概率、赔偿数额，不得增加事实。输出研究辅助意见且建议律师复核。'},{role:'user',content:JSON.stringify({question,case_id:data.id,facts:data.facts,rules:data.rules,issues:data.issues})}]}),signal:ac.signal});
+   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:JSON.stringify({model,temperature:0.1,max_tokens:550,messages:[{role:'system',content:'你是跨境商事争议准备助手。根据 user 内容的 role（claimant 为申请人代理，respondent 为被申请人代理，neutral 为中立助手）分别准备争议分析。只能基于提供的合成示范事实和规则索引。unknown 一律保持未知，法律规则未经人工复核。不可预测仲裁裁决、胜诉概率、赔偿数额，不得增加事实。输出研究辅助意见且建议律师复核。'},{role:'user',content:JSON.stringify({question,role:options.role||'neutral',case_id:data.id,facts:data.facts,rules:data.rules,issues:data.issues})}]}),signal:ac.signal});
    if(!response.ok) throw new Error('upstream_failed');
    const payload=await response.json();
    const content=payload?.choices?.[0]?.message?.content;
