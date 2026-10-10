@@ -18,7 +18,7 @@ export async function analyze(data, question, options={}) {
    const payload=await response.json();
    const content=payload?.choices?.[0]?.message?.content;
    if(typeof content!=='string'||!content.trim()) throw new Error('empty_upstream');
-   const candidate=JSON.parse(content.replace(/^```(?:json)?\\s*/i,'').replace(/\\s*```$/,''));
+   const candidate=JSON.parse(content.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
    const structured=validateArguments(data,candidate,role);
    return {...grounded,mode:'live_llm',structured,notice:'引用 ID 已校验，但模型法律论证未经人工复核。'};
  } catch {return {...grounded,mode:'structured_demo',notice:'模型不可用或结构化论证未通过校验，采用有明确标识的演示分析'};}
