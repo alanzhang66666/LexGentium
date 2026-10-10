@@ -69,10 +69,8 @@ async def enforce_body_limit(request: Request, call_next):
             chunks.append(chunk)
         body = b"".join(chunks)
 
-        async def replay_body():
-            return {"type": "http.request", "body": body, "more_body": False}
-
-        request._receive = replay_body
+        # Starlette's middleware request wrapper replays its cached body downstream.
+        request._body = body
     return await call_next(request)
 
 
