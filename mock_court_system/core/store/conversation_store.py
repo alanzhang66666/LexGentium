@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -29,10 +30,15 @@ class ConversationRecord:
     updated_at: str
     dialog_history: List[Dict[str, Any]]
     input_json: Dict[str, Any]
+    version: int = 0
 
     @property
     def message_count(self) -> int:
         return len(self.dialog_history)
+
+
+class ConcurrentSessionUpdate(RuntimeError):
+    """A session was changed after this snapshot was loaded."""
 
 
 class ConversationStore:
@@ -70,14 +76,20 @@ class MemoryConversationStore(ConversationStore):
             dialog_history=[],
             input_json=input_json or {},
         )
-        self._sessions[session_id] = rec
+        self._sessions[session_id] = copy.deepcopy(rec)
         return rec
 
     def get(self, session_id: str) -> Optional[ConversationRecord]:
-        return self._sessions.get(session_id)
+        record = self._sessions.get(session_id)
+        return copy.deepcopy(record) if record is not None else None
 
     def save(self, record: ConversationRecord) -> None:
-        self._sessions[record.session_id] = record
+        existing = self._sessions.get(record.session_id)
+        if existing is None or existing.version != record.version:
+            raise ConcurrentSessionUpdate(record.session_id)
+        record.version += 1
+        record.updated_at = _utcnow_iso()
+        self._sessions[record.session_id] = copy.deepcopy(record)
 
     def delete(self, session_id: str) -> bool:
         return self._sessions.pop(session_id, None) is not None
@@ -137,10 +149,14 @@ class SqliteConversationStore(ConversationStore):
                   created_at TEXT NOT NULL,
                   updated_at TEXT NOT NULL,
                   dialog_history_json TEXT NOT NULL,
-                  input_json_json TEXT NOT NULL
+                  input_json_json TEXT NOT NULL,
+                  version INTEGER NOT NULL DEFAULT 0
                 )
                 """
             )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(conversations)")}
+            if "version" not in columns:
+                conn.execute("ALTER TABLE conversations ADD COLUMN version INTEGER NOT NULL DEFAULT 0")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)")
 
     def create(self, *, session_id: str, scenario: str, case_id: str, input_json: Dict[str, Any]) -> ConversationRecord:
@@ -185,26 +201,33 @@ class SqliteConversationStore(ConversationStore):
             updated_at=row["updated_at"],
             dialog_history=json.loads(row["dialog_history_json"]) if row["dialog_history_json"] else [],
             input_json=json.loads(row["input_json_json"]) if row["input_json_json"] else {},
+            version=row["version"],
         )
 
     def save(self, record: ConversationRecord) -> None:
-        record.updated_at = _utcnow_iso()
+        now = _utcnow_iso()
         with self._connect() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 UPDATE conversations
-                SET scenario = ?, case_id = ?, updated_at = ?, dialog_history_json = ?, input_json_json = ?
-                WHERE session_id = ?
+                SET scenario = ?, case_id = ?, updated_at = ?,
+                    dialog_history_json = ?, input_json_json = ?, version = version + 1
+                WHERE session_id = ? AND version = ?
                 """,
                 (
                     record.scenario,
                     record.case_id,
-                    record.updated_at,
+                    now,
                     json.dumps(record.dialog_history, ensure_ascii=False),
                     json.dumps(record.input_json, ensure_ascii=False),
                     record.session_id,
+                    record.version,
                 ),
             )
+            if cursor.rowcount != 1:
+                raise ConcurrentSessionUpdate(record.session_id)
+        record.updated_at = now
+        record.version += 1
 
     def delete(self, session_id: str) -> bool:
         with self._connect() as conn:

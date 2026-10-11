@@ -74,8 +74,8 @@ Palettes: `ink` / `parchment` / `seal` (`DESIGN.md`).
 Two terminals, both in this folder:
 
 ```bash
-pip install -r requirements.txt
-npm install
+pip install -r requirements.lock
+npm ci
 cp .env.example .env          # LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 python api_server.py          # http://localhost:8000
 npm run dev                   # http://localhost:3000
@@ -83,14 +83,14 @@ npm run dev                   # http://localhost:3000
 
 `/register` or `/login` → `/conversation` → `/hearing-3d?sessionId=` → `/evaluation`.
 
-Watch is `/hearing-3d` (Phase A placeholders, not formal VRM). Old `/court3d` redirects there. Install: `docs/INSTALL.md`. Deploy: `docs/DEPLOY.md`.
+Watch is `/hearing-3d` (supplier OBJ + PBR with procedural character fallback; Phase A, not formal VRM). Old `/court3d` redirects there. Install: `docs/INSTALL.md`. Deploy: `docs/DEPLOY.md`.
 
 ## Layout
 
 ```
 mock_court_system/
 ├── app/                        # Next pages + /api BFF
-├── components/                 # Shells, hearing UI, hearing-3d (Phase A)
+├── components/                 # Shells, hearing UI, hearing-3d (supplier OBJ/PBR + procedural fallback)
 ├── lib/                        # API client, session, court3d director
 ├── agents/                     # CD / DD / CI / Sim
 ├── api/routers/                # Thin FastAPI routes
@@ -178,13 +178,13 @@ Web contrast path is **`POST /evaluate`**. Aliases: `/api/evaluation/status|resu
 
 `input_json.links`: `task_id` / `game_id` / `report_id`. Standalone `med_*` is not in those keys. Frontend current hearing: `lexgentium.lastSessionId`.
 
-`data/dataset_1000/` includes `dataset_meta.json`, a 100-case summary, and train/val/test JSONL with 600/200/200 cases and matching GT. Case picking uses `GET /reference/cases`. Rebuild 1000 rows from ClaimGen-CN with `scripts/build_dataset.py`.
+`data/dataset_1000/` includes `dataset_meta.json`, a 100-case summary, and train / val / test JSONL: 600 / 200 / 200 cases with matching CD/DD/CI GT. Case picking uses `GET /reference/cases`. Rebuild 1000 rows from ClaimGen-CN with `scripts/build_dataset.py`.
 
 ## Flags
 
 See `.env.example`: `CI_USE_GRAPH`, `PLEAD_USE_RUNTIME`, `LLM_CACHE`, `CI_LEGACY_ANALYSIS`, `API_TOKEN`, `LLM_FAST_MODEL`, `LLM_FAST_MAX_TOKENS`, `CI_MAX_AUTO_TURNS`.
 
-`data/research_packs/` currently has two SAMPLE packs (enforcement notice, CISG Art. 79). They are tech fixtures, not formal research cases.
+`data/research_packs/` currently has two SAMPLE packs (`enf-cn-notice-001`, `cisg-art79-sample-001`) and one `0.1.0-draft` candidate demo pack (`enf-us-yingfan-amazon-001`, not independently reviewed). They are fixtures or a candidate pack, not formal research cases; formal legal research cases **0**.
 
 ## Citation
 
