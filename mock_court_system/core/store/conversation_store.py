@@ -32,13 +32,13 @@ class ConversationRecord:
     input_json: Dict[str, Any]
     version: int = 0
 
-
-class ConcurrentSessionUpdate(RuntimeError):
-    """A session was changed after this snapshot was loaded."""
-
     @property
     def message_count(self) -> int:
         return len(self.dialog_history)
+
+
+class ConcurrentSessionUpdate(RuntimeError):
+    """A session was changed after this snapshot was loaded."""
 
 
 class ConversationStore:
