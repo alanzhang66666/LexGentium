@@ -47,3 +47,30 @@ def test_legacy_sqlite_table_is_migrated_without_data_loss(tmp_path):
     store.save(rec)
     assert store.get("sid").version == 1
     assert store.get("sid").dialog_history[0]["message"] == "preserved"
+
+
+@pytest.mark.parametrize("factory", [
+    lambda tmp: MemoryConversationStore(),
+    lambda tmp: SqliteConversationStore(str(tmp / "conversation-list.sqlite3")),
+])
+def test_conversation_list_reports_message_count_and_finish_state(tmp_path, factory):
+    store = factory(tmp_path)
+    store.create(session_id="sid", scenario="CI", case_id="case", input_json={"links": {"run_id": "r1"}})
+    first = store.get("sid")
+    assert first.message_count == 0
+    assert store.list(limit=10, offset=0)[0][0]["message_count"] == 0
+
+    first.dialog_history.append({"role": "Claimant", "message": "submitted"})
+    store.save(first)
+    listed, total = store.list(limit=10, offset=0)
+    assert total == 1
+    assert listed[0]["message_count"] == 1
+    assert listed[0]["is_finished"] is False
+    assert listed[0]["links"] == {"run_id": "r1"}
+
+    next_record = store.get("sid")
+    next_record.dialog_history.append({"role": "Final", "message": "complete"})
+    store.save(next_record)
+    listed, _ = store.list(limit=10, offset=0)
+    assert listed[0]["message_count"] == 2
+    assert listed[0]["is_finished"] is True
