@@ -60,3 +60,6 @@ jobs:
           tests/test_research_runtime.py
           tests/test_visibility_allowlists.py
           tests/test_research_eval_export.py
+          tests/release
+          tests/integration/test_release_evidence.py
+          tests/property/test_release_gate_properties.py

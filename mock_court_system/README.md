@@ -74,8 +74,8 @@ flowchart LR
 两个终端都进本目录：
 
 ```bash
-pip install -r requirements.txt
-npm install
+pip install -r requirements.lock
+npm ci
 cp .env.example .env          # LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 python api_server.py          # http://localhost:8000
 npm run dev                   # http://localhost:3000
@@ -83,21 +83,21 @@ npm run dev                   # http://localhost:3000
 
 `/register` 或 `/login` → `/conversation` → `/hearing-3d?sessionId=` → `/evaluation`。
 
-观庭是 `/hearing-3d`（Phase A 程序化占位，非正式 VRM）。旧 `/court3d` 重定向过来。安装：`docs/INSTALL.md`。部署：`docs/DEPLOY.md`。
+观庭是 `/hearing-3d`（供应商 OBJ + PBR，程序化人物 fallback；Phase A，非正式 VRM）。旧 `/court3d` 重定向过来。安装：`docs/INSTALL.md`。部署：`docs/DEPLOY.md`。
 
 ## 目录
 
 ```
 mock_court_system/
 ├── app/                        # Next 页 + /api BFF
-├── components/                 # 壳、听证文字、hearing-3d（Phase A）
+├── components/                 # 壳、听证文字、hearing-3d（供应商 OBJ/PBR + 程序化 fallback）
 ├── lib/                        # API 客户端、会话、court3d 管子
 ├── agents/                     # CD / DD / CI / Sim
 ├── api/routers/                # 薄 FastAPI 路由
 ├── api/services/               # 会话、博弈、评测、SSE、links
 ├── core/                       # 运行时、博弈、调解；lab/ offline/ store/；根上是 Phase 0/1
 ├── evaluation/                 # LIVE lib/ + lab/ 论文批跑。旧跑数在仓库根 归档/评测化石/
-├── data/                       # 运行时 SQLite；dataset_1000 = meta + 100 条摘要
+├── data/                       # 运行时 SQLite；dataset_1000 = train / val / test：600 / 200 / 200 + 配套 GT
 ├── database/                   # 法条 SQLite + FAISS
 ├── public/hearing-3d/          # 现役观庭合同 + 样例事件
 ├── public/court3d/             # 旧剧组 JSON / 空 models；页面已重定向。replay 已删
@@ -178,13 +178,13 @@ Web 对照主路是 **`POST /evaluate`**。别名：`/api/evaluation/status|resu
 
 `input_json.links`：`task_id` / `game_id` / `report_id`。独立 `med_*` 不在这些键里。前端本场：`lexgentium.lastSessionId`。
 
-仓库里的 `data/dataset_1000/` 包含 `dataset_meta.json`、100 条三因摘要，以及 train/val/test 分别 600/200/200 条案件和配套 GT。选案走 `GET /reference/cases`。完整 1000 条用 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
+仓库里的 `data/dataset_1000/` 包含 `dataset_meta.json`、三因摘要，以及 train / val / test：600 / 200 / 200 条案件和配套 CD/DD/CI GT。选案走 `GET /reference/cases`。完整 1000 条用 `scripts/build_dataset.py` 从 ClaimGen-CN 重建。
 
 ## 开关
 
 见 `.env.example`：`CI_USE_GRAPH`、`PLEAD_USE_RUNTIME`、`LLM_CACHE`、`CI_LEGACY_ANALYSIS`、`API_TOKEN`、`LLM_FAST_MODEL`、`LLM_FAST_MAX_TOKENS`、`CI_MAX_AUTO_TURNS`。
 
-`data/research_packs/` 现有两个 SAMPLE（执行通知、CISG 第 79 条）。是技术夹具，不算正式研究案。
+`data/research_packs/` 现有 `enf-cn-notice-001`、`cisg-art79-sample-001` 两个 SAMPLE（执行通知、CISG 第 79 条），以及 `enf-us-yingfan-amazon-001`（`0.1.0-draft`，候选演示包，尚未独立复核）。它们都是技术夹具或候选包，不算正式研究案；正式法学研究案 **0**。
 
 ## 引用
 
